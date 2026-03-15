@@ -53,10 +53,22 @@ interface JobRecord {
   imageUrl?: string;
   error?: string;
   preset: string;
-  replicateId?: string;
 }
 
 const jobs = new Map<string, JobRecord>();
+
+// Safely extract a plain string URL from Replicate output
+// The SDK may return FileOutput objects (ReadableStream-like) or plain strings
+function extractUrl(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value && typeof (value as any).url === "function") {
+    return (value as any).url().toString();
+  }
+  if (value && typeof (value as any).url === "string") {
+    return (value as any).url;
+  }
+  return String(value);
+}
 
 async function runTransformation(
   jobId: string,
@@ -93,9 +105,13 @@ async function runTransformation(
       }
     );
 
-    const outputUrl = Array.isArray(output) ? output[0] : (output as string);
+    // Handle array or single output, plus FileOutput objects
+    const rawUrl = Array.isArray(output) ? output[0] : output;
+    const imageUrl = extractUrl(rawUrl);
+
+    console.log(`Job ${jobId} completed. Image URL: ${imageUrl}`);
     job.status = "completed";
-    job.imageUrl = outputUrl;
+    job.imageUrl = imageUrl;
   } catch (err) {
     job.status = "failed";
     job.error = err instanceof Error ? err.message : "Unknown error occurred";
@@ -104,6 +120,7 @@ async function runTransformation(
     try {
       fs.unlinkSync(imagePath);
     } catch {
+      // ignore cleanup errors
     }
   }
 }
@@ -159,6 +176,54 @@ router.get("/transform/:jobId/status", (req: Request, res: Response) => {
     error: job.error,
     preset: job.preset,
   });
+});
+
+// Proxy endpoint: downloads the remote image and streams it to the client
+// This avoids CORS issues when the frontend tries to fetch and download the image
+router.get("/transform/:jobId/download", async (req: Request, res: Response) => {
+  const { jobId } = req.params;
+  const job = jobs.get(jobId);
+
+  if (!job) {
+    res.status(404).json({ error: "not_found", message: "Job not found" });
+    return;
+  }
+
+  if (job.status !== "completed" || !job.imageUrl) {
+    res.status(400).json({ error: "not_ready", message: "Image not ready yet" });
+    return;
+  }
+
+  try {
+    const response = await fetch(job.imageUrl);
+    if (!response.ok) {
+      res.status(502).json({ error: "upstream_error", message: "Failed to fetch image" });
+      return;
+    }
+
+    const contentType = response.headers.get("content-type") || "image/png";
+    res.setHeader("Content-Type", contentType);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="cinematic-${job.preset}.png"`
+    );
+
+    // Stream the image body directly to the response
+    const reader = response.body!.getReader();
+    const pump = async () => {
+      const { done, value } = await reader.read();
+      if (done) {
+        res.end();
+        return;
+      }
+      res.write(Buffer.from(value));
+      await pump();
+    };
+    await pump();
+  } catch (err) {
+    console.error(`Download proxy failed for job ${jobId}:`, err);
+    res.status(500).json({ error: "proxy_error", message: "Failed to proxy image download" });
+  }
 });
 
 export default router;

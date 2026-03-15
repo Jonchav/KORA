@@ -62,9 +62,11 @@ export default function Home() {
   };
 
   const handleDownload = async () => {
-    if (!statusData?.imageUrl) return;
+    if (!jobId) return;
     try {
-      const response = await fetch(statusData.imageUrl);
+      // Use backend proxy to avoid CORS issues when downloading from Replicate CDN
+      const response = await fetch(`/api/transform/${jobId}/download`);
+      if (!response.ok) throw new Error("Download failed");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -75,8 +77,8 @@ export default function Home() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (e) {
-      // Fallback to opening in new tab
-      window.open(statusData.imageUrl, "_blank");
+      // Fallback: open image URL directly in new tab
+      if (statusData?.imageUrl) window.open(statusData.imageUrl, "_blank");
     }
   };
 
@@ -131,14 +133,14 @@ export default function Home() {
           {/* Left Column: Image Area */}
           <div className="lg:col-span-7 space-y-6">
             <div className="relative">
-              {isCompleted && statusData?.imageUrl ? (
+              {isCompleted && jobId ? (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden glass-panel group"
                 >
                   <img 
-                    src={statusData.imageUrl} 
+                    src={`/api/transform/${jobId}/download`}
                     alt="Transformed result" 
                     className="w-full h-full object-cover"
                   />
