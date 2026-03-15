@@ -45,7 +45,7 @@ const STYLE_PROMPTS: Record<Preset, string> = {
 };
 
 const NEGATIVE_PROMPT =
-  "blurry, low quality, distorted, ugly, bad anatomy, watermark, text, cartoon, anime, painting, drawing";
+  "blurry, low quality, distorted, ugly, bad anatomy, watermark, text, cartoon, anime, painting, drawing, deformed hands, deformed fingers, extra fingers, mutated hands, bad hands, fused fingers, missing fingers, deformed face, deformed body, extra limbs, floating limbs, disfigured";
 
 interface JobRecord {
   jobId: string;
@@ -97,9 +97,9 @@ async function runTransformation(
           image: dataUri,
           prompt,
           negative_prompt: NEGATIVE_PROMPT,
-          prompt_strength: 0.65,
-          num_inference_steps: 30,
-          guidance_scale: 7.5,
+          prompt_strength: 0.45,
+          num_inference_steps: 35,
+          guidance_scale: 7.0,
           scheduler: "K_EULER",
         },
       }
