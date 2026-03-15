@@ -1,0 +1,98 @@
+Create a complete AI web application that converts a normal photo into a cinematic image.
+
+Project requirements:
+
+GENERAL IDEA
+The user uploads a photo and the system transforms it into a cinematic-looking image using AI image-to-image generation.
+
+TECH STACK
+Frontend: HTML, CSS, JavaScript
+Backend: Python with Flask
+AI: Stable Diffusion image-to-image model via Replicate API
+Image processing: Pillow and OpenCV
+Hosting: compatible with Replit deployment
+
+FEATURES
+
+1. Photo Upload
+
+- User can upload JPG or PNG
+- Display image preview before processing
+
+2. Cinematic Style Generation
+   Apply cinematic visual effects such as:
+
+- cinematic color grading (teal and orange tones)
+- dramatic lighting
+- background depth blur
+- film grain
+- bloom highlights
+- cinematic contrast
+- optional letterbox bars (2.39:1)
+
+3. Style Presets
+   Provide style buttons such as:
+
+- Cinematic
+- Sci-Fi
+- Neo-Noir
+- Warm Hollywood
+- Dramatic Portrait
+
+Each preset should modify the prompt sent to the AI model.
+
+4. AI Integration
+   Use Replicate API with a Stable Diffusion model capable of image-to-image generation.
+
+Workflow:
+
+- receive uploaded image
+- send to AI model
+- apply style prompt
+- return generated cinematic image
+
+5. User Interface
+   Create a modern interface with:
+
+- drag and drop upload area
+- style preset buttons
+- progress/loading indicator
+- result image display
+- download button
+
+6. Prompt Engineering
+   Example prompts used internally:
+
+"Cinematic movie still, dramatic lighting, high dynamic range, shallow depth of field, film grain, professional color grading, 35mm film look"
+
+"Sci-fi cinematic movie still, neon lighting, cyberpunk atmosphere, volumetric light, film grain"
+
+"Neo noir cinematic lighting, deep shadows, dramatic contrast, film still"
+
+7. File Handling
+   Store uploaded images temporarily.
+   Delete them automatically after processing.
+
+8. Download Feature
+   Allow the user to download the cinematic result in high resolution.
+
+9. Project Structure
+
+/app.py
+/templates/index.html
+/static/style.css
+/static/script.js
+/uploads
+/outputs
+
+10. Deployment
+    The app should run directly in Replit and be deployable using the Replit web server.
+
+Also include:
+
+- requirements.txt
+- clear comments in the code
+- instructions for adding the Replicate API key.
+
+Goal:
+A clean MVP where users upload a photo and receive a cinematic AI generated version of their image.
