@@ -79,13 +79,13 @@ async function runTransformation(
     }
 
     const output = await replicate.run(
-      "stability-ai/stable-diffusion-img2img:15a3689ee13b0d2616e98820eca31d4af4b36f754e9c0de66c1ecc5c8ae928f8",
+      "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
       {
         input: {
           image: dataUri,
           prompt,
           negative_prompt: NEGATIVE_PROMPT,
-          prompt_strength: 0.6,
+          prompt_strength: 0.65,
           num_inference_steps: 30,
           guidance_scale: 7.5,
           scheduler: "K_EULER",
