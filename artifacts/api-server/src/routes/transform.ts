@@ -33,15 +33,15 @@ type Preset = "cinematic" | "scifi" | "neo_noir" | "warm_hollywood" | "dramatic_
 
 const STYLE_PROMPTS: Record<Preset, string> = {
   cinematic:
-    "cinematic movie still, dramatic lighting, high dynamic range, shallow depth of field, film grain, professional color grading, teal and orange color palette, 35mm film look, anamorphic lens flare, masterful composition",
+    "cinematic film still, masterful cinematography, teal and orange color grading, deep shadows, dramatic side lighting, bokeh background, anamorphic lens flare, 35mm Kodak film grain, high contrast, rich colors, professional DOP lighting, movie quality, photorealistic",
   scifi:
-    "sci-fi cinematic movie still, neon lighting, cyberpunk atmosphere, volumetric light, film grain, futuristic environment, holographic elements, cool blue and purple tones, dramatic shadows",
+    "sci-fi cyberpunk cinematic still, intense neon blue and purple lighting, volumetric fog, holographic reflections, futuristic gritty atmosphere, glowing ambient light, sharp shadows, high contrast, ultra detailed, film grain, 8K cinematic photography",
   neo_noir:
-    "neo noir cinematic lighting, deep shadows, dramatic contrast, film still, rain-soaked streets, neon reflections, high contrast black and white with selective color, detective story atmosphere",
+    "neo noir cinematic photograph, extreme contrast, deep inky blacks, dramatic single-source lighting, venetian blind shadows, rain-soaked reflections, desaturated color with selective amber highlights, moody detective film atmosphere, 1950s crime drama",
   warm_hollywood:
-    "warm Hollywood cinematic still, golden hour lighting, warm tones, professional color grading, shallow depth of field, anamorphic bokeh, epic wide shot, blockbuster feel, soft bloom highlights",
+    "warm Hollywood golden hour film still, rich amber and honey tones, soft glowing sunlight, professional lens flare, shallow depth of field, creamy bokeh, anamorphic widescreen, blockbuster cinematography, epic sweeping mood, Kodak Vision3",
   dramatic_portrait:
-    "dramatic cinematic portrait, rembrandt lighting, deep shadows, high contrast, film grain, close-up shot, expressive, moody atmosphere, shallow depth of field, professional photography",
+    "dramatic Rembrandt portrait photography, strong chiaroscuro lighting, deep moody shadows, single spotlight, intense emotional expression, film grain texture, high contrast black and silver tones, award winning photography, magazine cover quality",
 };
 
 const NEGATIVE_PROMPT =
@@ -97,9 +97,9 @@ async function runTransformation(
           image: dataUri,
           prompt,
           negative_prompt: NEGATIVE_PROMPT,
-          prompt_strength: 0.45,
-          num_inference_steps: 35,
-          guidance_scale: 7.0,
+          prompt_strength: 0.55,
+          num_inference_steps: 40,
+          guidance_scale: 8.0,
           scheduler: "K_EULER",
         },
       }
