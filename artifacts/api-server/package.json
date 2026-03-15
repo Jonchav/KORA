@@ -16,7 +16,8 @@
     "drizzle-orm": "catalog:",
     "express": "^5",
     "multer": "^2.1.1",
-    "replicate": "^1.4.0"
+    "replicate": "^1.4.0",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
@@ -24,6 +25,7 @@
     "@types/express": "^5.0.6",
     "@types/multer": "^2.1.0",
     "@types/node": "catalog:",
+    "@types/sharp": "^0.32.0",
     "esbuild": "^0.27.3",
     "tsx": "catalog:"
   }

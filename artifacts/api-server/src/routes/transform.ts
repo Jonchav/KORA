@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import multer from "multer";
-import Replicate from "replicate";
+import sharp from "sharp";
 import fs from "fs";
 import path from "path";
 import os from "os";
@@ -25,49 +25,173 @@ const upload = multer({
   },
 });
 
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
-
 type Preset = "cinematic" | "scifi" | "neo_noir" | "warm_hollywood" | "dramatic_portrait";
-
-const STYLE_PROMPTS: Record<Preset, string> = {
-  cinematic:
-    "Transform this photo into a dramatic cinematic movie still. Apply teal shadows and orange highlights color grading. Add strong directional side lighting that sculpts the subject with deep shadows. Include anamorphic lens bokeh in the background, subtle 35mm film grain, and rich high-contrast professional cinematography. The result should look like a scene from a high-budget Hollywood film.",
-  scifi:
-    "Transform this photo into a sci-fi cyberpunk cinematic scene. Bathe the image in intense neon blue, purple and cyan lighting. Add volumetric fog, glowing light trails, and futuristic atmospheric haze. Create deep dramatic shadows with vibrant neon highlights. The result should look like a scene from a dystopian science fiction blockbuster.",
-  neo_noir:
-    "Transform this photo into a neo-noir film still. Dramatically desaturate the colors leaving only amber and deep shadow tones. Apply extreme chiaroscuro lighting with a single harsh light source casting venetian blind shadows. Create deep inky black shadows and bright blown-out highlights. Add film grain texture. The result should feel like a 1950s crime detective film.",
-  warm_hollywood:
-    "Transform this photo with warm golden Hollywood cinematic color grading. Apply a rich amber and honey warm tone across the entire image. Simulate a magic hour sunset glow with soft lens flare. Add anamorphic bokeh and a shallow depth of field. The result should feel like an epic blockbuster movie shot on Kodak Vision3 film.",
-  dramatic_portrait:
-    "Transform this photo into a dramatic portrait with Rembrandt-style studio lighting. Apply strong chiaroscuro with a single overhead spotlight casting half the face in deep shadow. Increase contrast dramatically. Add subtle film grain and a dark moody vignette. The result should feel like an award-winning editorial photography portrait.",
-};
-
-const NEGATIVE_PROMPT =
-  "blurry, low quality, distorted, ugly, bad anatomy, watermark, text, cartoon, anime, painting, drawing, deformed hands, deformed fingers, extra fingers, mutated hands, bad hands, fused fingers, missing fingers, deformed face, deformed body, extra limbs, floating limbs, disfigured";
 
 interface JobRecord {
   jobId: string;
   status: "pending" | "processing" | "completed" | "failed";
-  imageUrl?: string;
+  imageBuffer?: Buffer;
   error?: string;
   preset: string;
 }
 
 const jobs = new Map<string, JobRecord>();
 
-// Safely extract a plain string URL from Replicate output
-// The SDK may return FileOutput objects (ReadableStream-like) or plain strings
-function extractUrl(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (value && typeof (value as any).url === "function") {
-    return (value as any).url().toString();
+async function createVignette(width: number, height: number, opacity: number): Promise<Buffer> {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+    <defs>
+      <radialGradient id="v" cx="50%" cy="50%" r="75%">
+        <stop offset="0%" stop-color="black" stop-opacity="0"/>
+        <stop offset="65%" stop-color="black" stop-opacity="${(opacity * 0.35).toFixed(2)}"/>
+        <stop offset="100%" stop-color="black" stop-opacity="${opacity.toFixed(2)}"/>
+      </radialGradient>
+    </defs>
+    <rect width="${width}" height="${height}" fill="url(#v)"/>
+  </svg>`;
+  return Buffer.from(svg);
+}
+
+async function createGrain(width: number, height: number, intensity: number): Promise<Buffer> {
+  const pixels = width * height;
+  const data = Buffer.alloc(pixels * 4);
+  for (let i = 0; i < pixels; i++) {
+    const noise = Math.floor(128 + (Math.random() - 0.5) * 255);
+    data[i * 4] = noise;
+    data[i * 4 + 1] = noise;
+    data[i * 4 + 2] = noise;
+    data[i * 4 + 3] = Math.floor(intensity);
   }
-  if (value && typeof (value as any).url === "string") {
-    return (value as any).url;
-  }
-  return String(value);
+  return sharp(data, { raw: { width, height, channels: 4 } }).png().toBuffer();
+}
+
+function createLetterboxOverlay(width: number, height: number): Buffer {
+  const barH = Math.round(height * 0.105);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+    <rect x="0" y="0" width="${width}" height="${barH}" fill="black"/>
+    <rect x="0" y="${height - barH}" width="${width}" height="${barH}" fill="black"/>
+  </svg>`;
+  return Buffer.from(svg);
+}
+
+async function applyCinematic(buf: Buffer, width: number, height: number): Promise<Buffer> {
+  const grain = await createGrain(width, height, 18);
+  const vignette = await createVignette(width, height, 0.55);
+  return sharp(buf)
+    .recomb([
+      [1.12, 0.0, -0.05],
+      [-0.03, 1.02, 0.03],
+      [-0.1,  0.06, 1.15],
+    ])
+    .modulate({ brightness: 0.97, saturation: 1.15 })
+    .linear(1.18, -18)
+    .composite([
+      { input: grain, blend: "soft-light" },
+      { input: vignette, blend: "over" },
+    ])
+    .png()
+    .toBuffer();
+}
+
+async function applyScifi(buf: Buffer, width: number, height: number): Promise<Buffer> {
+  const grain = await createGrain(width, height, 22);
+  const vignette = await createVignette(width, height, 0.65);
+  const glowSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+    <defs>
+      <radialGradient id="g" cx="50%" cy="40%" r="60%">
+        <stop offset="0%" stop-color="#001aff" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="#001aff" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="${width}" height="${height}" fill="url(#g)"/>
+  </svg>`;
+  return sharp(buf)
+    .recomb([
+      [0.65, 0.08, 0.18],
+      [0.0,  0.82, 0.3 ],
+      [0.12, 0.12, 1.45],
+    ])
+    .modulate({ brightness: 0.88, saturation: 1.9 })
+    .linear(1.25, -22)
+    .composite([
+      { input: Buffer.from(glowSvg), blend: "screen" },
+      { input: grain, blend: "soft-light" },
+      { input: vignette, blend: "over" },
+    ])
+    .png()
+    .toBuffer();
+}
+
+async function applyNeoNoir(buf: Buffer, width: number, height: number): Promise<Buffer> {
+  const grain = await createGrain(width, height, 30);
+  const vignette = await createVignette(width, height, 0.7);
+  const amberSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+    <rect width="${width}" height="${height}" fill="#ff8800" opacity="0.07"/>
+  </svg>`;
+  return sharp(buf)
+    .recomb([
+      [0.5, 0.35, 0.15],
+      [0.5, 0.35, 0.15],
+      [0.35, 0.25, 0.4],
+    ])
+    .modulate({ brightness: 0.88, saturation: 0.12 })
+    .linear(1.45, -30)
+    .gamma(1.1)
+    .composite([
+      { input: Buffer.from(amberSvg), blend: "screen" },
+      { input: grain, blend: "soft-light" },
+      { input: vignette, blend: "over" },
+    ])
+    .png()
+    .toBuffer();
+}
+
+async function applyWarmHollywood(buf: Buffer, width: number, height: number): Promise<Buffer> {
+  const grain = await createGrain(width, height, 14);
+  const vignette = await createVignette(width, height, 0.4);
+  const warmSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+    <defs>
+      <radialGradient id="w" cx="60%" cy="35%" r="70%">
+        <stop offset="0%" stop-color="#ffbb44" stop-opacity="0.22"/>
+        <stop offset="100%" stop-color="#ff6600" stop-opacity="0.05"/>
+      </radialGradient>
+    </defs>
+    <rect width="${width}" height="${height}" fill="url(#w)"/>
+  </svg>`;
+  return sharp(buf)
+    .recomb([
+      [1.25, 0.1, -0.08],
+      [0.0,  1.06, 0.0 ],
+      [-0.12, 0.0, 0.82],
+    ])
+    .modulate({ brightness: 1.05, saturation: 1.25 })
+    .linear(1.08, 8)
+    .composite([
+      { input: Buffer.from(warmSvg), blend: "screen" },
+      { input: grain, blend: "soft-light" },
+      { input: vignette, blend: "over" },
+    ])
+    .png()
+    .toBuffer();
+}
+
+async function applyDramaticPortrait(buf: Buffer, width: number, height: number): Promise<Buffer> {
+  const grain = await createGrain(width, height, 28);
+  const vignette = await createVignette(width, height, 0.78);
+  return sharp(buf)
+    .recomb([
+      [0.55, 0.33, 0.12],
+      [0.55, 0.33, 0.12],
+      [0.45, 0.28, 0.27],
+    ])
+    .modulate({ brightness: 0.82, saturation: 0.08 })
+    .linear(1.55, -38)
+    .gamma(0.88)
+    .composite([
+      { input: grain, blend: "soft-light" },
+      { input: vignette, blend: "over" },
+    ])
+    .png()
+    .toBuffer();
 }
 
 async function runTransformation(
@@ -80,49 +204,47 @@ async function runTransformation(
   job.status = "processing";
 
   try {
-    const imageBuffer = fs.readFileSync(imagePath);
-    const base64Image = imageBuffer.toString("base64");
-    const ext = path.extname(imagePath).replace(".", "") || "jpeg";
-    const dataUri = `data:image/${ext === "jpg" ? "jpeg" : ext};base64,${base64Image}`;
+    const inputBuffer = fs.readFileSync(imagePath);
+    const metadata = await sharp(inputBuffer).metadata();
+    const width = metadata.width ?? 1024;
+    const height = metadata.height ?? 768;
 
-    let prompt = STYLE_PROMPTS[preset];
-    if (letterbox) {
-      prompt += ", letterbox format, 2.39:1 aspect ratio, black bars";
+    let result: Buffer;
+    switch (preset) {
+      case "cinematic":
+        result = await applyCinematic(inputBuffer, width, height);
+        break;
+      case "scifi":
+        result = await applyScifi(inputBuffer, width, height);
+        break;
+      case "neo_noir":
+        result = await applyNeoNoir(inputBuffer, width, height);
+        break;
+      case "warm_hollywood":
+        result = await applyWarmHollywood(inputBuffer, width, height);
+        break;
+      case "dramatic_portrait":
+        result = await applyDramaticPortrait(inputBuffer, width, height);
+        break;
     }
 
-    const output = await replicate.run(
-      "black-forest-labs/flux-dev",
-      {
-        input: {
-          image: dataUri,
-          prompt,
-          strength: 0.8,
-          num_inference_steps: 28,
-          guidance: 3.5,
-          output_format: "png",
-          output_quality: 95,
-          go_fast: false,
-        },
-      }
-    );
+    if (letterbox) {
+      const lbOverlay = createLetterboxOverlay(width, height);
+      result = await sharp(result)
+        .composite([{ input: lbOverlay, blend: "over" }])
+        .png()
+        .toBuffer();
+    }
 
-    // Handle array or single output, plus FileOutput objects
-    const rawUrl = Array.isArray(output) ? output[0] : output;
-    const imageUrl = extractUrl(rawUrl);
-
-    console.log(`Job ${jobId} completed. Image URL: ${imageUrl}`);
+    console.log(`Job ${jobId} completed (${preset}, ${width}x${height})`);
     job.status = "completed";
-    job.imageUrl = imageUrl;
+    job.imageBuffer = result;
   } catch (err) {
     job.status = "failed";
     job.error = err instanceof Error ? err.message : "Unknown error occurred";
     console.error(`Job ${jobId} failed:`, err);
   } finally {
-    try {
-      fs.unlinkSync(imagePath);
-    } catch {
-      // ignore cleanup errors
-    }
+    try { fs.unlinkSync(imagePath); } catch { }
   }
 }
 
@@ -137,11 +259,7 @@ router.post(
 
     const preset = req.body.preset as Preset;
     const validPresets: Preset[] = [
-      "cinematic",
-      "scifi",
-      "neo_noir",
-      "warm_hollywood",
-      "dramatic_portrait",
+      "cinematic", "scifi", "neo_noir", "warm_hollywood", "dramatic_portrait",
     ];
 
     if (!preset || !validPresets.includes(preset)) {
@@ -173,15 +291,13 @@ router.get("/transform/:jobId/status", (req: Request, res: Response) => {
   res.json({
     jobId: job.jobId,
     status: job.status,
-    imageUrl: job.imageUrl,
+    imageUrl: job.status === "completed" ? `/api/transform/${jobId}/download` : undefined,
     error: job.error,
     preset: job.preset,
   });
 });
 
-// Proxy endpoint: downloads the remote image and streams it to the client
-// This avoids CORS issues when the frontend tries to fetch and download the image
-router.get("/transform/:jobId/download", async (req: Request, res: Response) => {
+router.get("/transform/:jobId/download", (req: Request, res: Response) => {
   const { jobId } = req.params;
   const job = jobs.get(jobId);
 
@@ -190,41 +306,15 @@ router.get("/transform/:jobId/download", async (req: Request, res: Response) => 
     return;
   }
 
-  if (job.status !== "completed" || !job.imageUrl) {
+  if (job.status !== "completed" || !job.imageBuffer) {
     res.status(400).json({ error: "not_ready", message: "Image not ready yet" });
     return;
   }
 
-  try {
-    const response = await fetch(job.imageUrl);
-    if (!response.ok) {
-      res.status(502).json({ error: "upstream_error", message: "Failed to fetch image" });
-      return;
-    }
-
-    const contentType = response.headers.get("content-type") || "image/png";
-    res.setHeader("Content-Type", contentType);
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="cinematic-${job.preset}.png"`
-    );
-
-    // Stream the image body directly to the response
-    const reader = response.body!.getReader();
-    const pump = async () => {
-      const { done, value } = await reader.read();
-      if (done) {
-        res.end();
-        return;
-      }
-      res.write(Buffer.from(value));
-      await pump();
-    };
-    await pump();
-  } catch (err) {
-    console.error(`Download proxy failed for job ${jobId}:`, err);
-    res.status(500).json({ error: "proxy_error", message: "Failed to proxy image download" });
-  }
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Content-Disposition", `attachment; filename="cinematic-${job.preset}.png"`);
+  res.setHeader("Content-Length", job.imageBuffer.length);
+  res.end(job.imageBuffer);
 });
 
 export default router;
