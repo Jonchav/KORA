@@ -33,15 +33,15 @@ type Preset = "cinematic" | "scifi" | "neo_noir" | "warm_hollywood" | "dramatic_
 
 const STYLE_PROMPTS: Record<Preset, string> = {
   cinematic:
-    "cinematic film still, masterful cinematography, teal and orange color grading, deep shadows, dramatic side lighting, bokeh background, anamorphic lens flare, 35mm Kodak film grain, high contrast, rich colors, professional DOP lighting, movie quality, photorealistic",
+    "Transform this photo into a dramatic cinematic movie still. Apply teal shadows and orange highlights color grading. Add strong directional side lighting that sculpts the subject with deep shadows. Include anamorphic lens bokeh in the background, subtle 35mm film grain, and rich high-contrast professional cinematography. The result should look like a scene from a high-budget Hollywood film.",
   scifi:
-    "sci-fi cyberpunk cinematic still, intense neon blue and purple lighting, volumetric fog, holographic reflections, futuristic gritty atmosphere, glowing ambient light, sharp shadows, high contrast, ultra detailed, film grain, 8K cinematic photography",
+    "Transform this photo into a sci-fi cyberpunk cinematic scene. Bathe the image in intense neon blue, purple and cyan lighting. Add volumetric fog, glowing light trails, and futuristic atmospheric haze. Create deep dramatic shadows with vibrant neon highlights. The result should look like a scene from a dystopian science fiction blockbuster.",
   neo_noir:
-    "neo noir cinematic photograph, extreme contrast, deep inky blacks, dramatic single-source lighting, venetian blind shadows, rain-soaked reflections, desaturated color with selective amber highlights, moody detective film atmosphere, 1950s crime drama",
+    "Transform this photo into a neo-noir film still. Dramatically desaturate the colors leaving only amber and deep shadow tones. Apply extreme chiaroscuro lighting with a single harsh light source casting venetian blind shadows. Create deep inky black shadows and bright blown-out highlights. Add film grain texture. The result should feel like a 1950s crime detective film.",
   warm_hollywood:
-    "warm Hollywood golden hour film still, rich amber and honey tones, soft glowing sunlight, professional lens flare, shallow depth of field, creamy bokeh, anamorphic widescreen, blockbuster cinematography, epic sweeping mood, Kodak Vision3",
+    "Transform this photo with warm golden Hollywood cinematic color grading. Apply a rich amber and honey warm tone across the entire image. Simulate a magic hour sunset glow with soft lens flare. Add anamorphic bokeh and a shallow depth of field. The result should feel like an epic blockbuster movie shot on Kodak Vision3 film.",
   dramatic_portrait:
-    "dramatic Rembrandt portrait photography, strong chiaroscuro lighting, deep moody shadows, single spotlight, intense emotional expression, film grain texture, high contrast black and silver tones, award winning photography, magazine cover quality",
+    "Transform this photo into a dramatic portrait with Rembrandt-style studio lighting. Apply strong chiaroscuro with a single overhead spotlight casting half the face in deep shadow. Increase contrast dramatically. Add subtle film grain and a dark moody vignette. The result should feel like an award-winning editorial photography portrait.",
 };
 
 const NEGATIVE_PROMPT =
@@ -91,16 +91,17 @@ async function runTransformation(
     }
 
     const output = await replicate.run(
-      "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
+      "black-forest-labs/flux-dev",
       {
         input: {
           image: dataUri,
           prompt,
-          negative_prompt: NEGATIVE_PROMPT,
-          prompt_strength: 0.55,
-          num_inference_steps: 40,
-          guidance_scale: 8.0,
-          scheduler: "K_EULER",
+          strength: 0.8,
+          num_inference_steps: 28,
+          guidance: 3.5,
+          output_format: "png",
+          output_quality: 95,
+          go_fast: false,
         },
       }
     );
