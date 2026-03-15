@@ -1,15 +1,16 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Cinematic AI Photo Transformer API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: transform
+    description: Image transformation operations
 paths:
   /healthz:
     get:
@@ -24,6 +25,77 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /transform:
+    post:
+      operationId: transformImage
+      tags: [transform]
+      summary: Transform image to cinematic style
+      description: Upload an image and apply a cinematic style preset using AI
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: The image file to transform (JPG or PNG)
+                preset:
+                  type: string
+                  enum: [cinematic, scifi, neo_noir, warm_hollywood, dramatic_portrait]
+                  description: The cinematic style preset to apply
+                letterbox:
+                  type: boolean
+                  description: Whether to add letterbox bars (2.39:1 aspect ratio)
+              required:
+                - image
+                - preset
+      responses:
+        "200":
+          description: Transformation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransformResult"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /transform/{jobId}/status:
+    get:
+      operationId: getTransformStatus
+      tags: [transform]
+      summary: Get transformation job status
+      description: Poll for the status of a transformation job
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransformStatus"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +105,52 @@ components:
           type: string
       required:
         - status
-
+    TransformResult:
+      type: object
+      properties:
+        jobId:
+          type: string
+          description: Job ID for polling status
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        imageUrl:
+          type: string
+          description: URL of the transformed image (when completed)
+        preset:
+          type: string
+          description: The preset that was applied
+      required:
+        - jobId
+        - status
+        - preset
+    TransformStatus:
+      type: object
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        imageUrl:
+          type: string
+          description: URL of the transformed image (when completed)
+        error:
+          type: string
+          description: Error message (when failed)
+        preset:
+          type: string
+      required:
+        - jobId
+        - status
+        - preset
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message

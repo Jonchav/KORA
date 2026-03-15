@@ -1,0 +1,14 @@
+packages:
+  "react-dropzone": "For handling drag-and-drop file uploads gracefully"
+  "framer-motion": "For smooth cinematic page transitions and loading states"
+  "clsx": "Utility for conditionally joining class names"
+  "tailwind-merge": "Utility for merging tailwind classes without style conflicts"
+
+images:
+  - path: "artifacts/cinematic-ai/public/images/cinematic-bg.png"
+    description: "A dark, moody, cinematic abstract background with subtle atmospheric studio lighting, anamorphic lens flares, and deep slate and amber tones. Highly minimalist, premium, and elegant."
+    aspect_ratio: "16:9"
+
+notes:
+  - Using direct fetch for the multipart/form-data upload as specified, circumventing the generated API client for the POST request only.
+  - The app enforces dark mode to fit the cinematic aesthetic.
