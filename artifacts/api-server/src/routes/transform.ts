@@ -1,6 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import multer from "multer";
 import sharp from "sharp";
+import Replicate from "replicate";
 import fs from "fs";
 import path from "path";
 import os from "os";
@@ -25,6 +26,8 @@ const upload = multer({
   },
 });
 
+const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
+
 type Preset = "cinematic" | "scifi" | "neo_noir" | "warm_hollywood" | "dramatic_portrait";
 
 interface JobRecord {
@@ -33,9 +36,17 @@ interface JobRecord {
   imageBuffer?: Buffer;
   error?: string;
   preset: string;
+  removeBackground: boolean;
 }
 
 const jobs = new Map<string, JobRecord>();
+
+function extractUrl(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value && typeof (value as any).url === "function") return (value as any).url().toString();
+  if (value && typeof (value as any).url === "string") return (value as any).url;
+  return String(value);
+}
 
 async function createVignette(width: number, height: number, opacity: number): Promise<Buffer> {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
@@ -77,39 +88,25 @@ async function applyCinematic(buf: Buffer, width: number, height: number): Promi
   const grain = await createGrain(width, height, 18);
   const vignette = await createVignette(width, height, 0.55);
   return sharp(buf)
-    .recomb([
-      [1.12, 0.0, -0.05],
-      [-0.03, 1.02, 0.03],
-      [-0.1,  0.06, 1.15],
-    ])
+    .recomb([[1.12, 0.0, -0.05], [-0.03, 1.02, 0.03], [-0.1, 0.06, 1.15]])
     .modulate({ brightness: 0.97, saturation: 1.15 })
     .linear(1.18, -18)
-    .composite([
-      { input: grain, blend: "soft-light" },
-      { input: vignette, blend: "over" },
-    ])
-    .png()
-    .toBuffer();
+    .composite([{ input: grain, blend: "soft-light" }, { input: vignette, blend: "over" }])
+    .png().toBuffer();
 }
 
 async function applyScifi(buf: Buffer, width: number, height: number): Promise<Buffer> {
   const grain = await createGrain(width, height, 22);
   const vignette = await createVignette(width, height, 0.65);
   const glowSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <defs>
-      <radialGradient id="g" cx="50%" cy="40%" r="60%">
-        <stop offset="0%" stop-color="#001aff" stop-opacity="0.18"/>
-        <stop offset="100%" stop-color="#001aff" stop-opacity="0"/>
-      </radialGradient>
-    </defs>
+    <defs><radialGradient id="g" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#001aff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#001aff" stop-opacity="0"/>
+    </radialGradient></defs>
     <rect width="${width}" height="${height}" fill="url(#g)"/>
   </svg>`;
   return sharp(buf)
-    .recomb([
-      [0.65, 0.08, 0.18],
-      [0.0,  0.82, 0.3 ],
-      [0.12, 0.12, 1.45],
-    ])
+    .recomb([[0.65, 0.08, 0.18], [0.0, 0.82, 0.3], [0.12, 0.12, 1.45]])
     .modulate({ brightness: 0.88, saturation: 1.9 })
     .linear(1.25, -22)
     .composite([
@@ -117,8 +114,7 @@ async function applyScifi(buf: Buffer, width: number, height: number): Promise<B
       { input: grain, blend: "soft-light" },
       { input: vignette, blend: "over" },
     ])
-    .png()
-    .toBuffer();
+    .png().toBuffer();
 }
 
 async function applyNeoNoir(buf: Buffer, width: number, height: number): Promise<Buffer> {
@@ -128,11 +124,7 @@ async function applyNeoNoir(buf: Buffer, width: number, height: number): Promise
     <rect width="${width}" height="${height}" fill="#ff8800" opacity="0.07"/>
   </svg>`;
   return sharp(buf)
-    .recomb([
-      [0.5, 0.35, 0.15],
-      [0.5, 0.35, 0.15],
-      [0.35, 0.25, 0.4],
-    ])
+    .recomb([[0.5, 0.35, 0.15], [0.5, 0.35, 0.15], [0.35, 0.25, 0.4]])
     .modulate({ brightness: 0.88, saturation: 0.12 })
     .linear(1.45, -30)
     .gamma(1.1)
@@ -141,28 +133,21 @@ async function applyNeoNoir(buf: Buffer, width: number, height: number): Promise
       { input: grain, blend: "soft-light" },
       { input: vignette, blend: "over" },
     ])
-    .png()
-    .toBuffer();
+    .png().toBuffer();
 }
 
 async function applyWarmHollywood(buf: Buffer, width: number, height: number): Promise<Buffer> {
   const grain = await createGrain(width, height, 14);
   const vignette = await createVignette(width, height, 0.4);
   const warmSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <defs>
-      <radialGradient id="w" cx="60%" cy="35%" r="70%">
-        <stop offset="0%" stop-color="#ffbb44" stop-opacity="0.22"/>
-        <stop offset="100%" stop-color="#ff6600" stop-opacity="0.05"/>
-      </radialGradient>
-    </defs>
+    <defs><radialGradient id="w" cx="60%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#ffbb44" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#ff6600" stop-opacity="0.05"/>
+    </radialGradient></defs>
     <rect width="${width}" height="${height}" fill="url(#w)"/>
   </svg>`;
   return sharp(buf)
-    .recomb([
-      [1.25, 0.1, -0.08],
-      [0.0,  1.06, 0.0 ],
-      [-0.12, 0.0, 0.82],
-    ])
+    .recomb([[1.25, 0.1, -0.08], [0.0, 1.06, 0.0], [-0.12, 0.0, 0.82]])
     .modulate({ brightness: 1.05, saturation: 1.25 })
     .linear(1.08, 8)
     .composite([
@@ -170,35 +155,55 @@ async function applyWarmHollywood(buf: Buffer, width: number, height: number): P
       { input: grain, blend: "soft-light" },
       { input: vignette, blend: "over" },
     ])
-    .png()
-    .toBuffer();
+    .png().toBuffer();
 }
 
 async function applyDramaticPortrait(buf: Buffer, width: number, height: number): Promise<Buffer> {
   const grain = await createGrain(width, height, 28);
   const vignette = await createVignette(width, height, 0.78);
   return sharp(buf)
-    .recomb([
-      [0.55, 0.33, 0.12],
-      [0.55, 0.33, 0.12],
-      [0.45, 0.28, 0.27],
-    ])
+    .recomb([[0.55, 0.33, 0.12], [0.55, 0.33, 0.12], [0.45, 0.28, 0.27]])
     .modulate({ brightness: 0.82, saturation: 0.08 })
     .linear(1.55, -38)
     .gamma(0.88)
-    .composite([
-      { input: grain, blend: "soft-light" },
-      { input: vignette, blend: "over" },
-    ])
-    .png()
-    .toBuffer();
+    .composite([{ input: grain, blend: "soft-light" }, { input: vignette, blend: "over" }])
+    .png().toBuffer();
+}
+
+async function applyNanoBanana(gradedBuffer: Buffer): Promise<Buffer> {
+  console.log("Uploading image to Replicate for background removal...");
+
+  const blob = new Blob([gradedBuffer], { type: "image/png" });
+  const file = await replicate.files.create(blob as any, { filename: "graded.png" } as any);
+  const imageUrl = (file as any).urls?.get ?? (file as any).url ?? String(file);
+
+  console.log("Running Nano Banana 2, image URL:", imageUrl);
+
+  const output = await replicate.run(
+    "jide/nano-banana-2-transparent:689fe27ffec145cc7e3d76ee4778ab3b0f24bd72eca62f4f534d562f062a2e1d",
+    {
+      input: {
+        image: imageUrl,
+        replicate_api_token: process.env.REPLICATE_API_TOKEN,
+      },
+    }
+  );
+
+  const rawUrl = Array.isArray(output) ? output[0] : output;
+  const resultUrl = extractUrl(rawUrl);
+  console.log("Nano Banana result URL:", resultUrl);
+
+  const response = await fetch(resultUrl);
+  if (!response.ok) throw new Error(`Failed to fetch Nano Banana result: ${response.status}`);
+  return Buffer.from(await response.arrayBuffer());
 }
 
 async function runTransformation(
   jobId: string,
   imagePath: string,
   preset: Preset,
-  letterbox: boolean
+  letterbox: boolean,
+  removeBackground: boolean
 ) {
   const job = jobs.get(jobId)!;
   job.status = "processing";
@@ -211,32 +216,25 @@ async function runTransformation(
 
     let result: Buffer;
     switch (preset) {
-      case "cinematic":
-        result = await applyCinematic(inputBuffer, width, height);
-        break;
-      case "scifi":
-        result = await applyScifi(inputBuffer, width, height);
-        break;
-      case "neo_noir":
-        result = await applyNeoNoir(inputBuffer, width, height);
-        break;
-      case "warm_hollywood":
-        result = await applyWarmHollywood(inputBuffer, width, height);
-        break;
-      case "dramatic_portrait":
-        result = await applyDramaticPortrait(inputBuffer, width, height);
-        break;
+      case "cinematic":      result = await applyCinematic(inputBuffer, width, height); break;
+      case "scifi":          result = await applyScifi(inputBuffer, width, height); break;
+      case "neo_noir":       result = await applyNeoNoir(inputBuffer, width, height); break;
+      case "warm_hollywood": result = await applyWarmHollywood(inputBuffer, width, height); break;
+      case "dramatic_portrait": result = await applyDramaticPortrait(inputBuffer, width, height); break;
     }
 
-    if (letterbox) {
+    if (letterbox && !removeBackground) {
       const lbOverlay = createLetterboxOverlay(width, height);
       result = await sharp(result)
         .composite([{ input: lbOverlay, blend: "over" }])
-        .png()
-        .toBuffer();
+        .png().toBuffer();
     }
 
-    console.log(`Job ${jobId} completed (${preset}, ${width}x${height})`);
+    if (removeBackground) {
+      result = await applyNanoBanana(result);
+    }
+
+    console.log(`Job ${jobId} completed (${preset}, ${width}x${height}, bgRemove=${removeBackground})`);
     job.status = "completed";
     job.imageBuffer = result;
   } catch (err) {
@@ -268,12 +266,13 @@ router.post(
     }
 
     const letterbox = req.body.letterbox === "true" || req.body.letterbox === true;
+    const removeBackground = req.body.removeBackground === "true" || req.body.removeBackground === true;
     const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    const job: JobRecord = { jobId, status: "pending", preset };
+    const job: JobRecord = { jobId, status: "pending", preset, removeBackground };
     jobs.set(jobId, job);
 
-    runTransformation(jobId, req.file.path, preset, letterbox);
+    runTransformation(jobId, req.file.path, preset, letterbox, removeBackground);
 
     res.json({ jobId, status: "pending", preset });
   }
@@ -311,8 +310,12 @@ router.get("/transform/:jobId/download", (req: Request, res: Response) => {
     return;
   }
 
+  const filename = job.removeBackground
+    ? `cinematic-${job.preset}-nobg.png`
+    : `cinematic-${job.preset}.png`;
+
   res.setHeader("Content-Type", "image/png");
-  res.setHeader("Content-Disposition", `attachment; filename="cinematic-${job.preset}.png"`);
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
   res.setHeader("Content-Length", job.imageBuffer.length);
   res.end(job.imageBuffer);
 });

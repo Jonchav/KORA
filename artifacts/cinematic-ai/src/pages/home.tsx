@@ -4,7 +4,7 @@ import { UploadZone } from "@/components/upload-zone";
 import { PresetCard, type PresetType } from "@/components/preset-card";
 import { useTransformMutation, useTransformPolling } from "@/hooks/use-transform";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Download, RotateCcw, AlertTriangle, Clapperboard, Sparkles } from "lucide-react";
+import { Loader2, Download, RotateCcw, AlertTriangle, Clapperboard, Sparkles, Scissors } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PRESETS: Array<{ id: PresetType; title: string; description: string }> = [
@@ -39,7 +39,7 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [preset, setPreset] = useState<PresetType>("cinematic");
   const [letterbox, setLetterbox] = useState(true);
-  
+  const [removeBackground, setRemoveBackground] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
 
   const mutation = useTransformMutation();
@@ -48,7 +48,7 @@ export default function Home() {
   const handleTransform = async () => {
     if (!file) return;
     try {
-      const result = await mutation.mutateAsync({ image: file, preset, letterbox });
+      const result = await mutation.mutateAsync({ image: file, preset, letterbox, removeBackground });
       setJobId(result.jobId);
     } catch (err) {
       console.error("Failed to start transformation", err);
@@ -137,20 +137,16 @@ export default function Home() {
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden glass-panel group"
+                  className={cn(
+                    "relative w-full aspect-[4/3] rounded-2xl overflow-hidden glass-panel group",
+                    removeBackground && "checkerboard"
+                  )}
                 >
                   <img 
                     src={`/api/transform/${jobId}/download`}
                     alt="Transformed result" 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
-                  {/* Subtle letterbox visualization if selected and applied */}
-                  {letterbox && (
-                    <>
-                      <div className="absolute top-0 inset-x-0 h-[10%] bg-black" />
-                      <div className="absolute bottom-0 inset-x-0 h-[10%] bg-black" />
-                    </>
-                  )}
                 </motion.div>
               ) : (
                 <UploadZone 
@@ -174,19 +170,20 @@ export default function Home() {
                       <Loader2 className="w-12 h-12 text-primary animate-spin relative z-10" />
                     </div>
                     <h3 className="mt-6 text-xl font-display text-white text-glow-primary">
-                      Directing your scene...
+                      {removeBackground ? "Grading + Removing Background..." : "Directing your scene..."}
                     </h3>
-                    <p className="mt-2 text-sm text-zinc-400 max-w-[250px] text-center font-sans">
-                      Applying the {preset.replace('_', ' ')} aesthetic. This may take up to 60 seconds.
+                    <p className="mt-2 text-sm text-zinc-400 max-w-[260px] text-center font-sans">
+                      {removeBackground
+                        ? "Applying cinematic grade, then Nano Banana 2 extracts the subject. May take ~20s."
+                        : `Applying the ${preset.replace(/_/g, ' ')} look. Usually takes a few seconds.`}
                     </p>
                     
-                    {/* Fake progress bar to show activity */}
                     <div className="w-48 h-1 bg-white/10 rounded-full mt-6 overflow-hidden">
                       <motion.div 
                         className="h-full bg-primary"
                         initial={{ width: "0%" }}
                         animate={{ width: "100%" }}
-                        transition={{ duration: 45, ease: "linear" }}
+                        transition={{ duration: removeBackground ? 25 : 4, ease: "linear" }}
                       />
                     </div>
                   </motion.div>
@@ -263,16 +260,48 @@ export default function Home() {
                 ))}
               </div>
 
-              <div className="p-5 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between mb-8">
-                <div>
-                  <h4 className="font-semibold text-zinc-100">Cinematic Letterbox</h4>
-                  <p className="text-sm text-zinc-400 mt-1">Add 2.39:1 black bars</p>
+              <div className="space-y-3 mb-8">
+                <div className="p-4 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                      <span className="text-sm">▬</span>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-zinc-100 text-sm">Cinematic Letterbox</h4>
+                      <p className="text-xs text-zinc-400 mt-0.5">Add 2.39:1 black bars</p>
+                    </div>
+                  </div>
+                  <Switch 
+                    checked={letterbox} 
+                    onCheckedChange={setLetterbox} 
+                    disabled={isProcessing || removeBackground}
+                  />
                 </div>
-                <Switch 
-                  checked={letterbox} 
-                  onCheckedChange={setLetterbox} 
-                  disabled={isProcessing}
-                />
+
+                <div className={cn(
+                  "p-4 rounded-xl border flex items-center justify-between transition-colors",
+                  removeBackground
+                    ? "bg-primary/10 border-primary/30"
+                    : "bg-black/40 border-white/5"
+                )}>
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                      removeBackground ? "bg-primary/20" : "bg-white/5"
+                    )}>
+                      <Scissors className={cn("w-4 h-4", removeBackground ? "text-primary" : "text-zinc-400")} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-zinc-100 text-sm">Remove Background</h4>
+                      <p className="text-xs text-zinc-400 mt-0.5">PNG transparente con Nano Banana 2</p>
+                    </div>
+                  </div>
+                  <Switch 
+                    checked={removeBackground} 
+                    onCheckedChange={(v) => { setRemoveBackground(v); if (v) setLetterbox(false); }} 
+                    disabled={isProcessing}
+                  />
+                </div>
               </div>
 
               {!isCompleted && (

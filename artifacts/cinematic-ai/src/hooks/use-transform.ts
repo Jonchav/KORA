@@ -19,6 +19,7 @@ interface TransformPayload {
   image: File;
   preset: string;
   letterbox: boolean;
+  removeBackground: boolean;
 }
 
 export function useTransformMutation() {
@@ -28,6 +29,7 @@ export function useTransformMutation() {
       formData.append("image", data.image);
       formData.append("preset", data.preset);
       formData.append("letterbox", data.letterbox.toString());
+      formData.append("removeBackground", data.removeBackground.toString());
 
       const res = await fetch("/api/transform", {
         method: "POST",
