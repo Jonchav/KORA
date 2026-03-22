@@ -213,23 +213,25 @@ const STEPS = [
 
 function HowItWorks() {
   return (
-    <div className="grid grid-cols-4 gap-3 my-8">
+    <div className="grid grid-cols-4 gap-px bg-white/[0.04] rounded-xl overflow-hidden border border-white/[0.06] my-8">
       {STEPS.map((step, i) => (
         <motion.div
           key={step.label}
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 + i * 0.1 }}
-          className="relative glass-card rounded-xl p-4 text-center group"
+          transition={{ delay: 0.4 + i * 0.08 }}
+          className="relative bg-[#0d0d0d] px-5 py-5 flex flex-col gap-3 group"
         >
-          {i < STEPS.length - 1 && (
-            <ArrowRight className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 z-20 hidden sm:block" />
-          )}
-          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-            <step.icon className="w-5 h-5 text-primary" />
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono text-zinc-700">
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <step.icon className="w-3.5 h-3.5 text-zinc-700 group-hover:text-zinc-400 transition-colors" />
           </div>
-          <p className="text-white font-bold text-sm">{step.label}</p>
-          <p className="text-zinc-500 text-[11px] mt-0.5">{step.desc}</p>
+          <div>
+            <p className="text-white font-semibold text-sm tracking-wide">{step.label}</p>
+            <p className="text-zinc-600 text-[11px] mt-0.5 leading-snug">{step.desc}</p>
+          </div>
         </motion.div>
       ))}
     </div>
@@ -363,13 +365,10 @@ export default function Home() {
           <HowItWorks />
 
           {/* Divider */}
-          <div className="flex items-center gap-4 mb-8">
-            <div className="flex-1 h-px bg-white/5" />
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full glass-card">
-              <Wand2 className="w-4 h-4 text-primary" />
-              <span className="text-sm font-bold text-white">Your Turn</span>
-            </div>
-            <div className="flex-1 h-px bg-white/5" />
+          <div className="flex items-center gap-5 mb-8">
+            <div className="flex-1 h-px bg-white/[0.06]" />
+            <span className="text-[11px] font-mono tracking-[0.2em] uppercase text-zinc-600">Begin</span>
+            <div className="flex-1 h-px bg-white/[0.06]" />
           </div>
 
           {/* Transformer grid */}
@@ -385,8 +384,9 @@ export default function Home() {
                   transition={{ delay: 0.6 }}
                   className="glass-panel rounded-2xl p-4"
                 >
-                  <h3 className="text-sm font-bold text-zinc-300 mb-3 flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-black">1</span>
+                  <h3 className="text-xs font-mono text-zinc-600 mb-3 flex items-center gap-3 tracking-widest uppercase">
+                    <span>01</span>
+                    <span className="flex-1 h-px bg-white/[0.05]" />
                     Upload Your Photo
                   </h3>
                   <UploadZone onFileSelect={setFile} selectedFile={file} disabled={isTransforming} />
@@ -399,8 +399,9 @@ export default function Home() {
                 transition={{ delay: 0.7 }}
                 className="glass-panel rounded-2xl p-4"
               >
-                <h3 className="text-sm font-bold text-zinc-300 mb-3 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-black">2</span>
+                <h3 className="text-xs font-mono text-zinc-600 mb-3 flex items-center gap-3 tracking-widest uppercase">
+                  <span>02</span>
+                  <span className="flex-1 h-px bg-white/[0.05]" />
                   Choose Your Style
                 </h3>
                 <div className="space-y-2">
@@ -416,8 +417,9 @@ export default function Home() {
                 transition={{ delay: 0.8 }}
                 className="glass-panel rounded-2xl p-4"
               >
-                <h3 className="text-sm font-bold text-zinc-300 mb-3 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-black">3</span>
+                <h3 className="text-xs font-mono text-zinc-600 mb-3 flex items-center gap-3 tracking-widest uppercase">
+                  <span>03</span>
+                  <span className="flex-1 h-px bg-white/[0.05]" />
                   Output Format
                 </h3>
                 <FormatSelector value={format} onChange={setFormat} disabled={isTransforming} />
