@@ -193,18 +193,18 @@ async function cropToContent(buf: Buffer): Promise<Buffer> {
 // Used when face-to-many can't detect a face. Works on any image type:
 // landscapes, objects, pets, illustrations, back-turned people, etc.
 const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
-  comic:       "make this a bold comic book illustration with vibrant colors and thick black ink outlines",
-  anime:       "transform this into a Studio Ghibli anime style illustration with cel shading and vivid colors",
-  popart:      "turn this into an Andy Warhol pop art piece with bold flat graphic colors and high contrast",
-  watercolor:  "render this as a delicate watercolor painting with soft wet paint washes and impressionist brushstrokes",
-  oilpainting: "transform this into a classical oil painting like Rembrandt with rich amber tones and dramatic chiaroscuro lighting",
-  cyberpunk:   "make this a futuristic cyberpunk scene with glowing neon electric cyan and magenta, rain-soaked atmosphere",
-  pixel:       "convert this into retro 16-bit pixel art with a classic SNES video game aesthetic",
-  clay:        "transform this into Aardman claymation style with smooth clay texture, rounded shapes, and cheerful colors",
-  toy:         "make this look like a Funko Pop vinyl collectible figure with oversized proportions and glossy plastic finish",
-  vaporwave:   "apply vaporwave aesthetic with dreamy pastel purple and pink, retro grid lines, and 80s nostalgia",
-  fantasy:     "transform this into an epic dark fantasy RPG illustration with dramatic magical lighting and ancient ruins",
-  gtasa:       "make this look like a GTA San Andreas PS2-era video game scene with early 2000s Rockstar Games graphics style",
+  comic:       "apply a bold comic book art style to this image, keep the same subject and composition, add thick black ink outlines and vibrant flat colors",
+  anime:       "apply Studio Ghibli anime art style to this image, keep the same subject and layout, add cel shading and soft vivid colors",
+  popart:      "apply Andy Warhol pop art style to this image, keep the same subject, use bold flat graphic colors and high contrast",
+  watercolor:  "apply watercolor painting style to this image, keep the same subject and composition, soft wet paint washes and delicate brushstrokes",
+  oilpainting: "apply classical oil painting style to this image, keep the same subject and composition, rich amber tones and dramatic Rembrandt lighting",
+  cyberpunk:   "apply cyberpunk neon art style to this image, keep the same subject, add glowing cyan and magenta neon lights and rain-soaked atmosphere",
+  pixel:       "apply retro 16-bit pixel art style to this image, keep the same subject and composition in classic SNES video game aesthetic",
+  clay:        "apply Aardman claymation style to this image, keep the same subject, add smooth clay texture and rounded cheerful shapes",
+  toy:         "apply Funko Pop vinyl toy style to this image, keep the same subject with oversized head and glossy plastic finish",
+  vaporwave:   "apply vaporwave aesthetic to this image, keep the same subject and composition, add dreamy pastel purple and pink tones with 80s nostalgia",
+  fantasy:     "apply dark fantasy RPG illustration style to this image, keep the same subject and composition, add dramatic magical lighting and painterly detail",
+  gtasa:       "apply GTA San Andreas PS2 video game graphics style to this image, keep the same subject and composition with early 2000s Rockstar Games look",
 };
 
 function isFaceDetectionError(err: unknown): boolean {
@@ -239,8 +239,8 @@ async function runNoFaceFallback(jobId: string, buf: Buffer, style: Style): Prom
         prompt: IMG2IMG_INSTRUCTIONS[style],
         negative_prompt: "ugly, deformed, noisy, blurry, distorted, watermark, text, signature, logo",
         num_steps: 20,
-        guidance_scale: 7.5,
-        image_guidance_scale: 1.2,
+        guidance_scale: 9.0,
+        image_guidance_scale: 2.0,
     },
     jobId,
   );
