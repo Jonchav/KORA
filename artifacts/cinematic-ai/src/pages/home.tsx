@@ -160,11 +160,18 @@ const s = (id: StyleType) => STYLES.find(st => st.id === id)!;
 
 const CAROUSEL_ITEMS: GalleryItem[] = [
   { ...s("anime"),       imgSrc: "/examples/anime-v2.jpg" },
+  { ...s("clay"),        imgSrc: "/examples/girl-clay.jpg" },
   { ...s("comic"),       imgSrc: "/examples/comic-v2.jpg" },
+  { ...s("vaporwave"),   imgSrc: "/examples/denim-vapor.jpg" },
   { ...s("popart"),      imgSrc: "/examples/popart-v2.jpg" },
+  { ...s("pixel"),       imgSrc: "/examples/cafe-pixel.jpg" },
   { ...s("watercolor"),  imgSrc: "/examples/watercolor-v2.jpg" },
+  { ...s("fantasy"),     imgSrc: "/examples/flower-fantasy.jpg" },
   { ...s("oilpainting"), imgSrc: "/examples/oilpainting-v2.jpg" },
+  { ...s("toy"),         imgSrc: "/examples/red-toy.jpg" },
   { ...s("cyberpunk"),   imgSrc: "/examples/cyberpunk-v2.jpg" },
+  { ...s("anime"),       imgSrc: "/examples/park-anime.jpg" },
+  { ...s("cyberpunk"),   imgSrc: "/examples/man-cyber.jpg" },
   { ...s("anime"),       imgSrc: "/examples/field-anime.jpg" },
   { ...s("oilpainting"), imgSrc: "/examples/mountain-oil.jpg" },
   { ...s("comic"),       imgSrc: "/examples/fiat-comic.jpg" },
