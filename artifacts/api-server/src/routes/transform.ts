@@ -38,6 +38,43 @@ const FORMAT_RATIOS: Record<Format, string> = {
   landscape: "16:9",
 };
 
+// face-to-many uses InstantID to preserve the person's identity perfectly
+// style is one of: "3D" | "Emoji" | "Video game" | "Pixels" | "Clay" | "Toy"
+// We use "3D" for smooth cel-shaded cartoon look, "Clay" for painterly styles
+const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string }> = {
+  comic: {
+    style: "3D",
+    prompt:
+      "comic book illustration, superhero art style, bold black ink outlines, vibrant colorful painted background with bright cyan hot pink yellow orange paint splashes, cel shaded skin, flat vivid colors, professional comic book art, dynamic and energetic",
+  },
+  anime: {
+    style: "3D",
+    prompt:
+      "anime character, Studio Ghibli and Makoto Shinkai style, beautiful smooth cel shading, large expressive eyes, vibrant soft gradient background in pastel colors with light bokeh, Japanese animation film quality, graceful and detailed",
+  },
+  popart: {
+    style: "3D",
+    prompt:
+      "pop art illustration, Andy Warhol style, bold flat graphic background with hot pink electric blue lime green yellow color blocks, thick black outlines, saturated vibrant colors, 1960s commercial graphic art, punchy and iconic",
+  },
+  watercolor: {
+    style: "Clay",
+    prompt:
+      "watercolor painting portrait, soft wet-on-wet paint washes, impressionist brushstrokes background in warm peachy tones and soft blues, delicate translucent colors, fine art illustration, painted with care",
+  },
+  oilpainting: {
+    style: "Clay",
+    prompt:
+      "classical oil painting portrait, Rembrandt baroque style, rich warm amber and ochre background with dramatic chiaroscuro lighting, thick impasto brushwork, Old Masters technique, deep saturated tones, museum quality fine art",
+  },
+  cyberpunk: {
+    style: "3D",
+    prompt:
+      "cyberpunk character portrait, neon punk style, dark futuristic city background with glowing neon lights in electric cyan and magenta pink, holographic elements, rain reflections, Blade Runner 2049 aesthetic, ultra detailed sci-fi illustration",
+  },
+};
+
+// Seedream 3 — standalone scene generation (no input image needed)
 const SEEDREAM_PROMPTS: Record<Style, string> = {
   comic:
     "Epic comic book splash page, dynamic superhero battle scene above a neon city skyline, bold black ink outlines, halftone dot shading, vibrant primary colors, lightning and energy beams, action debris, dramatic upward angle, Marvel Comics quality, ultra detailed, 4K resolution",
@@ -71,287 +108,111 @@ function extractUrl(value: unknown): string {
   return String(value);
 }
 
-// ── Manual posterize via raw pixel manipulation ───────────────────────────────
-async function posterize(buf: Buffer, levels: number): Promise<Buffer> {
+// ── Smart content-aware crop ─────────────────────────────────────────────────
+// Scans edge rows/cols to find where the neutral frame ends and content begins
+async function cropToContent(buf: Buffer): Promise<Buffer> {
   const { data, info } = await sharp(buf).raw().ensureAlpha().toBuffer({ resolveWithObject: true });
-  const step = 255 / (levels - 1);
-  const out = Buffer.from(data);
-  for (let i = 0; i < info.width * info.height; i++) {
-    const base = i * 4;
-    out[base]     = Math.round(Math.round(data[base]     / step) * step);
-    out[base + 1] = Math.round(Math.round(data[base + 1] / step) * step);
-    out[base + 2] = Math.round(Math.round(data[base + 2] / step) * step);
-    // keep alpha
+  const { width: w, height: h } = info;
+
+  // Detect if a pixel matches the neutral peach/cream frame background
+  function isFrame(i: number): boolean {
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    return r > 200 && g > 170 && b > 140 && r > g && g > b && (r - b) > 25;
   }
-  return sharp(out, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toBuffer();
-}
 
-// ── Edge detection overlay (black outlines) ───────────────────────────────────
-async function getEdgeOverlay(buf: Buffer, threshold: number, strength: number): Promise<Buffer> {
-  const { data: edgeData, info } = await sharp(buf)
-    .greyscale()
-    .convolve({
-      width: 3, height: 3,
-      kernel: [-1, -1, -1, -1, 8, -1, -1, -1, -1],
-      scale: 1, offset: 0,
-    })
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  // Build RGBA buffer: dark where edge detected, transparent elsewhere
-  const out = Buffer.alloc(info.width * info.height * 4);
-  for (let i = 0; i < info.width * info.height; i++) {
-    const v = Math.min(255, edgeData[i] * strength);
-    const alpha = v > threshold ? Math.min(255, (v - threshold) * 2) : 0;
-    out[i * 4] = 0;
-    out[i * 4 + 1] = 0;
-    out[i * 4 + 2] = 0;
-    out[i * 4 + 3] = alpha;
+  // Count non-frame pixels in a row
+  function rowContent(y: number): number {
+    let n = 0;
+    for (let x = 0; x < w; x++) if (!isFrame((y * w + x) * 4)) n++;
+    return n;
   }
-  return sharp(out, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toBuffer();
-}
 
-function svgRect(w: number, h: number, fill: string, opacity: number): Buffer {
-  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="${fill}" opacity="${opacity}"/></svg>`);
-}
-
-function svgVignette(w: number, h: number, opacity: number): Buffer {
-  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
-    <defs><radialGradient id="v" cx="50%" cy="50%" r="70%">
-      <stop offset="0%" stop-color="black" stop-opacity="0"/>
-      <stop offset="65%" stop-color="black" stop-opacity="${(opacity * 0.25).toFixed(2)}"/>
-      <stop offset="100%" stop-color="black" stop-opacity="${opacity.toFixed(2)}"/>
-    </radialGradient></defs>
-    <rect width="${w}" height="${h}" fill="url(#v)"/>
-  </svg>`);
-}
-
-// ── COMIC BOOK ────────────────────────────────────────────────────────────────
-async function applyComic(buf: Buffer, w: number, h: number): Promise<Buffer> {
-  // Step 1: Boost saturation + contrast for base
-  const base = await sharp(buf)
-    .modulate({ saturation: 2.8, brightness: 1.05 })
-    .linear(1.35, -22)
-    .png().toBuffer();
-
-  // Step 2: Posterize to flat comic colors
-  const flatColors = await posterize(base, 6);
-
-  // Step 3: Strong edge outlines
-  const edges = await getEdgeOverlay(buf, 20, 5);
-  const vignette = svgVignette(w, h, 0.45);
-  const yellowTint = svgRect(w, h, "#ffee44", 0.05);
-
-  return sharp(flatColors)
-    .composite([
-      { input: edges, blend: "over" },
-      { input: yellowTint, blend: "screen" },
-      { input: vignette, blend: "over" },
-    ])
-    .png().toBuffer();
-}
-
-// ── ANIME ─────────────────────────────────────────────────────────────────────
-async function applyAnime(buf: Buffer, w: number, h: number): Promise<Buffer> {
-  const base = await sharp(buf)
-    .blur(0.5)
-    .modulate({ saturation: 2.2, brightness: 1.1 })
-    .recomb([
-      [1.04, 0.0, 0.0],
-      [0.0, 1.01, 0.06],
-      [0.0, 0.04, 1.12],
-    ])
-    .linear(1.1, 10)
-    .png().toBuffer();
-
-  // Light cel edges
-  const edges = await getEdgeOverlay(buf, 35, 3.5);
-  const glow = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
-    <defs><radialGradient id="g" cx="50%" cy="35%" r="60%">
-      <stop offset="0%" stop-color="#ffccff" stop-opacity="0.18"/>
-      <stop offset="100%" stop-color="#ffccff" stop-opacity="0"/>
-    </radialGradient></defs>
-    <rect width="${w}" height="${h}" fill="url(#g)"/>
-  </svg>`);
-
-  return sharp(base)
-    .composite([
-      { input: edges, blend: "over" },
-      { input: glow, blend: "screen" },
-    ])
-    .png().toBuffer();
-}
-
-// ── POP ART ───────────────────────────────────────────────────────────────────
-async function applyPopart(buf: Buffer, w: number, h: number): Promise<Buffer> {
-  const boosted = await sharp(buf)
-    .modulate({ saturation: 3.8, brightness: 1.12 })
-    .linear(1.6, -45)
-    .recomb([
-      [1.3, 0.0, 0.0],
-      [0.0, 1.1, 0.0],
-      [0.0, 0.0, 0.85],
-    ])
-    .png().toBuffer();
-
-  const flatColors = await posterize(boosted, 5);
-  const edges = await getEdgeOverlay(buf, 18, 6);
-  const vignette = svgVignette(w, h, 0.35);
-  const pinkTint = svgRect(w, h, "#ff0088", 0.05);
-
-  return sharp(flatColors)
-    .composite([
-      { input: edges, blend: "over" },
-      { input: pinkTint, blend: "screen" },
-      { input: vignette, blend: "over" },
-    ])
-    .png().toBuffer();
-}
-
-// ── WATERCOLOR ────────────────────────────────────────────────────────────────
-async function applyWatercolor(buf: Buffer, w: number, h: number): Promise<Buffer> {
-  // Multiple blur passes to simulate watercolor diffusion
-  const soft = await sharp(buf).blur(1.2).png().toBuffer();
-  const base = await sharp(soft)
-    .modulate({ saturation: 1.55, brightness: 1.07 })
-    .recomb([
-      [0.96, 0.04, 0.0],
-      [0.0, 0.94, 0.06],
-      [0.0, 0.04, 1.04],
-    ])
-    .linear(1.08, 12)
-    .png().toBuffer();
-
-  // Add grain for paper texture
-  const { info } = await sharp(buf).raw().toBuffer({ resolveWithObject: true });
-  const grainData = Buffer.alloc(info.width * info.height * 4);
-  for (let i = 0; i < info.width * info.height; i++) {
-    const n = 128 + Math.floor((Math.random() - 0.5) * 60);
-    grainData[i * 4] = n; grainData[i * 4 + 1] = n; grainData[i * 4 + 2] = n;
-    grainData[i * 4 + 3] = 12;
+  // Count non-frame pixels in a column
+  function colContent(x: number): number {
+    let n = 0;
+    for (let y = 0; y < h; y++) if (!isFrame((y * w + x) * 4)) n++;
+    return n;
   }
-  const grain = await sharp(grainData, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toBuffer();
 
-  const paper = svgRect(w, h, "#f0e8d8", 0.12);
-  const vignette = svgVignette(w, h, 0.42);
+  const threshold = 0.25;
+  let top = 0, bottom = h - 1, left = 0, right = w - 1;
 
-  return sharp(base)
-    .composite([
-      { input: paper, blend: "soft-light" },
-      { input: grain, blend: "soft-light" },
-      { input: vignette, blend: "over" },
-    ])
+  for (let y = 0; y < h; y++) { if (rowContent(y) > w * threshold) { top = y; break; } }
+  for (let y = h - 1; y >= 0; y--) { if (rowContent(y) > w * threshold) { bottom = y; break; } }
+  for (let x = 0; x < w; x++) { if (colContent(x) > h * threshold) { left = x; break; } }
+  for (let x = w - 1; x >= 0; x--) { if (colContent(x) > h * threshold) { right = x; break; } }
+
+  return sharp(buf)
+    .extract({ left, top, width: right - left + 1, height: bottom - top + 1 })
     .png().toBuffer();
 }
 
-// ── OIL PAINTING ──────────────────────────────────────────────────────────────
-async function applyOilpainting(buf: Buffer, w: number, h: number): Promise<Buffer> {
-  const base = await sharp(buf)
-    .sharpen({ sigma: 1.4, m1: 4, m2: 10 })
-    .modulate({ saturation: 1.65, brightness: 0.94 })
-    .recomb([
-      [1.18, 0.08, -0.06],
-      [0.02, 1.0, 0.0],
-      [-0.06, 0.0, 0.88],
-    ])
-    .linear(1.28, -24)
-    .png().toBuffer();
-
-  const { info } = await sharp(buf).raw().toBuffer({ resolveWithObject: true });
-  const grainData = Buffer.alloc(info.width * info.height * 4);
-  for (let i = 0; i < info.width * info.height; i++) {
-    const n = 128 + Math.floor((Math.random() - 0.5) * 80);
-    grainData[i * 4] = n; grainData[i * 4 + 1] = n; grainData[i * 4 + 2] = n;
-    grainData[i * 4 + 3] = 24;
-  }
-  const grain = await sharp(grainData, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toBuffer();
-
-  const warmTone = svgRect(w, h, "#6a2a00", 0.1);
-  const vignette = svgVignette(w, h, 0.65);
-
-  return sharp(base)
-    .composite([
-      { input: warmTone, blend: "soft-light" },
-      { input: grain, blend: "soft-light" },
-      { input: vignette, blend: "over" },
-    ])
-    .png().toBuffer();
-}
-
-// ── CYBERPUNK ─────────────────────────────────────────────────────────────────
-async function applyCyberpunk(buf: Buffer, w: number, h: number): Promise<Buffer> {
-  const base = await sharp(buf)
-    .recomb([
-      [0.65, 0.1, 0.25],
-      [0.0, 0.75, 0.35],
-      [0.12, 0.1, 1.55],
-    ])
-    .modulate({ saturation: 2.4, brightness: 0.86 })
-    .linear(1.32, -25)
-    .png().toBuffer();
-
-  const { info } = await sharp(buf).raw().toBuffer({ resolveWithObject: true });
-  const grainData = Buffer.alloc(info.width * info.height * 4);
-  for (let i = 0; i < info.width * info.height; i++) {
-    const n = 128 + Math.floor((Math.random() - 0.5) * 70);
-    grainData[i * 4] = n; grainData[i * 4 + 1] = n; grainData[i * 4 + 2] = n;
-    grainData[i * 4 + 3] = 18;
-  }
-  const grain = await sharp(grainData, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toBuffer();
-
-  const neonGlow = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
-    <defs><radialGradient id="n" cx="50%" cy="42%" r="65%">
-      <stop offset="0%" stop-color="#00ffe7" stop-opacity="0.13"/>
-      <stop offset="100%" stop-color="#cc00ff" stop-opacity="0.1"/>
-    </radialGradient></defs>
-    <rect width="${w}" height="${h}" fill="url(#n)"/>
-  </svg>`);
-  const vignette = svgVignette(w, h, 0.7);
-
-  return sharp(base)
-    .composite([
-      { input: neonGlow, blend: "screen" },
-      { input: grain, blend: "soft-light" },
-      { input: vignette, blend: "over" },
-    ])
-    .png().toBuffer();
-}
-
-// ── JOB RUNNER ────────────────────────────────────────────────────────────────
+// ── PHOTO TRANSFORM — face-to-many with InstantID ───────────────────────────
 async function runTransformJob(jobId: string, imagePath: string, style: Style, _format: Format) {
   const job = jobs.get(jobId)!;
   job.status = "processing";
 
   try {
     const buf = fs.readFileSync(imagePath);
-    const meta = await sharp(buf).metadata();
-    const w = meta.width ?? 1024;
-    const h = meta.height ?? 768;
+    const ext = path.extname(imagePath).replace(".", "") || "jpeg";
+    const contentType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+    const dataUri = `data:${contentType};base64,${buf.toString("base64")}`;
 
-    console.log(`[${jobId}] Applying ${style} effect (${w}x${h})...`);
-    let result: Buffer;
+    const config = FACE_TO_MANY_CONFIG[style];
+    console.log(`[${jobId}] Running face-to-many (style=${style}, render="${config.style}")...`);
 
-    switch (style) {
-      case "comic":       result = await applyComic(buf, w, h);       break;
-      case "anime":       result = await applyAnime(buf, w, h);       break;
-      case "popart":      result = await applyPopart(buf, w, h);      break;
-      case "watercolor":  result = await applyWatercolor(buf, w, h);  break;
-      case "oilpainting": result = await applyOilpainting(buf, w, h); break;
-      case "cyberpunk":   result = await applyCyberpunk(buf, w, h);   break;
+    const output = await replicate.run(
+      "fofr/face-to-many:a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf",
+      {
+        input: {
+          image: dataUri,
+          style: config.style,
+          prompt: config.prompt,
+          negative_prompt:
+            "ugly, deformed, noisy, blurry, distorted, disfigured, bad anatomy, extra limbs, poorly drawn face, poorly drawn hands, missing fingers, extra fingers, watermark, signature, text",
+          denoising_strength: 0.65,
+          instant_id_strength: 0.9,
+          control_depth_strength: 0.8,
+          prompt_strength: 5.5,
+        },
+      }
+    );
+
+    const rawUrl = Array.isArray(output) ? output[0] : output;
+    const resultUrl = extractUrl(rawUrl);
+    console.log(`[${jobId}] face-to-many result: ${resultUrl}`);
+
+    const response = await fetch(resultUrl);
+    if (!response.ok) throw new Error(`Failed to fetch result: ${response.status}`);
+    const rawBuffer = Buffer.from(await response.arrayBuffer());
+
+    // face-to-many outputs a wide comparison image (original | transformed)
+    // Extract just the right half (the stylized result) and trim the frame border
+    const meta = await sharp(rawBuffer).metadata();
+    let processed = rawBuffer;
+    if (meta.width && meta.height && meta.width > meta.height * 1.3) {
+      console.log(`[${jobId}] Detected comparison image (${meta.width}x${meta.height}) — cropping right half...`);
+      const halfW = Math.floor(meta.width / 2);
+      const rightHalf = await sharp(rawBuffer)
+        .extract({ left: halfW, top: 0, width: halfW, height: meta.height })
+        .png().toBuffer();
+      // Smart crop: scan pixel rows/cols to detect exact content boundaries
+      processed = await cropToContent(rightHalf);
     }
 
-    job.imageBuffer = result!;
+    job.imageBuffer = processed;
     job.status = "completed";
-    console.log(`[${jobId}] Done — ${result!.length} bytes`);
+    console.log(`[${jobId}] Transform complete.`);
   } catch (err) {
     job.status = "failed";
     job.error = err instanceof Error ? err.message : "Unknown error";
-    console.error(`[${jobId}] Failed:`, err);
+    console.error(`[${jobId}] Transform failed:`, err);
   } finally {
     try { fs.unlinkSync(imagePath); } catch { }
   }
 }
 
+// ── AI SCENE GENERATION — Seedream 3 ────────────────────────────────────────
 async function runGenerateJob(jobId: string, style: Style, format: Format) {
   const job = jobs.get(jobId)!;
   job.status = "processing";

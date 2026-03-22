@@ -131,7 +131,7 @@ export default function Home() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Photo Transformer</h2>
-              <p className="text-xs text-zinc-500">Upload your photo → choose a style → effect applied instantly</p>
+              <p className="text-xs text-zinc-500">Upload your photo → choose a style → AI transforms it while keeping your face</p>
             </div>
           </div>
 
@@ -249,7 +249,7 @@ export default function Home() {
                       </div>
                       <div className="text-center">
                         <h3 className="text-lg font-bold text-white">{currentStyle.emoji} Creating {currentStyle.label}...</h3>
-                        <p className="text-sm text-zinc-400 mt-1">Applying style effects directly to your image. Usually just a few seconds.</p>
+                        <p className="text-sm text-zinc-400 mt-1">AI is applying the style while preserving your face. Usually 30–60 seconds.</p>
                       </div>
                       <div className="w-56 h-1 bg-white/10 rounded-full overflow-hidden">
                         <motion.div
