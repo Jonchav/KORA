@@ -309,6 +309,10 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
       );
 
       const rawUrl = Array.isArray(output) ? output[0] : output;
+      // face-to-many returns null when no face is detected in the image
+      if (rawUrl == null || rawUrl === "null") {
+        throw new Error("No face detected in the image");
+      }
       const resultUrl = extractUrl(rawUrl);
       console.log(`[${jobId}] face-to-many result: ${resultUrl}`);
 
