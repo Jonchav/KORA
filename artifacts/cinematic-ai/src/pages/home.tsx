@@ -152,8 +152,8 @@ function PreviewCard({ s, imgSrc }: { s: StyleConfig; index: number; imgSrc: str
           </span>
         </div>
         <div>
-          <p className="text-white font-black text-sm tracking-wide drop-shadow-lg">
-            {s.emoji} {s.label}
+          <p className="text-white font-bold text-sm tracking-widest uppercase drop-shadow-lg">
+            {s.label}
           </p>
           <p className="text-white/60 text-[10px] mt-0.5 leading-tight">{s.description}</p>
         </div>
@@ -332,12 +332,16 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.35 }}
-            className="flex flex-wrap items-center justify-center gap-2 mt-4"
+            className="flex flex-wrap items-center justify-center gap-x-0 gap-y-2 mt-4"
           >
-            {STYLES.map(s => (
-              <span key={s.id}
-                className={`px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${s.gradient} text-white/90 shadow-sm`}>
-                {s.emoji} {s.label}
+            {STYLES.map((s, i) => (
+              <span key={s.id} className="flex items-center">
+                <span className="px-3 py-1 text-[11px] font-medium tracking-widest uppercase text-zinc-600 hover:text-zinc-300 transition-colors cursor-default">
+                  {s.label}
+                </span>
+                {i < STYLES.length - 1 && (
+                  <span className="text-zinc-800 text-xs select-none">/</span>
+                )}
               </span>
             ))}
           </motion.div>
@@ -400,8 +404,8 @@ export default function Home() {
                   Choose Your Style
                 </h3>
                 <div className="space-y-2">
-                  {STYLES.map(s => (
-                    <StyleCard key={s.id} config={s} selected={style === s.id} onClick={setStyle} disabled={isTransforming} />
+                  {STYLES.map((s, i) => (
+                    <StyleCard key={s.id} config={s} selected={style === s.id} onClick={setStyle} disabled={isTransforming} index={i} />
                   ))}
                 </div>
               </motion.div>
@@ -504,7 +508,7 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="text-center">
-                        <h3 className="text-xl font-black text-white mb-1">{currentStyle.emoji} Creating {currentStyle.label}</h3>
+                        <h3 className="text-xl font-black text-white mb-1 tracking-wide">Creating {currentStyle.label}</h3>
                         <p className="text-sm text-zinc-400">AI is enhancing your photo in HD. Usually 45–75 seconds.</p>
                       </div>
                       <div className="w-64 h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -550,7 +554,7 @@ export default function Home() {
                         {/* Orbiting style dots */}
                         {STYLES.slice(0,4).map((s, i) => (
                           <div key={s.id}
-                            className={`absolute w-8 h-8 rounded-full bg-gradient-to-br ${s.gradient} flex items-center justify-center text-sm shadow-lg animate-float`}
+                            className="absolute w-8 h-8 rounded-full border border-white/10 bg-white/[0.04] flex items-center justify-center animate-float"
                             style={{
                               top: i < 2 ? "-12px" : "auto",
                               bottom: i >= 2 ? "-12px" : "auto",
@@ -559,7 +563,7 @@ export default function Home() {
                               animationDelay: `${i * 1}s`
                             }}
                           >
-                            {s.emoji}
+                            <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
                           </div>
                         ))}
                       </div>

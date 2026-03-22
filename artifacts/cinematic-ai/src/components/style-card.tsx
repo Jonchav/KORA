@@ -114,41 +114,45 @@ interface StyleCardProps {
   selected: boolean;
   onClick: (id: StyleType) => void;
   disabled?: boolean;
+  index?: number;
 }
 
-export function StyleCard({ config, selected, onClick, disabled }: StyleCardProps) {
+export function StyleCard({ config, selected, onClick, disabled, index = 0 }: StyleCardProps) {
   return (
     <button
       onClick={() => !disabled && onClick(config.id)}
       disabled={disabled}
       className={cn(
-        "w-full text-left p-3 rounded-xl border transition-all duration-200 flex items-center gap-3 group",
+        "w-full text-left px-4 py-3 rounded-lg border transition-all duration-150 flex items-center gap-4 group",
         selected
-          ? "border-transparent bg-gradient-to-r " + config.gradient + " shadow-lg"
-          : "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20",
-        disabled && "opacity-50 cursor-not-allowed"
+          ? "border-white/20 bg-white/[0.06]"
+          : "border-white/[0.06] bg-transparent hover:bg-white/[0.03] hover:border-white/12",
+        disabled && "opacity-40 cursor-not-allowed"
       )}
-      style={selected ? { boxShadow: `0 0 20px -4px ${config.glow}` } : {}}
     >
-      <div className={cn(
-        "w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0",
-        selected ? "bg-white/20" : "bg-white/5"
-      )}>
-        {config.emoji}
-      </div>
-      <div className="min-w-0">
-        <p className={cn("font-semibold text-sm leading-tight", selected ? "text-white" : "text-zinc-200")}>
+      <span className="text-[10px] font-mono text-zinc-700 w-4 shrink-0 select-none">
+        {String(index + 1).padStart(2, "0")}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className={cn(
+          "font-medium text-sm tracking-wide transition-colors",
+          selected ? "text-white" : "text-zinc-400 group-hover:text-zinc-200"
+        )}>
           {config.label}
         </p>
-        <p className={cn("text-xs mt-0.5 leading-tight truncate", selected ? "text-white/80" : "text-zinc-500")}>
+        <p className={cn(
+          "text-[11px] mt-0.5 leading-snug truncate transition-colors",
+          selected ? "text-zinc-500" : "text-zinc-700 group-hover:text-zinc-600"
+        )}>
           {config.description}
         </p>
       </div>
-      {selected && (
-        <div className="ml-auto shrink-0 w-5 h-5 rounded-full bg-white/30 flex items-center justify-center">
-          <div className="w-2.5 h-2.5 rounded-full bg-white" />
-        </div>
-      )}
+      <div className={cn(
+        "w-3.5 h-3.5 rounded-full border shrink-0 transition-all duration-150",
+        selected
+          ? "border-white bg-white scale-110"
+          : "border-zinc-700 group-hover:border-zinc-500"
+      )} />
     </button>
   );
 }
