@@ -99,6 +99,14 @@ export const STYLES: StyleConfig[] = [
     gradient: "from-slate-600 to-purple-800",
     glow: "rgba(126,34,206,0.4)",
   },
+  {
+    id: "gtasa",
+    label: "San Andrés",
+    description: "GTA SA — CJ, Grove Street, Los Santos",
+    emoji: "🎮",
+    gradient: "from-green-700 to-green-900",
+    glow: "rgba(21,128,61,0.5)",
+  },
 ];
 
 interface StyleCardProps {

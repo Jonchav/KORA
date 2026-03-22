@@ -25,6 +25,7 @@ const CARD_PATTERNS: Record<StyleType, string> = {
   toy:        "radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.25) 0%, transparent 50%)",
   vaporwave:  "repeating-linear-gradient(0deg, rgba(255,0,255,0.05) 0px, rgba(255,0,255,0.05) 1px, transparent 1px, transparent 12px), repeating-linear-gradient(90deg, rgba(0,255,255,0.04) 0px, rgba(0,255,255,0.04) 1px, transparent 1px, transparent 24px)",
   fantasy:    "radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.2) 0%, transparent 60%)",
+  gtasa:      "repeating-linear-gradient(45deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 2px, transparent 2px, transparent 12px)",
 };
 
 const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
@@ -108,6 +109,14 @@ const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-purple-400/20 shadow-[0_0_20px_rgba(139,92,246,0.2)]" />
     </>
   ),
+  gtasa: (
+    <>
+      <div className="absolute top-2 left-2 text-[10px] font-black text-green-300/60 tracking-widest">GROVE ST</div>
+      <div className="absolute bottom-2 right-2 text-[9px] font-black text-green-400/50">GSF</div>
+      <div className="absolute top-3 right-3 text-white/20 text-sm">🔫</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border-2 border-green-500/20" />
+    </>
+  ),
 };
 
 function PreviewCard({ s, imgSrc }: { s: StyleConfig; index: number; imgSrc: string }) {
@@ -175,6 +184,7 @@ const CAROUSEL_ITEMS: GalleryItem[] = [
   { ...s("anime"),       imgSrc: "/examples/field-anime.jpg" },
   { ...s("oilpainting"), imgSrc: "/examples/mountain-oil.jpg" },
   { ...s("comic"),       imgSrc: "/examples/fiat-comic.jpg" },
+  { ...s("gtasa"),       imgSrc: "/examples/man-gtasa.jpg" },
 ];
 
 // Duplicate for seamless infinite scroll
@@ -196,7 +206,7 @@ function GalleryStrip() {
 // ── How it works bar ──────────────────────────────────────────────────────────
 const STEPS = [
   { icon: Upload,  label: "Upload",    desc: "Any photo with a face" },
-  { icon: Palette, label: "Style",     desc: "Pick from 11 AI styles" },
+  { icon: Palette, label: "Style",     desc: "Pick from 12 AI styles" },
   { icon: Sparkles,label: "Transform", desc: "AI runs in ~60 seconds"  },
   { icon: Download,label: "Download",  desc: "HD quality, ready to post" },
 ];
