@@ -222,7 +222,15 @@ function isFaceDetectionError(err: unknown): boolean {
 
 async function runNoFaceFallback(jobId: string, buf: Buffer, style: Style): Promise<Buffer> {
   console.log(`[${jobId}] ↳ No face detected — running img2img fallback (instruct-pix2pix, style=${style})...`);
-  const dataUri = `data:image/jpeg;base64,${buf.toString("base64")}`;
+
+  // Resize to max 512px on the longest side to avoid CUDA OOM on the model's GPU
+  const resized = await sharp(buf)
+    .resize(512, 512, { fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 90 })
+    .toBuffer();
+  const meta = await sharp(resized).metadata();
+  console.log(`[${jobId}] img2img input resized to ${meta.width}x${meta.height}`);
+  const dataUri = `data:image/jpeg;base64,${resized.toString("base64")}`;
 
   const output = await replicateRunWithRetry(
     "timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23f",
@@ -230,8 +238,8 @@ async function runNoFaceFallback(jobId: string, buf: Buffer, style: Style): Prom
         image: dataUri,
         prompt: IMG2IMG_INSTRUCTIONS[style],
         negative_prompt: "ugly, deformed, noisy, blurry, distorted, watermark, text, signature, logo",
-        num_steps: 50,
-        guidance_scale: 8.0,
+        num_steps: 20,
+        guidance_scale: 7.5,
         image_guidance_scale: 1.2,
     },
     jobId,
@@ -246,9 +254,17 @@ async function runNoFaceFallback(jobId: string, buf: Buffer, style: Style): Prom
 }
 
 // ── Replicate call with automatic 429 retry ───────────────────────────────
-function is429(err: unknown): boolean {
+function isRetriableError(err: unknown): boolean {
   const msg = (err instanceof Error ? err.message : String(err));
-  return msg.includes("429") || msg.toLowerCase().includes("too many requests") || msg.toLowerCase().includes("throttled");
+  const lower = msg.toLowerCase();
+  return (
+    msg.includes("429") ||
+    lower.includes("too many requests") ||
+    lower.includes("throttled") ||
+    lower.includes("cuda out of memory") ||
+    lower.includes("out of memory") ||
+    lower.includes("prediction failed")
+  );
 }
 
 async function replicateRunWithRetry(
@@ -261,9 +277,10 @@ async function replicateRunWithRetry(
     try {
       return await replicate.run(model, { input });
     } catch (err) {
-      if (is429(err) && attempt < maxRetries) {
+      if (isRetriableError(err) && attempt < maxRetries) {
         const waitSec = (attempt + 1) * 12;
-        console.log(`[${jobId}] 429 rate limit — waiting ${waitSec}s before retry (attempt ${attempt + 1}/${maxRetries})...`);
+        const reason = String(err).toLowerCase().includes("memory") ? "CUDA OOM" : "rate limit";
+        console.log(`[${jobId}] ${reason} — waiting ${waitSec}s before retry (attempt ${attempt + 1}/${maxRetries})...`);
         await new Promise(r => setTimeout(r, waitSec * 1000));
       } else {
         throw err;
