@@ -67,76 +67,38 @@ const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
   ),
 };
 
-function PreviewCard({ s, index, imgSrc }: { s: StyleConfig; index: number; imgSrc: string }) {
-  const [imgLoaded, setImgLoaded] = React.useState(false);
-  const [imgError, setImgError] = React.useState(false);
-
-  const showRealImg = imgLoaded && !imgError;
+function PreviewCard({ s, imgSrc }: { s: StyleConfig; index: number; imgSrc: string }) {
+  const [imgOk, setImgOk] = React.useState(true);
 
   return (
-    <div
-      className="relative shrink-0 w-48 h-64 rounded-2xl overflow-hidden border border-white/10 shadow-2xl"
-      style={{ animationDelay: `${index * 0.5}s` }}
-    >
-      {/* Real image (loads silently in background) */}
-      <img
-        src={imgSrc}
-        alt={s.label}
-        onLoad={() => setImgLoaded(true)}
-        onError={() => setImgError(true)}
-        className={cn(
-          "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
-          showRealImg ? "opacity-100" : "opacity-0"
-        )}
-      />
-
-      {/* Gradient fallback bg (hidden once real img loads) */}
-      <div className={cn(
-        "absolute inset-0 bg-gradient-to-br transition-opacity duration-700",
-        s.gradient,
-        showRealImg ? "opacity-0" : "opacity-80"
-      )} />
-      {/* Pattern overlay — only for fallback */}
-      <div className={cn(
-        "absolute inset-0 transition-opacity duration-700",
-        showRealImg ? "opacity-0" : "opacity-100"
-      )}
-        style={{ backgroundImage: CARD_PATTERNS[s.id] }} />
+    <div className="relative shrink-0 w-48 h-64 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+      {/* Gradient base — always visible as fallback */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${s.gradient} opacity-75`} />
+      <div className="absolute inset-0" style={{ backgroundImage: CARD_PATTERNS[s.id] }} />
       {CARD_DECORATIONS[s.id]}
 
-      {/* Bottom overlay — always visible */}
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10" />
+      {/* Image — eagerly loaded, never lazy-unloaded */}
+      {imgOk && (
+        <img
+          src={imgSrc}
+          alt={s.label}
+          loading="eager"
+          fetchPriority="high"
+          onError={() => setImgOk(false)}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      )}
 
-      {/* Content */}
+      {/* Bottom fade */}
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/85 via-black/40 to-transparent z-10" />
+
+      {/* Labels */}
       <div className="absolute inset-0 z-20 flex flex-col justify-between p-3">
-        {/* Top badge */}
         <div className="self-end">
-          <div className={cn(
-            "px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase border",
-            showRealImg
-              ? "bg-black/50 backdrop-blur-sm border-white/20 text-white/90"
-              : "bg-black/30 backdrop-blur-sm border-white/20 text-white/80"
-          )}>
-            {showRealImg ? "✦ Real Result" : "AI Style"}
-          </div>
+          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase bg-black/50 backdrop-blur-sm border border-white/20 text-white/90">
+            ✦ Real Result
+          </span>
         </div>
-
-        {/* When no real image: center emoji */}
-        {!showRealImg && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="relative w-16 h-16">
-              <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center shadow-xl">
-                <span className="text-3xl" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }}>
-                  {s.emoji}
-                </span>
-              </div>
-              <div className="absolute inset-0 rounded-full animate-pulse-glow"
-                style={{ boxShadow: `0 0 20px 4px ${s.glow}` }} />
-            </div>
-          </div>
-        )}
-
-        {/* Bottom label */}
         <div>
           <p className="text-white font-black text-sm tracking-wide drop-shadow-lg">
             {s.emoji} {s.label}
