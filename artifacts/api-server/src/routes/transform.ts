@@ -148,7 +148,33 @@ async function cropToContent(buf: Buffer): Promise<Buffer> {
 }
 
 // ── PHOTO TRANSFORM — face-to-many with InstantID ───────────────────────────
-async function runTransformJob(jobId: string, imagePath: string, style: Style, _format: Format) {
+// Apply the target aspect ratio by center-cropping
+async function applyFormat(buf: Buffer, format: Format): Promise<Buffer> {
+  const { width: w = 512, height: h = 512 } = await sharp(buf).metadata();
+  const ratios: Record<Format, [number, number]> = {
+    square:    [1, 1],
+    portrait:  [4, 5],
+    story:     [9, 16],
+    landscape: [16, 9],
+  };
+  const [rw, rh] = ratios[format];
+  // Compute target dimensions that fit inside the image preserving ratio
+  let targetW: number, targetH: number;
+  if (w / h > rw / rh) {
+    // Image is wider than target ratio — constrain by height
+    targetH = h;
+    targetW = Math.round(h * rw / rh);
+  } else {
+    // Image is taller than target ratio — constrain by width
+    targetW = w;
+    targetH = Math.round(w * rh / rw);
+  }
+  return sharp(buf)
+    .resize(targetW, targetH, { fit: "cover", position: "centre" })
+    .png().toBuffer();
+}
+
+async function runTransformJob(jobId: string, imagePath: string, style: Style, format: Format) {
   const job = jobs.get(jobId)!;
   job.status = "processing";
 
@@ -217,6 +243,11 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, _
       .png().toBuffer();
     const finalMeta = await sharp(processed).metadata();
     console.log(`[${jobId}] Upscaled to ${finalMeta.width}x${finalMeta.height}`);
+
+    // Apply the requested output format by center-cropping to the correct aspect ratio
+    processed = await applyFormat(processed, format);
+    const fmtMeta = await sharp(processed).metadata();
+    console.log(`[${jobId}] Format "${format}" applied → ${fmtMeta.width}x${fmtMeta.height}`);
 
     job.imageBuffer = processed;
     job.status = "completed";
