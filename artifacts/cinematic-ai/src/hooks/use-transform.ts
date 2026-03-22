@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 
-export type StyleType = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk";
+export type StyleType = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy";
 export type FormatType = "square" | "portrait" | "story" | "landscape";
 
 export interface JobResult {

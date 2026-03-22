@@ -59,6 +59,46 @@ export const STYLES: StyleConfig[] = [
     gradient: "from-violet-500 to-cyan-500",
     glow: "rgba(139,92,246,0.4)",
   },
+  {
+    id: "pixel",
+    label: "Pixel Art",
+    description: "Retro 16-bit game sprite, SNES nostalgia",
+    emoji: "👾",
+    gradient: "from-green-400 to-emerald-600",
+    glow: "rgba(52,211,153,0.4)",
+  },
+  {
+    id: "clay",
+    label: "Claymation",
+    description: "Stop-motion clay, Aardman handcrafted",
+    emoji: "🧸",
+    gradient: "from-orange-300 to-rose-400",
+    glow: "rgba(251,146,60,0.4)",
+  },
+  {
+    id: "toy",
+    label: "Funko Pop",
+    description: "Vinyl collectible, glossy oversized head",
+    emoji: "🪆",
+    gradient: "from-sky-400 to-indigo-500",
+    glow: "rgba(56,189,248,0.4)",
+  },
+  {
+    id: "vaporwave",
+    label: "Vaporwave",
+    description: "80s/90s retro-futurism, pastel neon dream",
+    emoji: "🌊",
+    gradient: "from-fuchsia-400 to-violet-600",
+    glow: "rgba(232,121,249,0.4)",
+  },
+  {
+    id: "fantasy",
+    label: "Dark Fantasy",
+    description: "Epic RPG hero, magical ruins, dragons",
+    emoji: "⚔️",
+    gradient: "from-slate-600 to-purple-800",
+    glow: "rgba(126,34,206,0.4)",
+  },
 ];
 
 interface StyleCardProps {

@@ -20,6 +20,11 @@ const CARD_PATTERNS: Record<StyleType, string> = {
   watercolor: "radial-gradient(ellipse at 30% 70%, rgba(255,255,255,0.2) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 40%)",
   oilpainting:"repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 8px)",
   cyberpunk:  "repeating-linear-gradient(0deg, rgba(0,255,255,0.06) 0px, rgba(0,255,255,0.06) 1px, transparent 1px, transparent 4px)",
+  pixel:      "repeating-linear-gradient(0deg, transparent, transparent 7px, rgba(0,0,0,0.12) 7px, rgba(0,0,0,0.12) 8px), repeating-linear-gradient(90deg, transparent, transparent 7px, rgba(0,0,0,0.12) 7px, rgba(0,0,0,0.12) 8px)",
+  clay:       "radial-gradient(ellipse at 50% 80%, rgba(255,255,255,0.18) 0%, transparent 60%)",
+  toy:        "radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.25) 0%, transparent 50%)",
+  vaporwave:  "repeating-linear-gradient(0deg, rgba(255,0,255,0.05) 0px, rgba(255,0,255,0.05) 1px, transparent 1px, transparent 12px), repeating-linear-gradient(90deg, rgba(0,255,255,0.04) 0px, rgba(0,255,255,0.04) 1px, transparent 1px, transparent 24px)",
+  fantasy:    "radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.2) 0%, transparent 60%)",
 };
 
 const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
@@ -63,6 +68,44 @@ const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
       <div className="absolute top-3 left-3 text-[9px] font-mono text-cyan-300/40">SYS_AI</div>
       <div className="absolute bottom-3 right-3 text-[9px] font-mono text-purple-300/40">v2.0</div>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-cyan-400/20 shadow-[0_0_20px_rgba(34,211,238,0.2)]" />
+    </>
+  ),
+  pixel: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono font-bold text-green-300/50 tracking-widest">PLAYER 1</div>
+      <div className="absolute bottom-2 right-2 text-[9px] font-mono text-green-400/40">► START</div>
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="absolute w-2 h-2 bg-green-400/20"
+          style={{ top: `${15 + i * 17}%`, right: `${8 + (i % 2) * 10}%` }} />
+      ))}
+    </>
+  ),
+  clay: (
+    <>
+      <div className="absolute top-3 right-3 w-10 h-10 rounded-full bg-orange-200/20 border-2 border-orange-200/30" />
+      <div className="absolute bottom-5 left-3 w-6 h-6 rounded-full bg-rose-300/20 border border-rose-300/30" />
+    </>
+  ),
+  toy: (
+    <>
+      <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-white/40" />
+      <div className="absolute top-4 right-4 w-1.5 h-1.5 rounded-full bg-white/30" />
+      <div className="absolute bottom-3 left-3 text-[8px] font-black text-white/20 tracking-widest uppercase">COLLECT</div>
+    </>
+  ),
+  vaporwave: (
+    <>
+      <div className="absolute bottom-0 left-0 right-0 h-16 opacity-20"
+        style={{ background: "linear-gradient(to top, rgba(255,0,255,0.4), transparent)" }} />
+      <div className="absolute top-3 left-3 text-[9px] font-mono text-fuchsia-300/50">A E S T H E T I C</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-fuchsia-400/20" />
+    </>
+  ),
+  fantasy: (
+    <>
+      <div className="absolute top-3 left-3 text-white/20 text-sm">⚔️</div>
+      <div className="absolute top-3 right-3 text-white/20 text-sm">🐉</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-purple-400/20 shadow-[0_0_20px_rgba(139,92,246,0.2)]" />
     </>
   ),
 };
@@ -146,7 +189,7 @@ function GalleryStrip() {
 // ── How it works bar ──────────────────────────────────────────────────────────
 const STEPS = [
   { icon: Upload,  label: "Upload",    desc: "Any photo with a face" },
-  { icon: Palette, label: "Style",     desc: "Pick from 6 AI styles"  },
+  { icon: Palette, label: "Style",     desc: "Pick from 11 AI styles" },
   { icon: Sparkles,label: "Transform", desc: "AI runs in ~60 seconds"  },
   { icon: Download,label: "Download",  desc: "HD quality, ready to post" },
 ];

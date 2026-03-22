@@ -28,7 +28,7 @@ const upload = multer({
 
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 
-export type Style = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk";
+export type Style = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy";
 export type Format = "square" | "portrait" | "story" | "landscape";
 
 const FORMAT_RATIOS: Record<Format, string> = {
@@ -72,6 +72,31 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string }> = {
     prompt:
       "cyberpunk character portrait, neon punk style, dark futuristic city background with glowing neon lights in electric cyan and magenta pink, holographic elements, rain reflections, Blade Runner 2049 aesthetic, ultra detailed sci-fi illustration",
   },
+  pixel: {
+    style: "Pixels",
+    prompt:
+      "16-bit pixel art character portrait, retro video game sprite style, vivid pixelated background with pixel art city or dungeon scenery, clean sharp pixel edges, vibrant saturated colors, classic SNES and Mega Drive era aesthetic, charming and nostalgic",
+  },
+  clay: {
+    style: "Clay",
+    prompt:
+      "Aardman stop-motion claymation character, soft smooth clay texture with visible fingerprint impressions, warm cheerful colorful background in muted clay tones, large friendly eyes, rounded shapes, handcrafted feel, Wallace and Gromit quality",
+  },
+  toy: {
+    style: "Toy",
+    prompt:
+      "Funko Pop vinyl collectible figure, oversized rounded head with tiny body, hard glossy plastic surface, bold stylized features, displayed on a clean collector shelf with soft studio lighting, vibrant collector toy aesthetic, ultra detailed product render",
+  },
+  vaporwave: {
+    style: "3D",
+    prompt:
+      "vaporwave aesthetic portrait, synthwave and retrowave 80s and 90s style, dreamy pastel purple pink teal gradient background with floating Greek statues palm trees and pixel grid, soft neon glow, chromatic aberration, nostalgic retro-futuristic mood",
+  },
+  fantasy: {
+    style: "Video game",
+    prompt:
+      "epic dark fantasy RPG character portrait, legendary hero or warrior, dramatic painterly background with ancient ruins glowing runes and magical aurora, ornate armor and flowing cape, cinematic lighting, Artstation concept art quality, heroic and majestic",
+  },
 };
 
 // Seedream 3 — standalone scene generation (no input image needed)
@@ -88,6 +113,16 @@ const SEEDREAM_PROMPTS: Record<Style, string> = {
     "Grand baroque oil painting of a mythological golden hall, dramatic chiaroscuro lighting from a cathedral window, rich velvet curtains and marble columns, angelic figures in motion, Caravaggio and Rembrandt influence, deep warm amber tones, thick impasto brushwork, museum quality masterpiece",
   cyberpunk:
     "Futuristic mega-city at night, towering holographic neon billboards in Japanese and English, flying vehicles in rain, chrome and glass skyscrapers, neon-lit street markets below, purple and cyan atmospheric glow, Blade Runner 2049 cinematic quality, ultra-detailed 8K sci-fi concept art",
+  pixel:
+    "Epic 16-bit pixel art fantasy world map scene, retro SNES-era RPG overworld, villages castles dungeons and mountains rendered in vibrant pixel art, detailed sprite characters adventuring on the map, classic video game UI elements, nostalgic and charming, high resolution pixel masterpiece",
+  clay:
+    "Aardman Animations claymation world, cheerful colorful stop-motion village with clay houses rolling hills and fluffy clouds, cute clay animals and characters with fingerprint textures, warm handcrafted feel, soft diffused lighting, playful and joyful, award-winning animation quality",
+  toy:
+    "Funko Pop collectible display shelf, rows of vinyl toy figures from beloved pop culture franchises, hard plastic sheen with studio lighting, collector's dream arrangement with glowing backdrop, ultra detailed product photography aesthetic, 8K resolution",
+  vaporwave:
+    "Vaporwave dream landscape, endless neon purple and pink grid floor stretching to the horizon, giant glowing sun half-submerged behind the horizon, Greek marble busts floating in pastel clouds, retro computer windows with old-school graphics, retrowave nostalgia, ultra detailed digital art",
+  fantasy:
+    "Epic dark fantasy world panorama, ancient kingdom under a dramatic stormy sky with twin moons, glowing magical runes on massive stone gates, an armored hero silhouetted against a burning horizon, dragons in the sky, volumetric god rays, Artstation fantasy concept art, cinematic and breathtaking",
 };
 
 interface JobRecord {
@@ -326,7 +361,7 @@ router.post("/transform", upload.single("image"), async (req: Request, res: Resp
   }
   const style = req.body.style as Style;
   const format = (req.body.format as Format) ?? "square";
-  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk"];
+  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy"];
   const validFormats: Format[] = ["square", "portrait", "story", "landscape"];
 
   if (!style || !validStyles.includes(style)) {
@@ -345,7 +380,7 @@ router.post("/transform", upload.single("image"), async (req: Request, res: Resp
 router.post("/generate", async (req: Request, res: Response) => {
   const style = req.body.style as Style;
   const format = (req.body.format as Format) ?? "landscape";
-  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk"];
+  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy"];
   const validFormats: Format[] = ["square", "portrait", "story", "landscape"];
 
   if (!style || !validStyles.includes(style)) {
