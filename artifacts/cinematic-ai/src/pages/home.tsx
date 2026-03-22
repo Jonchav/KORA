@@ -205,7 +205,7 @@ function GalleryStrip() {
 
 // ── How it works bar ──────────────────────────────────────────────────────────
 const STEPS = [
-  { icon: Upload,  label: "Upload",    desc: "Any photo — face or not" },
+  { icon: Upload,  label: "Upload",    desc: "A photo with your face visible" },
   { icon: Palette, label: "Style",     desc: "Pick from 12 AI styles" },
   { icon: Sparkles,label: "Transform", desc: "AI runs in ~60 seconds"  },
   { icon: Download,label: "Download",  desc: "HD quality, ready to post" },
@@ -332,7 +332,7 @@ export default function Home() {
             transition={{ delay: 0.25 }}
             className="text-zinc-400 text-lg max-w-lg mx-auto mb-2"
           >
-            Upload any photo. Pick a style. Get a <span className="text-white font-semibold">studio-quality</span> AI image in seconds — faces, landscapes, objects, anything.
+            Upload a photo with your face. Pick a style. Get a <span className="text-white font-semibold">studio-quality</span> AI portrait in seconds — your face, perfectly preserved.
           </motion.p>
 
           {/* Style tags */}
@@ -575,7 +575,7 @@ export default function Home() {
                       </div>
                       <div>
                         <p className="text-zinc-300 font-bold text-lg">Your masterpiece awaits</p>
-                        <p className="text-zinc-600 text-sm mt-1">Any photo — faces, landscapes, objects, pets</p>
+                        <p className="text-zinc-600 text-sm mt-1">Use a photo where your face is clearly visible</p>
                       </div>
                     </motion.div>
                   )}
