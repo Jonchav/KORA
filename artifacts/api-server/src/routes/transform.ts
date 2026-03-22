@@ -224,18 +224,17 @@ async function runNoFaceFallback(jobId: string, buf: Buffer, style: Style): Prom
   console.log(`[${jobId}] ↳ No face detected — running img2img fallback (instruct-pix2pix, style=${style})...`);
   const dataUri = `data:image/jpeg;base64,${buf.toString("base64")}`;
 
-  const output = await replicate.run(
+  const output = await replicateRunWithRetry(
     "timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23d",
     {
-      input: {
         image: dataUri,
         prompt: IMG2IMG_INSTRUCTIONS[style],
         negative_prompt: "ugly, deformed, noisy, blurry, distorted, watermark, text, signature, logo",
         num_steps: 50,
         guidance_scale: 8.0,
         image_guidance_scale: 1.2,
-      },
-    }
+    },
+    jobId,
   );
 
   const rawUrl = extractUrl(Array.isArray(output) ? output[0] : output);
@@ -244,6 +243,33 @@ async function runNoFaceFallback(jobId: string, buf: Buffer, style: Style): Prom
   if (!res.ok) throw new Error(`img2img fallback fetch failed: ${res.status}`);
   // Return as-is; the shared finishing pipeline (Lanczos + applyFormat) handles upscaling
   return Buffer.from(await res.arrayBuffer());
+}
+
+// ── Replicate call with automatic 429 retry ───────────────────────────────
+function is429(err: unknown): boolean {
+  const msg = (err instanceof Error ? err.message : String(err));
+  return msg.includes("429") || msg.toLowerCase().includes("too many requests") || msg.toLowerCase().includes("throttled");
+}
+
+async function replicateRunWithRetry(
+  model: `${string}/${string}:${string}`,
+  input: Record<string, unknown>,
+  jobId: string,
+  maxRetries = 2,
+): Promise<unknown> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await replicate.run(model, { input });
+    } catch (err) {
+      if (is429(err) && attempt < maxRetries) {
+        const waitSec = (attempt + 1) * 12;
+        console.log(`[${jobId}] 429 rate limit — waiting ${waitSec}s before retry (attempt ${attempt + 1}/${maxRetries})...`);
+        await new Promise(r => setTimeout(r, waitSec * 1000));
+      } else {
+        throw err;
+      }
+    }
+  }
 }
 
 // ── PHOTO TRANSFORM — face-to-many with InstantID ───────────────────────────
@@ -291,10 +317,9 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
 
     // ── Primary: face-to-many (InstantID — preserves identity) ───────────────
     try {
-      const output = await replicate.run(
+      const output = await replicateRunWithRetry(
         "fofr/face-to-many:a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf",
         {
-          input: {
             image: dataUri,
             style: config.style,
             prompt: config.prompt,
@@ -304,8 +329,8 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
             instant_id_strength: 0.9,
             control_depth_strength: 0.8,
             prompt_strength: 5.5,
-          },
-        }
+        },
+        jobId,
       );
 
       const rawUrl = Array.isArray(output) ? output[0] : output;
@@ -339,17 +364,16 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
         const rawMeta = await sharp(processed).metadata();
         console.log(`[${jobId}] Running CodeFormer on ${rawMeta.width}x${rawMeta.height} image...`);
         const cfDataUri = `data:image/png;base64,${processed.toString("base64")}`;
-        const cfOut = await replicate.run(
+        const cfOut = await replicateRunWithRetry(
           "sczhou/codeformer:cc4956dd26fa5a7185d5660cc9100fab1b8070a1d1654a8bb5eb6d443b020bb2",
           {
-            input: {
               image: cfDataUri,
               upscale: 2,
               face_upsample: true,
               background_enhance: true,
               codeformer_fidelity: 0.75,
-            },
-          }
+          },
+          jobId,
         );
         const cfUrl = extractUrl(cfOut);
         const cfResponse = await fetch(cfUrl);
@@ -366,8 +390,9 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
       // ── Fallback: img2img for images without detectable faces ─────────────
       if (isFaceDetectionError(faceErr)) {
         usedFacePipeline = false;
-        // Brief pause before calling another model (rate limit)
-        await new Promise(r => setTimeout(r, 2000));
+        // Wait for rate-limit burst window to reset before calling fallback model
+        console.log(`[${jobId}] Waiting 8s for rate-limit reset before img2img fallback...`);
+        await new Promise(r => setTimeout(r, 8000));
         processed = await runNoFaceFallback(jobId, buf, style);
       } else {
         throw faceErr;
