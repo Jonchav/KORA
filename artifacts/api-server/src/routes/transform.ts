@@ -226,23 +226,48 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
       processed = await cropToContent(rightHalf);
     }
 
-    // Upscale 4x with Lanczos + 2-pass sharpen for maximum crisp HD output
+    // Step 1 — CodeFormer: AI face restoration + 2x upscale
+    // fidelity=0.75 balances style preservation with face quality enhancement
+    try {
+      // Wait for rate-limit window to reset after face-to-many (burst=1 on free tier)
+      await new Promise(r => setTimeout(r, 3000));
+      const rawMeta = await sharp(processed).metadata();
+      console.log(`[${jobId}] Running CodeFormer on ${rawMeta.width}x${rawMeta.height} image...`);
+      const cfDataUri = `data:image/png;base64,${processed.toString("base64")}`;
+      const cfOut = await replicate.run(
+        "sczhou/codeformer:cc4956dd26fa5a7185d5660cc9100fab1b8070a1d1654a8bb5eb6d443b020bb2",
+        {
+          input: {
+            image: cfDataUri,
+            upscale: 2,
+            face_upsample: true,
+            background_enhance: true,
+            codeformer_fidelity: 0.75,
+          },
+        }
+      );
+      const cfUrl = extractUrl(cfOut);
+      const cfResponse = await fetch(cfUrl);
+      if (cfResponse.ok) {
+        processed = Buffer.from(await cfResponse.arrayBuffer());
+        const cfMeta = await sharp(processed).metadata();
+        console.log(`[${jobId}] CodeFormer done → ${cfMeta.width}x${cfMeta.height}`);
+      }
+    } catch (cfErr) {
+      console.warn(`[${jobId}] CodeFormer failed, falling back to Lanczos:`, cfErr);
+    }
+
+    // Step 2 — Sharp Lanczos 2x with unsharp mask to reach ~2048px
     const upMeta = await sharp(processed).metadata();
     const srcW = upMeta.width ?? 512;
     const srcH = upMeta.height ?? 512;
-    // Step 1: 2x intermediate (preserves fine detail at each step)
-    const half = await sharp(processed)
-      .resize(srcW * 2, srcH * 2, { kernel: "lanczos3", fastShrinkOnLoad: false })
-      .sharpen({ sigma: 0.4, m1: 1.0, m2: 1.5 })
-      .toBuffer();
-    // Step 2: 2x again → total 4x, capped at 2048px wide
-    const targetW = Math.min(srcW * 4, 2048);
-    processed = await sharp(half)
+    const targetW = Math.min(srcW * 2, 2048);
+    processed = await sharp(processed)
       .resize(targetW, null, { kernel: "lanczos3", fastShrinkOnLoad: false })
-      .sharpen({ sigma: 0.7, m1: 2.0, m2: 3.0 })
+      .sharpen({ sigma: 0.6, m1: 1.5, m2: 2.5 })
       .png().toBuffer();
     const finalMeta = await sharp(processed).metadata();
-    console.log(`[${jobId}] Upscaled to ${finalMeta.width}x${finalMeta.height}`);
+    console.log(`[${jobId}] Final upscale → ${finalMeta.width}x${finalMeta.height}`);
 
     // Apply the requested output format by center-cropping to the correct aspect ratio
     processed = await applyFormat(processed, format);
