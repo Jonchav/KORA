@@ -303,7 +303,7 @@ export default function Home() {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6"
           >
             <Zap className="w-3.5 h-3.5 text-primary animate-pulse" />
-            <span className="text-xs font-semibold text-primary tracking-widest uppercase">CORA</span>
+            <span className="text-xs font-semibold text-primary tracking-widest uppercase">KORA</span>
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
           </motion.div>
 
