@@ -67,10 +67,9 @@ const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
   ),
 };
 
-function PreviewCard({ s, index }: { s: StyleConfig; index: number }) {
+function PreviewCard({ s, index, imgSrc }: { s: StyleConfig; index: number; imgSrc: string }) {
   const [imgLoaded, setImgLoaded] = React.useState(false);
   const [imgError, setImgError] = React.useState(false);
-  const imgSrc = `/examples/${s.id}.jpg`;
 
   const showRealImg = imgLoaded && !imgError;
 
@@ -149,20 +148,35 @@ function PreviewCard({ s, index }: { s: StyleConfig; index: number }) {
   );
 }
 
-// Duplicate array for seamless infinite scroll
-const GALLERY_ROW1 = [...STYLES, ...STYLES];
-const GALLERY_ROW2 = [...[...STYLES].reverse(), ...[...STYLES].reverse()];
+// Two independent sets of gallery items
+// Row 1: original examples (from first selfie)
+// Row 2: diverse examples (from varied photos)
+type GalleryItem = StyleConfig & { imgSrc: string };
+
+const ROW1_ITEMS: GalleryItem[] = STYLES.map(s => ({ ...s, imgSrc: `/examples/${s.id}.jpg` }));
+const ROW2_ITEMS: GalleryItem[] = [
+  { ...STYLES.find(s => s.id === "anime")!,       imgSrc: "/examples/anime-v2.jpg" },
+  { ...STYLES.find(s => s.id === "comic")!,       imgSrc: "/examples/comic-v2.jpg" },
+  { ...STYLES.find(s => s.id === "popart")!,      imgSrc: "/examples/popart-v2.jpg" },
+  { ...STYLES.find(s => s.id === "watercolor")!,  imgSrc: "/examples/watercolor-v2.jpg" },
+  { ...STYLES.find(s => s.id === "oilpainting")!, imgSrc: "/examples/oilpainting-v2.jpg" },
+  { ...STYLES.find(s => s.id === "cyberpunk")!,   imgSrc: "/examples/cyberpunk-v2.jpg" },
+];
+
+// Duplicate each row for seamless infinite scroll
+const GALLERY_ROW1 = [...ROW1_ITEMS, ...ROW1_ITEMS];
+const GALLERY_ROW2 = [...ROW2_ITEMS, ...ROW2_ITEMS];
 
 function GalleryStrip() {
   return (
     <div className="relative w-full overflow-hidden py-4 select-none pointer-events-none">
-      {/* Row 1 — scrolls left */}
+      {/* Row 1 — scrolls left (original examples) */}
       <div className="flex gap-4 animate-marquee-left mb-4" style={{ width: "max-content" }}>
-        {GALLERY_ROW1.map((s, i) => <PreviewCard key={`r1-${i}`} s={s} index={i} />)}
+        {GALLERY_ROW1.map((item, i) => <PreviewCard key={`r1-${i}`} s={item} index={i} imgSrc={item.imgSrc} />)}
       </div>
-      {/* Row 2 — scrolls right */}
+      {/* Row 2 — scrolls right (diverse photo examples) */}
       <div className="flex gap-4 animate-marquee-right" style={{ width: "max-content" }}>
-        {GALLERY_ROW2.map((s, i) => <PreviewCard key={`r2-${i}`} s={s} index={i} />)}
+        {GALLERY_ROW2.map((item, i) => <PreviewCard key={`r2-${i}`} s={item} index={i} imgSrc={item.imgSrc} />)}
       </div>
       {/* Edge fade masks */}
       <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-background to-transparent z-10" />
