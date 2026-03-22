@@ -249,7 +249,7 @@ export default function Home() {
                       </div>
                       <div className="text-center">
                         <h3 className="text-lg font-bold text-white">{currentStyle.emoji} Creating {currentStyle.label}...</h3>
-                        <p className="text-sm text-zinc-400 mt-1">FLUX 2 Flex is generating your image. Usually 30–60 seconds.</p>
+                        <p className="text-sm text-zinc-400 mt-1">PhotoMaker is generating your styled image. Usually 20–40 seconds.</p>
                       </div>
                       <div className="w-56 h-1 bg-white/10 rounded-full overflow-hidden">
                         <motion.div

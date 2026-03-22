@@ -37,19 +37,32 @@ const FORMAT_RATIOS: Record<Format, string> = {
   landscape: "16:9",
 };
 
-const TRANSFORM_PROMPTS: Record<Style, string> = {
-  comic:
-    "Transform this photo into a dynamic comic book illustration. Bold black ink outlines on every edge, flat vibrant cel colors, halftone dot pattern shading in shadows, action-style composition, Marvel and DC comics aesthetic, expressive faces, dramatic panel perspective, high-contrast graphic art, print-ready quality",
-  anime:
-    "Transform this into a beautiful Studio Ghibli anime illustration. Clean smooth linework, vibrant pastel and jewel-tone colors, large expressive eyes, detailed flowing hair with highlight streaks, cel-shaded soft shading, magical atmospheric glow, anime film quality, painterly background details",
-  popart:
-    "Transform into bold Andy Warhol pop art style. Flat bold primary and secondary colors, silkscreen print aesthetic, high contrast graphic shapes, CMYK halftone dot pattern, thick black contour lines, iconic 1960s commercial art movement, saturated punchy palette, graphic design poster quality",
-  watercolor:
-    "Transform into a loose artistic watercolor painting. Soft translucent paint washes bleeding at edges, visible wet brushstrokes, granulation texture, color blooms and bleeds, fine art cold-press paper texture, impressionistic detail loss in backgrounds, warm and cool color harmony, plein-air painting feel",
-  oilpainting:
-    "Transform into a classical oil painting masterpiece. Rich impasto thick brushwork with visible paint texture, deep luminous colors with strong chiaroscuro lighting, Old Masters technique reminiscent of Rembrandt and Vermeer, glazing layers giving depth, warm amber varnish tone, museum-quality fine art, dramatic baroque composition",
-  cyberpunk:
-    "Transform into a cyberpunk digital illustration. Intense neon pink, cyan and purple glow lighting, glitch distortion effects on edges, circuit board and holographic overlay patterns, rain-soaked reflective surfaces, futuristic urban dystopia aesthetic, Blade Runner and Ghost in the Shell visual style, ultra-detailed sci-fi art",
+// PhotoMaker style_name values + prompts — preserves person identity
+const PHOTOMAKER_CONFIG: Record<Style, { style_name: string; prompt: string }> = {
+  comic: {
+    style_name: "Comic book",
+    prompt: "a person img as comic book hero, bold black ink outlines, flat vibrant cel colors, halftone dot shading, Marvel and DC comics aesthetic, dynamic action pose, high contrast graphic art",
+  },
+  anime: {
+    style_name: "Disney Charactor",
+    prompt: "a person img as anime character, Studio Ghibli style, smooth clean linework, large expressive eyes, vibrant colors, cel-shaded illustration, beautiful anime film quality",
+  },
+  popart: {
+    style_name: "Digital Art",
+    prompt: "a person img in Andy Warhol pop art style, bold flat primary colors, silkscreen print aesthetic, CMYK halftone dot pattern, thick black contour lines, iconic 1960s commercial art, vibrant saturated palette",
+  },
+  watercolor: {
+    style_name: "Fantasy art",
+    prompt: "a person img painted in loose artistic watercolor, soft translucent washes, visible wet brushstrokes, color blooms and bleeds, fine art paper texture, impressionistic and painterly feel",
+  },
+  oilpainting: {
+    style_name: "Cinematic",
+    prompt: "a person img as a classical oil painting portrait, Old Masters technique, Rembrandt chiaroscuro lighting, rich impasto brushwork, deep luminous colors, museum-quality baroque fine art",
+  },
+  cyberpunk: {
+    style_name: "Neonpunk",
+    prompt: "a person img in cyberpunk neonpunk style, intense neon pink and cyan glow, holographic elements, glitch distortion effects, futuristic urban dystopia, Blade Runner aesthetic, ultra-detailed sci-fi art",
+  },
 };
 
 const SEEDREAM_PROMPTS: Record<Style, string> = {
@@ -91,7 +104,7 @@ async function uploadToReplicate(buffer: Buffer, filename: string, contentType: 
   return (file as any).urls?.get ?? (file as any).url ?? String(file);
 }
 
-async function runTransformJob(jobId: string, imagePath: string, style: Style, format: Format) {
+async function runTransformJob(jobId: string, imagePath: string, style: Style, _format: Format) {
   const job = jobs.get(jobId)!;
   job.status = "processing";
 
@@ -100,30 +113,33 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
     const contentType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
     const buffer = fs.readFileSync(imagePath);
 
-    console.log(`[${jobId}] Uploading image to Replicate...`);
-    const imageUrl = await uploadToReplicate(buffer, `input.${ext}`, contentType);
-    console.log(`[${jobId}] Image uploaded: ${imageUrl}`);
+    // Build data URI so PhotoMaker can receive the image directly
+    const base64 = buffer.toString("base64");
+    const dataUri = `data:${contentType};base64,${base64}`;
 
-    console.log(`[${jobId}] Running FLUX 2 Flex (style=${style}, format=${format})...`);
+    const config = PHOTOMAKER_CONFIG[style];
+    console.log(`[${jobId}] Running PhotoMaker (style=${style}, style_name="${config.style_name}")...`);
+
     const output = await replicate.run(
-      "black-forest-labs/flux-2-flex:51d0412f4874be5ad0fc559a9174a33b24927cb12729d4e3abf5a4f98ba1a4bc",
+      "tencentarc/photomaker:ddfc2b08d209f9fa8c1eca692712918bd449f695dabb4a958da31802a9570fe4",
       {
         input: {
-          prompt: TRANSFORM_PROMPTS[style],
-          input_images: [imageUrl],
-          aspect_ratio: FORMAT_RATIOS[format] ?? "match_input_image",
-          steps: 30,
-          guidance: 5.0,
-          output_format: "png",
-          output_quality: 95,
-          prompt_upsampling: false,
+          input_image: dataUri,
+          prompt: config.prompt,
+          style_name: config.style_name,
+          style_strength_ratio: 35,
+          num_steps: 20,
+          guidance_scale: 5,
+          negative_prompt: "nsfw, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
+          num_outputs: 1,
+          disable_safety_checker: false,
         },
       }
     );
 
     const rawUrl = Array.isArray(output) ? output[0] : output;
     const resultUrl = extractUrl(rawUrl);
-    console.log(`[${jobId}] FLUX result: ${resultUrl}`);
+    console.log(`[${jobId}] PhotoMaker result: ${resultUrl}`);
 
     const response = await fetch(resultUrl);
     if (!response.ok) throw new Error(`Failed to fetch result: ${response.status}`);
