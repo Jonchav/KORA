@@ -200,25 +200,15 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, _
       processed = await cropToContent(rightHalf);
     }
 
-    // Upscale 4x with Real-ESRGAN + face enhancement for sharp, high-res output
-    try {
-      const processedMeta = await sharp(processed).metadata();
-      console.log(`[${jobId}] Upscaling ${processedMeta.width}x${processedMeta.height} with Real-ESRGAN...`);
-      const dataUri = `data:image/png;base64,${processed.toString("base64")}`;
-      const upscaleOutput = await replicate.run(
-        "nightmareai/real-esrgan:b3ef194191d13140337468c916c2c5b96dd0cb06dffc032a022a31807f6a5ea8",
-        { input: { image: dataUri, scale: 4, face_enhance: true } }
-      );
-      const upscaleUrl = extractUrl(upscaleOutput);
-      const upscaleResponse = await fetch(upscaleUrl);
-      if (upscaleResponse.ok) {
-        processed = Buffer.from(await upscaleResponse.arrayBuffer());
-        const upMeta = await sharp(processed).metadata();
-        console.log(`[${jobId}] Upscaled to ${upMeta.width}x${upMeta.height}`);
-      }
-    } catch (upErr) {
-      console.warn(`[${jobId}] Upscale failed (using original):`, upErr);
-    }
+    // Upscale 3x with Lanczos + unsharp mask for crisp HD output (no watermarks)
+    const upMeta = await sharp(processed).metadata();
+    const targetW = Math.min((upMeta.width ?? 512) * 3, 2048);
+    processed = await sharp(processed)
+      .resize(targetW, null, { kernel: "lanczos3", fastShrinkOnLoad: false })
+      .sharpen({ sigma: 0.6, m1: 1.5, m2: 2.5 })
+      .png().toBuffer();
+    const finalMeta = await sharp(processed).metadata();
+    console.log(`[${jobId}] Upscaled to ${finalMeta.width}x${finalMeta.height}`);
 
     job.imageBuffer = processed;
     job.status = "completed";
