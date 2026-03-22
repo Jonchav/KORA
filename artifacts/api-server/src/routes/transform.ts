@@ -200,12 +200,20 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, _
       processed = await cropToContent(rightHalf);
     }
 
-    // Upscale 3x with Lanczos + unsharp mask for crisp HD output (no watermarks)
+    // Upscale 4x with Lanczos + 2-pass sharpen for maximum crisp HD output
     const upMeta = await sharp(processed).metadata();
-    const targetW = Math.min((upMeta.width ?? 512) * 3, 2048);
-    processed = await sharp(processed)
+    const srcW = upMeta.width ?? 512;
+    const srcH = upMeta.height ?? 512;
+    // Step 1: 2x intermediate (preserves fine detail at each step)
+    const half = await sharp(processed)
+      .resize(srcW * 2, srcH * 2, { kernel: "lanczos3", fastShrinkOnLoad: false })
+      .sharpen({ sigma: 0.4, m1: 1.0, m2: 1.5 })
+      .toBuffer();
+    // Step 2: 2x again → total 4x, capped at 2048px wide
+    const targetW = Math.min(srcW * 4, 2048);
+    processed = await sharp(half)
       .resize(targetW, null, { kernel: "lanczos3", fastShrinkOnLoad: false })
-      .sharpen({ sigma: 0.6, m1: 1.5, m2: 2.5 })
+      .sharpen({ sigma: 0.7, m1: 2.0, m2: 3.0 })
       .png().toBuffer();
     const finalMeta = await sharp(processed).metadata();
     console.log(`[${jobId}] Upscaled to ${finalMeta.width}x${finalMeta.height}`);
