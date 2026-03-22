@@ -219,10 +219,6 @@ export default function Home() {
                           alt={`${style} transformation`}
                           className="w-full h-full object-contain"
                         />
-                        {/* Style badge */}
-                        <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r ${currentStyle.gradient}`}>
-                          {currentStyle.emoji} {currentStyle.label}
-                        </div>
                       </div>
                       <div className="p-4 border-t border-white/5 flex gap-3">
                         <button
@@ -368,9 +364,6 @@ export default function Home() {
                             alt={`${seedStyle} scene`}
                             className="w-full h-full object-contain"
                           />
-                          <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r ${currentSeedStyle.gradient} flex items-center gap-1`}>
-                            <Sparkles className="w-3 h-3" /> Seedream 3
-                          </div>
                         </div>
                         <div className="p-4 border-t border-white/5">
                           <button
