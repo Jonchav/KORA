@@ -1,329 +1,440 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { UploadZone } from "@/components/upload-zone";
-import { PresetCard, type PresetType } from "@/components/preset-card";
-import { useTransformMutation, useTransformPolling } from "@/hooks/use-transform";
-import { Switch } from "@/components/ui/switch";
-import { Loader2, Download, RotateCcw, AlertTriangle, Clapperboard, Sparkles, Scissors } from "lucide-react";
+import { StyleCard, STYLES } from "@/components/style-card";
+import { FormatSelector } from "@/components/format-selector";
+import { useTransformMutation, useGenerateMutation, useJobPolling } from "@/hooks/use-transform";
+import type { StyleType, FormatType } from "@/hooks/use-transform";
+import {
+  Loader2, Download, RotateCcw, AlertTriangle,
+  Sparkles, Wand2, ImageIcon, Zap,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const PRESETS: Array<{ id: PresetType; title: string; description: string }> = [
-  {
-    id: "cinematic",
-    title: "Classic Cinematic",
-    description: "Teal and orange grading with soft film halation.",
-  },
-  {
-    id: "scifi",
-    title: "Sci-Fi",
-    description: "Cyberpunk aesthetics, neon highlights, and deep shadows.",
-  },
-  {
-    id: "neo_noir",
-    title: "Neo-Noir",
-    description: "High contrast, moody monochrome with sharp lighting.",
-  },
-  {
-    id: "warm_hollywood",
-    title: "Warm Hollywood",
-    description: "Golden hour warmth, nostalgic sepia tones.",
-  },
-  {
-    id: "dramatic_portrait",
-    title: "Dramatic Portrait",
-    description: "Intense studio lighting with a subtle vignette.",
-  },
-];
-
 export default function Home() {
+  // --- Transform state ---
   const [file, setFile] = useState<File | null>(null);
-  const [preset, setPreset] = useState<PresetType>("cinematic");
-  const [letterbox, setLetterbox] = useState(true);
-  const [removeBackground, setRemoveBackground] = useState(false);
-  const [jobId, setJobId] = useState<string | null>(null);
+  const [style, setStyle] = useState<StyleType>("comic");
+  const [format, setFormat] = useState<FormatType>("square");
+  const [transformJobId, setTransformJobId] = useState<string | null>(null);
 
-  const mutation = useTransformMutation();
-  const { data: statusData, isLoading: isPolling, error: pollError } = useTransformPolling(jobId);
+  // --- Seedream state ---
+  const [seedStyle, setSeedStyle] = useState<StyleType>("comic");
+  const [seedFormat, setSeedFormat] = useState<FormatType>("landscape");
+  const [generateJobId, setGenerateJobId] = useState<string | null>(null);
+
+  const transformMutation = useTransformMutation();
+  const generateMutation = useGenerateMutation();
+  const { data: transformStatus } = useJobPolling(transformJobId);
+  const { data: generateStatus } = useJobPolling(generateJobId);
+
+  const isTransforming = transformMutation.isPending ||
+    (!!transformJobId && transformStatus?.status !== "completed" && transformStatus?.status !== "failed");
+  const isGenerating = generateMutation.isPending ||
+    (!!generateJobId && generateStatus?.status !== "completed" && generateStatus?.status !== "failed");
+
+  const transformDone = transformStatus?.status === "completed";
+  const generateDone = generateStatus?.status === "completed";
 
   const handleTransform = async () => {
     if (!file) return;
+    setTransformJobId(null);
+    transformMutation.reset();
     try {
-      const result = await mutation.mutateAsync({ image: file, preset, letterbox, removeBackground });
-      setJobId(result.jobId);
-    } catch (err) {
-      console.error("Failed to start transformation", err);
-    }
+      const result = await transformMutation.mutateAsync({ image: file, style, format });
+      setTransformJobId(result.jobId);
+    } catch (e) { console.error(e); }
   };
 
-  const reset = () => {
-    setFile(null);
-    setJobId(null);
-    mutation.reset();
+  const handleGenerate = async () => {
+    setGenerateJobId(null);
+    generateMutation.reset();
+    try {
+      const result = await generateMutation.mutateAsync({ style: seedStyle, format: seedFormat });
+      setGenerateJobId(result.jobId);
+    } catch (e) { console.error(e); }
   };
 
-  const handleDownload = async () => {
-    if (!jobId) return;
+  const handleDownload = async (jobId: string, label: string) => {
     try {
-      // Use backend proxy to avoid CORS issues when downloading from Replicate CDN
       const response = await fetch(`/api/transform/${jobId}/download`);
       if (!response.ok) throw new Error("Download failed");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `cinematic-${preset}.png`;
+      a.download = `${label}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch (e) {
-      // Fallback: open image URL directly in new tab
-      if (statusData?.imageUrl) window.open(statusData.imageUrl, "_blank");
-    }
+    } catch (e) { console.error(e); }
   };
 
-  const isProcessing = mutation.isPending || (jobId && statusData?.status !== "completed" && statusData?.status !== "failed");
-  const isCompleted = statusData?.status === "completed";
-  const hasError = mutation.isError || statusData?.status === "failed" || pollError;
-  const errorMessage = mutation.error?.message || statusData?.error || pollError?.message || "An unexpected error occurred.";
+  const resetTransform = () => {
+    setFile(null);
+    setTransformJobId(null);
+    transformMutation.reset();
+  };
+
+  const currentStyle = STYLES.find(s => s.id === style)!;
+  const currentSeedStyle = STYLES.find(s => s.id === seedStyle)!;
 
   return (
-    <div className="min-h-screen relative pb-24">
-      {/* Background with the generated image and an overlay gradient */}
-      <div className="fixed inset-0 z-0">
-        <img 
-          src={`${import.meta.env.BASE_URL}images/cinematic-bg.png`} 
-          alt="Background" 
-          className="w-full h-full object-cover opacity-30 mix-blend-screen"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background to-background" />
+    <div className="min-h-screen pb-20">
+      {/* Gradient background */}
+      <div className="fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full opacity-20 blur-3xl"
+          style={{ background: "radial-gradient(circle, #a855f7, transparent)" }} />
+        <div className="absolute -top-20 right-0 w-96 h-96 rounded-full opacity-15 blur-3xl"
+          style={{ background: "radial-gradient(circle, #3b82f6, transparent)" }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-5 blur-3xl"
+          style={{ background: "radial-gradient(circle, #f59e0b, transparent)" }} />
+        <div className="absolute inset-0 bg-background/90" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-20">
-        
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-16">
+
         {/* Header */}
-        <header className="text-center mb-16">
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
+        <header className="text-center mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/10 mb-6 shadow-2xl"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-5"
           >
-            <Clapperboard className="w-8 h-8 text-primary" />
+            <Zap className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-semibold text-primary tracking-widest uppercase">AI Creative Studio</span>
           </motion.div>
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 via-white to-zinc-400 mb-6 tracking-tight text-glow"
+            className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-200 to-zinc-500 mb-4 tracking-tight"
           >
-            Cinematic AI Transformer
+            Transform Your Photos
           </motion.h1>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-lg text-zinc-400 max-w-2xl mx-auto font-sans"
+            className="text-base text-zinc-400 max-w-xl mx-auto"
           >
-            Elevate your standard photos into breathtaking cinematic shots. Choose your genre, set the mood, and let AI direct the lighting.
+            Turn any photo into Comic, Anime, Pop Art and more — or generate stunning AI scenes with Seedream for your social media.
           </motion.p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-          
-          {/* Left Column: Image Area */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="relative">
-              {isCompleted && jobId ? (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className={cn(
-                    "relative w-full aspect-[4/3] rounded-2xl overflow-hidden glass-panel group",
-                    removeBackground && "checkerboard"
-                  )}
-                >
-                  <img 
-                    src={`/api/transform/${jobId}/download`}
-                    alt="Transformed result" 
-                    className="w-full h-full object-contain"
-                  />
-                </motion.div>
-              ) : (
-                <UploadZone 
-                  onFileSelect={setFile} 
-                  selectedFile={file} 
-                  disabled={isProcessing} 
-                />
-              )}
-
-              {/* Processing Overlay */}
-              <AnimatePresence>
-                {isProcessing && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md rounded-2xl border border-white/10"
-                  >
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
-                      <Loader2 className="w-12 h-12 text-primary animate-spin relative z-10" />
-                    </div>
-                    <h3 className="mt-6 text-xl font-display text-white text-glow-primary">
-                      {removeBackground ? "Grading + Removing Background..." : "Directing your scene..."}
-                    </h3>
-                    <p className="mt-2 text-sm text-zinc-400 max-w-[260px] text-center font-sans">
-                      {removeBackground
-                        ? "Applying cinematic grade, then Nano Banana 2 extracts the subject. May take ~20s."
-                        : `Applying the ${preset.replace(/_/g, ' ')} look. Usually takes a few seconds.`}
-                    </p>
-                    
-                    <div className="w-48 h-1 bg-white/10 rounded-full mt-6 overflow-hidden">
-                      <motion.div 
-                        className="h-full bg-primary"
-                        initial={{ width: "0%" }}
-                        animate={{ width: "100%" }}
-                        transition={{ duration: removeBackground ? 25 : 4, ease: "linear" }}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+        {/* ======= SECTION 1: PHOTO TRANSFORMER ======= */}
+        <section className="mb-16">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center">
+              <Wand2 className="w-4 h-4 text-black" />
             </div>
-
-            {hasError && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 flex items-start gap-3"
-              >
-                <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-semibold text-destructive-foreground">Transformation Failed</h4>
-                  <p className="text-sm text-destructive-foreground/80 mt-1">{errorMessage}</p>
-                  <button 
-                    onClick={() => {
-                      setJobId(null);
-                      mutation.reset();
-                    }}
-                    className="mt-3 text-xs font-medium px-3 py-1.5 rounded-md bg-destructive/20 hover:bg-destructive/30 text-destructive-foreground transition-colors"
-                  >
-                    Try Again
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {isCompleted && (
-              <motion.div 
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="flex gap-4"
-              >
-                <button
-                  onClick={handleDownload}
-                  className="flex-1 flex items-center justify-center gap-2 py-4 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all shadow-[0_0_20px_-5px_rgba(234,179,8,0.5)] hover:shadow-[0_0_30px_-5px_rgba(234,179,8,0.6)]"
-                >
-                  <Download className="w-5 h-5" />
-                  Download Cinematic Image
-                </button>
-                <button
-                  onClick={reset}
-                  className="px-6 flex items-center justify-center gap-2 py-4 rounded-xl bg-white/5 text-white font-medium border border-white/10 hover:bg-white/10 transition-all"
-                >
-                  <RotateCcw className="w-5 h-5" />
-                </button>
-              </motion.div>
-            )}
+            <div>
+              <h2 className="text-lg font-bold text-white">Photo Transformer</h2>
+              <p className="text-xs text-zinc-500">Upload your photo → choose a style → AI does the rest</p>
+            </div>
           </div>
 
-          {/* Right Column: Controls */}
-          <div className="lg:col-span-5 space-y-8">
-            <div className="glass-panel p-6 sm:p-8 rounded-2xl relative overflow-hidden">
-              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-              
-              <h2 className="text-2xl font-display font-semibold mb-6 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
-                Select Aesthetic
-              </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-              <div className="space-y-3 mb-8">
-                {PRESETS.map((p) => (
-                  <PresetCard
-                    key={p.id}
-                    id={p.id}
-                    title={p.title}
-                    description={p.description}
-                    selected={preset === p.id}
-                    onClick={setPreset}
-                    disabled={isProcessing}
-                  />
-                ))}
-              </div>
-
-              <div className="space-y-3 mb-8">
-                <div className="p-4 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
-                      <span className="text-sm">▬</span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-zinc-100 text-sm">Cinematic Letterbox</h4>
-                      <p className="text-xs text-zinc-400 mt-0.5">Add 2.39:1 black bars</p>
-                    </div>
-                  </div>
-                  <Switch 
-                    checked={letterbox} 
-                    onCheckedChange={setLetterbox} 
-                    disabled={isProcessing || removeBackground}
-                  />
+            {/* Left: Controls */}
+            <div className="lg:col-span-5 space-y-5">
+              {/* Upload */}
+              {!transformDone && (
+                <div className="glass-panel rounded-2xl p-4">
+                  <h3 className="text-sm font-semibold text-zinc-300 mb-3 flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-bold">1</span>
+                    Upload Photo
+                  </h3>
+                  <UploadZone onFileSelect={setFile} selectedFile={file} disabled={isTransforming} />
                 </div>
+              )}
 
-                <div className={cn(
-                  "p-4 rounded-xl border flex items-center justify-between transition-colors",
-                  removeBackground
-                    ? "bg-primary/10 border-primary/30"
-                    : "bg-black/40 border-white/5"
-                )}>
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                      removeBackground ? "bg-primary/20" : "bg-white/5"
-                    )}>
-                      <Scissors className={cn("w-4 h-4", removeBackground ? "text-primary" : "text-zinc-400")} />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-zinc-100 text-sm">Remove Background</h4>
-                      <p className="text-xs text-zinc-400 mt-0.5">PNG transparente con Nano Banana 2</p>
-                    </div>
-                  </div>
-                  <Switch 
-                    checked={removeBackground} 
-                    onCheckedChange={(v) => { setRemoveBackground(v); if (v) setLetterbox(false); }} 
-                    disabled={isProcessing}
-                  />
+              {/* Style selector */}
+              <div className="glass-panel rounded-2xl p-4">
+                <h3 className="text-sm font-semibold text-zinc-300 mb-3 flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-bold">2</span>
+                  Choose Style
+                </h3>
+                <div className="space-y-2">
+                  {STYLES.map(s => (
+                    <StyleCard key={s.id} config={s} selected={style === s.id} onClick={setStyle} disabled={isTransforming} />
+                  ))}
                 </div>
               </div>
 
-              {!isCompleted && (
+              {/* Format selector */}
+              <div className="glass-panel rounded-2xl p-4">
+                <h3 className="text-sm font-semibold text-zinc-300 mb-3 flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-bold">3</span>
+                  Output Format
+                </h3>
+                <FormatSelector value={format} onChange={setFormat} disabled={isTransforming} />
+              </div>
+
+              {/* CTA */}
+              {!transformDone && (
                 <button
                   onClick={handleTransform}
-                  disabled={!file || isProcessing}
+                  disabled={!file || isTransforming}
                   className={cn(
-                    "w-full py-4 rounded-xl font-display font-bold text-lg tracking-wide transition-all duration-300",
-                    "flex items-center justify-center gap-2",
-                    file && !isProcessing
-                      ? "bg-primary text-primary-foreground shadow-[0_0_20px_-5px_rgba(234,179,8,0.4)] hover:shadow-[0_0_30px_-5px_rgba(234,179,8,0.6)] hover:-translate-y-0.5"
+                    "w-full py-4 rounded-xl font-bold text-base tracking-wide transition-all duration-300 flex items-center justify-center gap-2",
+                    file && !isTransforming
+                      ? `bg-gradient-to-r ${currentStyle.gradient} text-white shadow-lg hover:-translate-y-0.5 hover:shadow-xl`
                       : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700"
                   )}
+                  style={file && !isTransforming ? { boxShadow: `0 8px 30px -8px ${currentStyle.glow}` } : {}}
                 >
-                  <Clapperboard className="w-5 h-5" />
-                  {isProcessing ? "Processing..." : "Generate Scene"}
+                  {isTransforming
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Transforming...</>
+                    : <><Sparkles className="w-4 h-4" /> Transform to {currentStyle.label}</>
+                  }
+                </button>
+              )}
+
+              {transformDone && (
+                <button
+                  onClick={resetTransform}
+                  className="w-full py-3 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 bg-white/5 text-zinc-300 border border-white/10 hover:bg-white/10"
+                >
+                  <RotateCcw className="w-4 h-4" /> Transform another photo
                 </button>
               )}
             </div>
+
+            {/* Right: Result */}
+            <div className="lg:col-span-7">
+              <div className="glass-panel rounded-2xl overflow-hidden h-full min-h-[400px] flex flex-col">
+                <AnimatePresence mode="wait">
+                  {transformDone && transformJobId ? (
+                    <motion.div
+                      key="result"
+                      initial={{ opacity: 0, scale: 0.97 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex-1 flex flex-col"
+                    >
+                      <div className="relative flex-1 min-h-[340px]">
+                        <img
+                          src={`/api/transform/${transformJobId}/download`}
+                          alt={`${style} transformation`}
+                          className="w-full h-full object-contain"
+                        />
+                        {/* Style badge */}
+                        <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r ${currentStyle.gradient}`}>
+                          {currentStyle.emoji} {currentStyle.label}
+                        </div>
+                      </div>
+                      <div className="p-4 border-t border-white/5 flex gap-3">
+                        <button
+                          onClick={() => handleDownload(transformJobId, `${style}-creative`)}
+                          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r ${currentStyle.gradient} hover:opacity-90 transition-opacity`}
+                        >
+                          <Download className="w-4 h-4" /> Download Image
+                        </button>
+                      </div>
+                    </motion.div>
+                  ) : isTransforming ? (
+                    <motion.div
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex-1 flex flex-col items-center justify-center gap-4 p-8"
+                    >
+                      <div className="relative">
+                        <div className="absolute inset-0 blur-2xl rounded-full opacity-40"
+                          style={{ background: `radial-gradient(circle, ${currentStyle.glow}, transparent)` }} />
+                        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${currentStyle.gradient} flex items-center justify-center relative shadow-xl`}>
+                          <Loader2 className="w-8 h-8 text-white animate-spin" />
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <h3 className="text-lg font-bold text-white">{currentStyle.emoji} Creating {currentStyle.label}...</h3>
+                        <p className="text-sm text-zinc-400 mt-1">FLUX 2 Flex is generating your image. Usually 30–60 seconds.</p>
+                      </div>
+                      <div className="w-56 h-1 bg-white/10 rounded-full overflow-hidden">
+                        <motion.div
+                          className={`h-full bg-gradient-to-r ${currentStyle.gradient}`}
+                          initial={{ width: "0%" }}
+                          animate={{ width: "90%" }}
+                          transition={{ duration: 50, ease: "easeOut" }}
+                        />
+                      </div>
+                    </motion.div>
+                  ) : transformStatus?.status === "failed" ? (
+                    <motion.div key="error" className="flex-1 flex flex-col items-center justify-center gap-3 p-8">
+                      <AlertTriangle className="w-10 h-10 text-red-400" />
+                      <h3 className="text-base font-semibold text-red-300">Transformation Failed</h3>
+                      <p className="text-sm text-zinc-400 text-center max-w-xs">{transformStatus.error || "An unexpected error occurred."}</p>
+                      <button onClick={resetTransform} className="mt-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-zinc-300 hover:bg-white/10 transition">
+                        Try again
+                      </button>
+                    </motion.div>
+                  ) : transformMutation.isError ? (
+                    <motion.div key="error-mut" className="flex-1 flex flex-col items-center justify-center gap-3 p-8">
+                      <AlertTriangle className="w-10 h-10 text-red-400" />
+                      <p className="text-sm text-zinc-400 text-center">{transformMutation.error?.message}</p>
+                      <button onClick={resetTransform} className="mt-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-zinc-300">Try again</button>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="placeholder"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center"
+                    >
+                      <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center">
+                        <ImageIcon className="w-8 h-8 text-zinc-600" />
+                      </div>
+                      <div>
+                        <p className="text-zinc-400 font-medium">Your transformed image will appear here</p>
+                        <p className="text-zinc-600 text-sm mt-1">Upload a photo and select a style to begin</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ======= SECTION 2: SEEDREAM SCENE GENERATOR ======= */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-white">Seedream Scene Generator</h2>
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 uppercase tracking-widest">
+                  Seedream 3
+                </span>
+              </div>
+              <p className="text-xs text-zinc-500">Generate stunning 2K social media scenes with ByteDance's Seedream 3 — no photo needed</p>
+            </div>
           </div>
 
-        </div>
+          <div className="glass-panel rounded-2xl p-6 border border-violet-500/10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+              {/* Controls */}
+              <div className="lg:col-span-5 space-y-5">
+                <div>
+                  <h3 className="text-sm font-semibold text-zinc-300 mb-3">Choose Scene Style</h3>
+                  <div className="space-y-2">
+                    {STYLES.map(s => (
+                      <StyleCard key={s.id} config={s} selected={seedStyle === s.id} onClick={setSeedStyle} disabled={isGenerating} />
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-zinc-300 mb-3">Output Format</h3>
+                  <FormatSelector value={seedFormat} onChange={setSeedFormat} disabled={isGenerating} />
+                </div>
+
+                <button
+                  onClick={handleGenerate}
+                  disabled={isGenerating}
+                  className={cn(
+                    "w-full py-4 rounded-xl font-bold text-base tracking-wide transition-all duration-300 flex items-center justify-center gap-2",
+                    !isGenerating
+                      ? `bg-gradient-to-r ${currentSeedStyle.gradient} text-white shadow-lg hover:-translate-y-0.5`
+                      : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700"
+                  )}
+                  style={!isGenerating ? { boxShadow: `0 8px 30px -8px ${currentSeedStyle.glow}` } : {}}
+                >
+                  {isGenerating
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating with Seedream...</>
+                    : <><Sparkles className="w-4 h-4" /> Generate {currentSeedStyle.label} Scene</>
+                  }
+                </button>
+              </div>
+
+              {/* Result */}
+              <div className="lg:col-span-7">
+                <div className="rounded-xl overflow-hidden bg-black/30 border border-white/5 min-h-[360px] flex flex-col">
+                  <AnimatePresence mode="wait">
+                    {generateDone && generateJobId ? (
+                      <motion.div
+                        key="gen-result"
+                        initial={{ opacity: 0, scale: 0.97 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex-1 flex flex-col"
+                      >
+                        <div className="relative flex-1 min-h-[300px]">
+                          <img
+                            src={`/api/transform/${generateJobId}/download`}
+                            alt={`${seedStyle} scene`}
+                            className="w-full h-full object-contain"
+                          />
+                          <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r ${currentSeedStyle.gradient} flex items-center gap-1`}>
+                            <Sparkles className="w-3 h-3" /> Seedream 3
+                          </div>
+                        </div>
+                        <div className="p-4 border-t border-white/5">
+                          <button
+                            onClick={() => handleDownload(generateJobId, `${seedStyle}-seedream-scene`)}
+                            className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r ${currentSeedStyle.gradient} hover:opacity-90 transition-opacity`}
+                          >
+                            <Download className="w-4 h-4" /> Download Scene
+                          </button>
+                        </div>
+                      </motion.div>
+                    ) : isGenerating ? (
+                      <motion.div
+                        key="gen-loading"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex-1 flex flex-col items-center justify-center gap-4 p-8"
+                      >
+                        <div className="relative">
+                          <div className="absolute inset-0 blur-2xl rounded-full opacity-40"
+                            style={{ background: `radial-gradient(circle, ${currentSeedStyle.glow}, transparent)` }} />
+                          <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${currentSeedStyle.gradient} flex items-center justify-center relative shadow-xl`}>
+                            <Sparkles className="w-8 h-8 text-white animate-pulse" />
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <h3 className="text-base font-bold text-white">Seedream is painting your scene...</h3>
+                          <p className="text-xs text-zinc-400 mt-1">Generating 2K {currentSeedStyle.label} artwork. Usually 20–40 seconds.</p>
+                        </div>
+                        <div className="w-48 h-1 bg-white/10 rounded-full overflow-hidden">
+                          <motion.div
+                            className={`h-full bg-gradient-to-r ${currentSeedStyle.gradient}`}
+                            initial={{ width: "0%" }}
+                            animate={{ width: "90%" }}
+                            transition={{ duration: 35, ease: "easeOut" }}
+                          />
+                        </div>
+                      </motion.div>
+                    ) : generateStatus?.status === "failed" ? (
+                      <motion.div key="gen-error" className="flex-1 flex flex-col items-center justify-center gap-3 p-8">
+                        <AlertTriangle className="w-8 h-8 text-red-400" />
+                        <p className="text-sm text-zinc-400 text-center">{generateStatus.error || "Generation failed."}</p>
+                        <button onClick={() => { setGenerateJobId(null); generateMutation.reset(); }} className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-zinc-300">Try again</button>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="gen-placeholder"
+                        className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center"
+                      >
+                        <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-violet-500/30 flex items-center justify-center bg-violet-500/5">
+                          <Sparkles className="w-8 h-8 text-violet-500/50" />
+                        </div>
+                        <div>
+                          <p className="text-zinc-400 font-medium">Your Seedream scene will appear here</p>
+                          <p className="text-zinc-600 text-sm mt-1">Select a style and click Generate</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </div>
     </div>
   );

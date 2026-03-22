@@ -1,74 +1,65 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 
-export interface TransformResult {
-  jobId: string;
-  status: "pending" | "processing" | "completed" | "failed";
-  imageUrl?: string;
-  preset: string;
-}
+export type StyleType = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk";
+export type FormatType = "square" | "portrait" | "story" | "landscape";
 
-export interface TransformStatus {
+export interface JobResult {
   jobId: string;
   status: "pending" | "processing" | "completed" | "failed";
   imageUrl?: string;
   error?: string;
-  preset: string;
-}
-
-interface TransformPayload {
-  image: File;
-  preset: string;
-  letterbox: boolean;
-  removeBackground: boolean;
+  style: string;
+  mode: "transform" | "generate";
 }
 
 export function useTransformMutation() {
   return useMutation({
-    mutationFn: async (data: TransformPayload) => {
+    mutationFn: async (data: { image: File; style: StyleType; format: FormatType }) => {
       const formData = new FormData();
       formData.append("image", data.image);
-      formData.append("preset", data.preset);
-      formData.append("letterbox", data.letterbox.toString());
-      formData.append("removeBackground", data.removeBackground.toString());
+      formData.append("style", data.style);
+      formData.append("format", data.format);
 
-      const res = await fetch("/api/transform", {
-        method: "POST",
-        body: formData,
-      });
-
+      const res = await fetch("/api/transform", { method: "POST", body: formData });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to transform image");
+        throw new Error(err.message || "Failed to start transformation");
       }
-
-      return res.json() as Promise<TransformResult>;
+      return res.json() as Promise<JobResult>;
     },
   });
 }
 
-export function useTransformPolling(jobId: string | null) {
-  return useQuery({
-    queryKey: ["transform", jobId, "status"],
-    queryFn: async () => {
-      if (!jobId) throw new Error("No job ID provided");
-      
-      const res = await fetch(`/api/transform/${jobId}/status`);
-      
+export function useGenerateMutation() {
+  return useMutation({
+    mutationFn: async (data: { style: StyleType; format: FormatType }) => {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to fetch transformation status");
+        throw new Error(err.message || "Failed to start generation");
       }
-      
-      return res.json() as Promise<TransformStatus>;
+      return res.json() as Promise<JobResult>;
+    },
+  });
+}
+
+export function useJobPolling(jobId: string | null) {
+  return useQuery({
+    queryKey: ["job", jobId],
+    queryFn: async () => {
+      if (!jobId) throw new Error("No job ID");
+      const res = await fetch(`/api/transform/${jobId}/status`);
+      if (!res.ok) throw new Error("Failed to fetch status");
+      return res.json() as Promise<JobResult>;
     },
     enabled: !!jobId,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      // Stop polling when completed or failed
-      if (status === "completed" || status === "failed") {
-        return false;
-      }
-      return 3000; // Poll every 3 seconds
+      return status === "completed" || status === "failed" ? false : 2500;
     },
     retry: 3,
   });

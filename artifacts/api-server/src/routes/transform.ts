@@ -1,6 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import multer from "multer";
-import sharp from "sharp";
 import Replicate from "replicate";
 import fs from "fs";
 import path from "path";
@@ -16,27 +15,65 @@ const upload = multer({
       cb(null, `upload-${Date.now()}${ext}`);
     },
   }),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 15 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype === "image/jpeg" || file.mimetype === "image/png") {
+    if (["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Only JPG and PNG images are allowed"));
+      cb(new Error("Only JPG, PNG and WEBP images are allowed"));
     }
   },
 });
 
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 
-type Preset = "cinematic" | "scifi" | "neo_noir" | "warm_hollywood" | "dramatic_portrait";
+export type Style = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk";
+export type Format = "square" | "portrait" | "story" | "landscape";
+
+const FORMAT_RATIOS: Record<Format, string> = {
+  square: "1:1",
+  portrait: "4:5",
+  story: "9:16",
+  landscape: "16:9",
+};
+
+const TRANSFORM_PROMPTS: Record<Style, string> = {
+  comic:
+    "Transform this photo into a dynamic comic book illustration. Bold black ink outlines on every edge, flat vibrant cel colors, halftone dot pattern shading in shadows, action-style composition, Marvel and DC comics aesthetic, expressive faces, dramatic panel perspective, high-contrast graphic art, print-ready quality",
+  anime:
+    "Transform this into a beautiful Studio Ghibli anime illustration. Clean smooth linework, vibrant pastel and jewel-tone colors, large expressive eyes, detailed flowing hair with highlight streaks, cel-shaded soft shading, magical atmospheric glow, anime film quality, painterly background details",
+  popart:
+    "Transform into bold Andy Warhol pop art style. Flat bold primary and secondary colors, silkscreen print aesthetic, high contrast graphic shapes, CMYK halftone dot pattern, thick black contour lines, iconic 1960s commercial art movement, saturated punchy palette, graphic design poster quality",
+  watercolor:
+    "Transform into a loose artistic watercolor painting. Soft translucent paint washes bleeding at edges, visible wet brushstrokes, granulation texture, color blooms and bleeds, fine art cold-press paper texture, impressionistic detail loss in backgrounds, warm and cool color harmony, plein-air painting feel",
+  oilpainting:
+    "Transform into a classical oil painting masterpiece. Rich impasto thick brushwork with visible paint texture, deep luminous colors with strong chiaroscuro lighting, Old Masters technique reminiscent of Rembrandt and Vermeer, glazing layers giving depth, warm amber varnish tone, museum-quality fine art, dramatic baroque composition",
+  cyberpunk:
+    "Transform into a cyberpunk digital illustration. Intense neon pink, cyan and purple glow lighting, glitch distortion effects on edges, circuit board and holographic overlay patterns, rain-soaked reflective surfaces, futuristic urban dystopia aesthetic, Blade Runner and Ghost in the Shell visual style, ultra-detailed sci-fi art",
+};
+
+const SEEDREAM_PROMPTS: Record<Style, string> = {
+  comic:
+    "Epic comic book splash page, dynamic superhero battle scene above a neon city skyline, bold black ink outlines, halftone dot shading, vibrant primary colors, lightning and energy beams, action debris, dramatic upward angle, Marvel Comics quality, ultra detailed, 4K resolution",
+  anime:
+    "Breathtaking Studio Ghibli anime landscape, magical floating islands with waterfalls and cherry blossoms, golden hour sunlight through clouds, a small village on the cliffs, flying creatures in the distance, lush green valleys, painted sky with volumetric light, ultra detailed masterpiece",
+  popart:
+    "Andy Warhol style pop art gallery installation, bold colorful grid of repeated iconic images, silkscreen print aesthetic, hot pink, electric blue and lime green palette, graphic geometric shapes, 1960s commercial art, ultra vibrant and energetic, high resolution poster art",
+  watercolor:
+    "Romantic European cobblestone street in rain, watercolor painting, blossoming flower stalls, warm cafe lights, umbrellas, impressionist brushwork, bleeding color washes, soft atmospheric haze, moody and beautiful, award-winning fine art illustration",
+  oilpainting:
+    "Grand baroque oil painting of a mythological golden hall, dramatic chiaroscuro lighting from a cathedral window, rich velvet curtains and marble columns, angelic figures in motion, Caravaggio and Rembrandt influence, deep warm amber tones, thick impasto brushwork, museum quality masterpiece",
+  cyberpunk:
+    "Futuristic mega-city at night, towering holographic neon billboards in Japanese and English, flying vehicles in rain, chrome and glass skyscrapers, neon-lit street markets below, purple and cyan atmospheric glow, Blade Runner 2049 cinematic quality, ultra-detailed 8K sci-fi concept art",
+};
 
 interface JobRecord {
   jobId: string;
   status: "pending" | "processing" | "completed" | "failed";
   imageBuffer?: Buffer;
   error?: string;
-  preset: string;
-  removeBackground: boolean;
+  style: string;
+  mode: "transform" | "generate";
 }
 
 const jobs = new Map<string, JobRecord>();
@@ -48,204 +85,97 @@ function extractUrl(value: unknown): string {
   return String(value);
 }
 
-async function createVignette(width: number, height: number, opacity: number): Promise<Buffer> {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <defs>
-      <radialGradient id="v" cx="50%" cy="50%" r="75%">
-        <stop offset="0%" stop-color="black" stop-opacity="0"/>
-        <stop offset="65%" stop-color="black" stop-opacity="${(opacity * 0.35).toFixed(2)}"/>
-        <stop offset="100%" stop-color="black" stop-opacity="${opacity.toFixed(2)}"/>
-      </radialGradient>
-    </defs>
-    <rect width="${width}" height="${height}" fill="url(#v)"/>
-  </svg>`;
-  return Buffer.from(svg);
+async function uploadToReplicate(buffer: Buffer, filename: string, contentType: string): Promise<string> {
+  const blob = new Blob([buffer], { type: contentType });
+  const file = await replicate.files.create(blob as any, { filename } as any);
+  return (file as any).urls?.get ?? (file as any).url ?? String(file);
 }
 
-async function createGrain(width: number, height: number, intensity: number): Promise<Buffer> {
-  const pixels = width * height;
-  const data = Buffer.alloc(pixels * 4);
-  for (let i = 0; i < pixels; i++) {
-    const noise = Math.floor(128 + (Math.random() - 0.5) * 255);
-    data[i * 4] = noise;
-    data[i * 4 + 1] = noise;
-    data[i * 4 + 2] = noise;
-    data[i * 4 + 3] = Math.floor(intensity);
-  }
-  return sharp(data, { raw: { width, height, channels: 4 } }).png().toBuffer();
-}
-
-function createLetterboxOverlay(width: number, height: number): Buffer {
-  const barH = Math.round(height * 0.105);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <rect x="0" y="0" width="${width}" height="${barH}" fill="black"/>
-    <rect x="0" y="${height - barH}" width="${width}" height="${barH}" fill="black"/>
-  </svg>`;
-  return Buffer.from(svg);
-}
-
-async function applyCinematic(buf: Buffer, width: number, height: number): Promise<Buffer> {
-  const grain = await createGrain(width, height, 18);
-  const vignette = await createVignette(width, height, 0.55);
-  return sharp(buf)
-    .recomb([[1.12, 0.0, -0.05], [-0.03, 1.02, 0.03], [-0.1, 0.06, 1.15]])
-    .modulate({ brightness: 0.97, saturation: 1.15 })
-    .linear(1.18, -18)
-    .composite([{ input: grain, blend: "soft-light" }, { input: vignette, blend: "over" }])
-    .png().toBuffer();
-}
-
-async function applyScifi(buf: Buffer, width: number, height: number): Promise<Buffer> {
-  const grain = await createGrain(width, height, 22);
-  const vignette = await createVignette(width, height, 0.65);
-  const glowSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <defs><radialGradient id="g" cx="50%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#001aff" stop-opacity="0.18"/>
-      <stop offset="100%" stop-color="#001aff" stop-opacity="0"/>
-    </radialGradient></defs>
-    <rect width="${width}" height="${height}" fill="url(#g)"/>
-  </svg>`;
-  return sharp(buf)
-    .recomb([[0.65, 0.08, 0.18], [0.0, 0.82, 0.3], [0.12, 0.12, 1.45]])
-    .modulate({ brightness: 0.88, saturation: 1.9 })
-    .linear(1.25, -22)
-    .composite([
-      { input: Buffer.from(glowSvg), blend: "screen" },
-      { input: grain, blend: "soft-light" },
-      { input: vignette, blend: "over" },
-    ])
-    .png().toBuffer();
-}
-
-async function applyNeoNoir(buf: Buffer, width: number, height: number): Promise<Buffer> {
-  const grain = await createGrain(width, height, 30);
-  const vignette = await createVignette(width, height, 0.7);
-  const amberSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <rect width="${width}" height="${height}" fill="#ff8800" opacity="0.07"/>
-  </svg>`;
-  return sharp(buf)
-    .recomb([[0.5, 0.35, 0.15], [0.5, 0.35, 0.15], [0.35, 0.25, 0.4]])
-    .modulate({ brightness: 0.88, saturation: 0.12 })
-    .linear(1.45, -30)
-    .gamma(1.1)
-    .composite([
-      { input: Buffer.from(amberSvg), blend: "screen" },
-      { input: grain, blend: "soft-light" },
-      { input: vignette, blend: "over" },
-    ])
-    .png().toBuffer();
-}
-
-async function applyWarmHollywood(buf: Buffer, width: number, height: number): Promise<Buffer> {
-  const grain = await createGrain(width, height, 14);
-  const vignette = await createVignette(width, height, 0.4);
-  const warmSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <defs><radialGradient id="w" cx="60%" cy="35%" r="70%">
-      <stop offset="0%" stop-color="#ffbb44" stop-opacity="0.22"/>
-      <stop offset="100%" stop-color="#ff6600" stop-opacity="0.05"/>
-    </radialGradient></defs>
-    <rect width="${width}" height="${height}" fill="url(#w)"/>
-  </svg>`;
-  return sharp(buf)
-    .recomb([[1.25, 0.1, -0.08], [0.0, 1.06, 0.0], [-0.12, 0.0, 0.82]])
-    .modulate({ brightness: 1.05, saturation: 1.25 })
-    .linear(1.08, 8)
-    .composite([
-      { input: Buffer.from(warmSvg), blend: "screen" },
-      { input: grain, blend: "soft-light" },
-      { input: vignette, blend: "over" },
-    ])
-    .png().toBuffer();
-}
-
-async function applyDramaticPortrait(buf: Buffer, width: number, height: number): Promise<Buffer> {
-  const grain = await createGrain(width, height, 28);
-  const vignette = await createVignette(width, height, 0.78);
-  return sharp(buf)
-    .recomb([[0.55, 0.33, 0.12], [0.55, 0.33, 0.12], [0.45, 0.28, 0.27]])
-    .modulate({ brightness: 0.82, saturation: 0.08 })
-    .linear(1.55, -38)
-    .gamma(0.88)
-    .composite([{ input: grain, blend: "soft-light" }, { input: vignette, blend: "over" }])
-    .png().toBuffer();
-}
-
-async function applyNanoBanana(gradedBuffer: Buffer): Promise<Buffer> {
-  console.log("Uploading image to Replicate for background removal...");
-
-  const blob = new Blob([gradedBuffer], { type: "image/png" });
-  const file = await replicate.files.create(blob as any, { filename: "graded.png" } as any);
-  const imageUrl = (file as any).urls?.get ?? (file as any).url ?? String(file);
-
-  console.log("Running Nano Banana 2, image URL:", imageUrl);
-
-  const output = await replicate.run(
-    "jide/nano-banana-2-transparent:689fe27ffec145cc7e3d76ee4778ab3b0f24bd72eca62f4f534d562f062a2e1d",
-    {
-      input: {
-        image: imageUrl,
-        replicate_api_token: process.env.REPLICATE_API_TOKEN,
-      },
-    }
-  );
-
-  const rawUrl = Array.isArray(output) ? output[0] : output;
-  const resultUrl = extractUrl(rawUrl);
-  console.log("Nano Banana result URL:", resultUrl);
-
-  const response = await fetch(resultUrl);
-  if (!response.ok) throw new Error(`Failed to fetch Nano Banana result: ${response.status}`);
-  return Buffer.from(await response.arrayBuffer());
-}
-
-async function runTransformation(
-  jobId: string,
-  imagePath: string,
-  preset: Preset,
-  letterbox: boolean,
-  removeBackground: boolean
-) {
+async function runTransformJob(jobId: string, imagePath: string, style: Style, format: Format) {
   const job = jobs.get(jobId)!;
   job.status = "processing";
 
   try {
-    const inputBuffer = fs.readFileSync(imagePath);
-    const metadata = await sharp(inputBuffer).metadata();
-    const width = metadata.width ?? 1024;
-    const height = metadata.height ?? 768;
+    const ext = path.extname(imagePath).replace(".", "") || "jpeg";
+    const contentType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+    const buffer = fs.readFileSync(imagePath);
 
-    let result: Buffer;
-    switch (preset) {
-      case "cinematic":      result = await applyCinematic(inputBuffer, width, height); break;
-      case "scifi":          result = await applyScifi(inputBuffer, width, height); break;
-      case "neo_noir":       result = await applyNeoNoir(inputBuffer, width, height); break;
-      case "warm_hollywood": result = await applyWarmHollywood(inputBuffer, width, height); break;
-      case "dramatic_portrait": result = await applyDramaticPortrait(inputBuffer, width, height); break;
-    }
+    console.log(`[${jobId}] Uploading image to Replicate...`);
+    const imageUrl = await uploadToReplicate(buffer, `input.${ext}`, contentType);
+    console.log(`[${jobId}] Image uploaded: ${imageUrl}`);
 
-    if (letterbox && !removeBackground) {
-      const lbOverlay = createLetterboxOverlay(width, height);
-      result = await sharp(result)
-        .composite([{ input: lbOverlay, blend: "over" }])
-        .png().toBuffer();
-    }
+    console.log(`[${jobId}] Running FLUX 2 Flex (style=${style}, format=${format})...`);
+    const output = await replicate.run(
+      "black-forest-labs/flux-2-flex:51d0412f4874be5ad0fc559a9174a33b24927cb12729d4e3abf5a4f98ba1a4bc",
+      {
+        input: {
+          prompt: TRANSFORM_PROMPTS[style],
+          input_images: [imageUrl],
+          aspect_ratio: FORMAT_RATIOS[format] ?? "match_input_image",
+          steps: 30,
+          guidance: 5.0,
+          output_format: "png",
+          output_quality: 95,
+          prompt_upsampling: false,
+        },
+      }
+    );
 
-    if (removeBackground) {
-      result = await applyNanoBanana(result);
-    }
+    const rawUrl = Array.isArray(output) ? output[0] : output;
+    const resultUrl = extractUrl(rawUrl);
+    console.log(`[${jobId}] FLUX result: ${resultUrl}`);
 
-    console.log(`Job ${jobId} completed (${preset}, ${width}x${height}, bgRemove=${removeBackground})`);
+    const response = await fetch(resultUrl);
+    if (!response.ok) throw new Error(`Failed to fetch result: ${response.status}`);
+    job.imageBuffer = Buffer.from(await response.arrayBuffer());
     job.status = "completed";
-    job.imageBuffer = result;
+    console.log(`[${jobId}] Transform complete.`);
   } catch (err) {
     job.status = "failed";
-    job.error = err instanceof Error ? err.message : "Unknown error occurred";
-    console.error(`Job ${jobId} failed:`, err);
+    job.error = err instanceof Error ? err.message : "Unknown error";
+    console.error(`[${jobId}] Transform failed:`, err);
   } finally {
     try { fs.unlinkSync(imagePath); } catch { }
   }
 }
 
+async function runGenerateJob(jobId: string, style: Style, format: Format) {
+  const job = jobs.get(jobId)!;
+  job.status = "processing";
+
+  try {
+    console.log(`[${jobId}] Running Seedream 3 (style=${style}, format=${format})...`);
+    const aspectRatio = FORMAT_RATIOS[format] ?? "16:9";
+
+    const output = await replicate.run(
+      "bytedance/seedream-3:ed344813bc9f4996be6de4febd8b9c14c7849ad7b21ab047572e3620ee374ee7",
+      {
+        input: {
+          prompt: SEEDREAM_PROMPTS[style],
+          aspect_ratio: aspectRatio,
+          size: "big",
+          guidance_scale: 3.0,
+        },
+      }
+    );
+
+    const rawUrl = Array.isArray(output) ? output[0] : output;
+    const resultUrl = extractUrl(rawUrl);
+    console.log(`[${jobId}] Seedream result: ${resultUrl}`);
+
+    const response = await fetch(resultUrl);
+    if (!response.ok) throw new Error(`Failed to fetch result: ${response.status}`);
+    job.imageBuffer = Buffer.from(await response.arrayBuffer());
+    job.status = "completed";
+    console.log(`[${jobId}] Generate complete.`);
+  } catch (err) {
+    job.status = "failed";
+    job.error = err instanceof Error ? err.message : "Unknown error";
+    console.error(`[${jobId}] Generate failed:`, err);
+  }
+}
+
+// POST /transform — photo style transfer using FLUX 2 Flex
 router.post(
   "/transform",
   upload.single("image"),
@@ -255,67 +185,77 @@ router.post(
       return;
     }
 
-    const preset = req.body.preset as Preset;
-    const validPresets: Preset[] = [
-      "cinematic", "scifi", "neo_noir", "warm_hollywood", "dramatic_portrait",
-    ];
+    const style = req.body.style as Style;
+    const format = (req.body.format as Format) ?? "square";
+    const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk"];
+    const validFormats: Format[] = ["square", "portrait", "story", "landscape"];
 
-    if (!preset || !validPresets.includes(preset)) {
-      res.status(400).json({ error: "invalid_preset", message: "Invalid or missing preset" });
+    if (!style || !validStyles.includes(style)) {
+      res.status(400).json({ error: "invalid_style", message: "Invalid style" });
+      return;
+    }
+    if (!validFormats.includes(format)) {
+      res.status(400).json({ error: "invalid_format", message: "Invalid format" });
       return;
     }
 
-    const letterbox = req.body.letterbox === "true" || req.body.letterbox === true;
-    const removeBackground = req.body.removeBackground === "true" || req.body.removeBackground === true;
     const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-    const job: JobRecord = { jobId, status: "pending", preset, removeBackground };
+    const job: JobRecord = { jobId, status: "pending", style, mode: "transform" };
     jobs.set(jobId, job);
 
-    runTransformation(jobId, req.file.path, preset, letterbox, removeBackground);
-
-    res.json({ jobId, status: "pending", preset });
+    runTransformJob(jobId, req.file.path, style, format);
+    res.json({ jobId, status: "pending", style, mode: "transform" });
   }
 );
 
-router.get("/transform/:jobId/status", (req: Request, res: Response) => {
-  const { jobId } = req.params;
-  const job = jobs.get(jobId);
+// POST /generate — standalone scene generation using Seedream 3
+router.post("/generate", async (req: Request, res: Response) => {
+  const style = req.body.style as Style;
+  const format = (req.body.format as Format) ?? "landscape";
+  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk"];
+  const validFormats: Format[] = ["square", "portrait", "story", "landscape"];
 
-  if (!job) {
-    res.status(404).json({ error: "not_found", message: "Job not found" });
+  if (!style || !validStyles.includes(style)) {
+    res.status(400).json({ error: "invalid_style", message: "Invalid style" });
+    return;
+  }
+  if (!validFormats.includes(format)) {
+    res.status(400).json({ error: "invalid_format", message: "Invalid format" });
     return;
   }
 
+  const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const job: JobRecord = { jobId, status: "pending", style, mode: "generate" };
+  jobs.set(jobId, job);
+
+  runGenerateJob(jobId, style, format);
+  res.json({ jobId, status: "pending", style, mode: "generate" });
+});
+
+// GET /transform/:jobId/status
+router.get("/transform/:jobId/status", (req: Request, res: Response) => {
+  const job = jobs.get(req.params.jobId);
+  if (!job) { res.status(404).json({ error: "not_found" }); return; }
   res.json({
     jobId: job.jobId,
     status: job.status,
-    imageUrl: job.status === "completed" ? `/api/transform/${jobId}/download` : undefined,
+    imageUrl: job.status === "completed" ? `/api/transform/${job.jobId}/download` : undefined,
     error: job.error,
-    preset: job.preset,
+    style: job.style,
+    mode: job.mode,
   });
 });
 
+// GET /transform/:jobId/download
 router.get("/transform/:jobId/download", (req: Request, res: Response) => {
-  const { jobId } = req.params;
-  const job = jobs.get(jobId);
-
-  if (!job) {
-    res.status(404).json({ error: "not_found", message: "Job not found" });
-    return;
-  }
-
+  const job = jobs.get(req.params.jobId);
+  if (!job) { res.status(404).json({ error: "not_found" }); return; }
   if (job.status !== "completed" || !job.imageBuffer) {
-    res.status(400).json({ error: "not_ready", message: "Image not ready yet" });
-    return;
+    res.status(400).json({ error: "not_ready" }); return;
   }
-
-  const filename = job.removeBackground
-    ? `cinematic-${job.preset}-nobg.png`
-    : `cinematic-${job.preset}.png`;
-
+  const suffix = job.mode === "generate" ? "seedream" : "transformed";
   res.setHeader("Content-Type", "image/png");
-  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.setHeader("Content-Disposition", `attachment; filename="${job.style}-${suffix}.png"`);
   res.setHeader("Content-Length", job.imageBuffer.length);
   res.end(job.imageBuffer);
 });
