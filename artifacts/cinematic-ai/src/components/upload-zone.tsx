@@ -104,7 +104,7 @@ export function UploadZone({ onFileSelect, selectedFile, disabled }: UploadZoneP
               {isDragActive ? "Drop image here" : "Upload an image"}
             </h3>
             <p className="text-zinc-400 max-w-[280px] text-sm">
-              Drag and drop your photo, or click to browse. Supports JPG, PNG up to 10MB.
+              Drag and drop your photo, or click to browse. Any subject — faces, landscapes, objects. JPG, PNG up to 10MB.
             </p>
           </motion.div>
         )}

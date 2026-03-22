@@ -205,7 +205,7 @@ function GalleryStrip() {
 
 // ── How it works bar ──────────────────────────────────────────────────────────
 const STEPS = [
-  { icon: Upload,  label: "Upload",    desc: "Any photo with a face" },
+  { icon: Upload,  label: "Upload",    desc: "Any photo — face or not" },
   { icon: Palette, label: "Style",     desc: "Pick from 12 AI styles" },
   { icon: Sparkles,label: "Transform", desc: "AI runs in ~60 seconds"  },
   { icon: Download,label: "Download",  desc: "HD quality, ready to post" },
@@ -332,7 +332,7 @@ export default function Home() {
             transition={{ delay: 0.25 }}
             className="text-zinc-400 text-lg max-w-lg mx-auto mb-2"
           >
-            Upload a selfie. Pick a style. Get a <span className="text-white font-semibold">studio-quality</span> AI portrait in seconds — your face, perfectly preserved.
+            Upload any photo. Pick a style. Get a <span className="text-white font-semibold">studio-quality</span> AI image in seconds — faces, landscapes, objects, anything.
           </motion.p>
 
           {/* Style tags */}
@@ -525,7 +525,7 @@ export default function Home() {
                           transition={{ duration: 55, ease: "easeOut" }}
                         />
                       </div>
-                      <p className="text-xs text-zinc-600">Face detection · Style transfer · CodeFormer HD enhancement</p>
+                      <p className="text-xs text-zinc-600">Style transfer · AI enhancement · HD upscale</p>
                     </motion.div>
 
                   ) : transformStatus?.status === "failed" ? (
@@ -575,7 +575,7 @@ export default function Home() {
                       </div>
                       <div>
                         <p className="text-zinc-300 font-bold text-lg">Your masterpiece awaits</p>
-                        <p className="text-zinc-600 text-sm mt-1">Upload a photo and pick a style to begin</p>
+                        <p className="text-zinc-600 text-sm mt-1">Any photo — faces, landscapes, objects, pets</p>
                       </div>
                     </motion.div>
                   )}

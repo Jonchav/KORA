@@ -189,6 +189,63 @@ async function cropToContent(buf: Buffer): Promise<Buffer> {
     .jpeg({ quality: 92 }).toBuffer();
 }
 
+// ── IMG2IMG FALLBACK — instruct-pix2pix ──────────────────────────────────────
+// Used when face-to-many can't detect a face. Works on any image type:
+// landscapes, objects, pets, illustrations, back-turned people, etc.
+const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
+  comic:       "make this a bold comic book illustration with vibrant colors and thick black ink outlines",
+  anime:       "transform this into a Studio Ghibli anime style illustration with cel shading and vivid colors",
+  popart:      "turn this into an Andy Warhol pop art piece with bold flat graphic colors and high contrast",
+  watercolor:  "render this as a delicate watercolor painting with soft wet paint washes and impressionist brushstrokes",
+  oilpainting: "transform this into a classical oil painting like Rembrandt with rich amber tones and dramatic chiaroscuro lighting",
+  cyberpunk:   "make this a futuristic cyberpunk scene with glowing neon electric cyan and magenta, rain-soaked atmosphere",
+  pixel:       "convert this into retro 16-bit pixel art with a classic SNES video game aesthetic",
+  clay:        "transform this into Aardman claymation style with smooth clay texture, rounded shapes, and cheerful colors",
+  toy:         "make this look like a Funko Pop vinyl collectible figure with oversized proportions and glossy plastic finish",
+  vaporwave:   "apply vaporwave aesthetic with dreamy pastel purple and pink, retro grid lines, and 80s nostalgia",
+  fantasy:     "transform this into an epic dark fantasy RPG illustration with dramatic magical lighting and ancient ruins",
+  gtasa:       "make this look like a GTA San Andreas PS2-era video game scene with early 2000s Rockstar Games graphics style",
+};
+
+function isFaceDetectionError(err: unknown): boolean {
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return (
+    msg.includes("no face") ||
+    msg.includes("face not") ||
+    msg.includes("no faces") ||
+    msg.includes("face_detection") ||
+    msg.includes("could not find face") ||
+    msg.includes("face detection failed") ||
+    msg.includes("input image must contain a face")
+  );
+}
+
+async function runNoFaceFallback(jobId: string, buf: Buffer, style: Style): Promise<Buffer> {
+  console.log(`[${jobId}] ↳ No face detected — running img2img fallback (instruct-pix2pix, style=${style})...`);
+  const dataUri = `data:image/jpeg;base64,${buf.toString("base64")}`;
+
+  const output = await replicate.run(
+    "timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23d",
+    {
+      input: {
+        image: dataUri,
+        prompt: IMG2IMG_INSTRUCTIONS[style],
+        negative_prompt: "ugly, deformed, noisy, blurry, distorted, watermark, text, signature, logo",
+        num_steps: 50,
+        guidance_scale: 8.0,
+        image_guidance_scale: 1.2,
+      },
+    }
+  );
+
+  const rawUrl = extractUrl(Array.isArray(output) ? output[0] : output);
+  console.log(`[${jobId}] img2img fallback result: ${rawUrl}`);
+  const res = await fetch(rawUrl);
+  if (!res.ok) throw new Error(`img2img fallback fetch failed: ${res.status}`);
+  // Return as-is; the shared finishing pipeline (Lanczos + applyFormat) handles upscaling
+  return Buffer.from(await res.arrayBuffer());
+}
+
 // ── PHOTO TRANSFORM — face-to-many with InstantID ───────────────────────────
 // Apply the target aspect ratio by center-cropping
 async function applyFormat(buf: Buffer, format: Format): Promise<Buffer> {
@@ -229,80 +286,94 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
     const config = FACE_TO_MANY_CONFIG[style];
     console.log(`[${jobId}] Running face-to-many (style=${style}, render="${config.style}")...`);
 
-    const output = await replicate.run(
-      "fofr/face-to-many:a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf",
-      {
-        input: {
-          image: dataUri,
-          style: config.style,
-          prompt: config.prompt,
-          negative_prompt:
-            "ugly, deformed, noisy, blurry, distorted, disfigured, bad anatomy, extra limbs, six fingers, seven fingers, too many fingers, extra fingers, fused fingers, mutated hands, bad hands, poorly drawn hands, poorly drawn face, cloned hands, missing fingers, watermark, signature, text, logo",
-          denoising_strength: 0.6,
-          instant_id_strength: 0.9,
-          control_depth_strength: 0.8,
-          prompt_strength: 5.5,
-        },
-      }
-    );
+    let processed: Buffer;
+    let usedFacePipeline = true;
 
-    const rawUrl = Array.isArray(output) ? output[0] : output;
-    const resultUrl = extractUrl(rawUrl);
-    console.log(`[${jobId}] face-to-many result: ${resultUrl}`);
-
-    const response = await fetch(resultUrl);
-    if (!response.ok) throw new Error(`Failed to fetch result: ${response.status}`);
-    const rawBuffer = Buffer.from(await response.arrayBuffer());
-
-    // face-to-many outputs a wide comparison image (original | transformed)
-    // Extract just the right half (the stylized result) and trim the frame border
-    const meta = await sharp(rawBuffer).metadata();
-    let processed = rawBuffer;
-    if (meta.width && meta.height && meta.width > meta.height * 1.3) {
-      console.log(`[${jobId}] Detected comparison image (${meta.width}x${meta.height}) — cropping right half...`);
-      const halfW = Math.floor(meta.width / 2);
-      const rightHalf = await sharp(rawBuffer)
-        .extract({ left: halfW, top: 0, width: halfW, height: meta.height })
-        .png().toBuffer();
-      // Smart crop: scan pixel rows/cols to detect exact content boundaries
-      processed = await cropToContent(rightHalf);
-    }
-
-    // Step 1 — CodeFormer: AI face restoration + 2x upscale
-    // fidelity=0.75 balances style preservation with face quality enhancement
+    // ── Primary: face-to-many (InstantID — preserves identity) ───────────────
     try {
-      // Wait for rate-limit window to reset after face-to-many (burst=1 on free tier)
-      await new Promise(r => setTimeout(r, 3000));
-      const rawMeta = await sharp(processed).metadata();
-      console.log(`[${jobId}] Running CodeFormer on ${rawMeta.width}x${rawMeta.height} image...`);
-      const cfDataUri = `data:image/png;base64,${processed.toString("base64")}`;
-      const cfOut = await replicate.run(
-        "sczhou/codeformer:cc4956dd26fa5a7185d5660cc9100fab1b8070a1d1654a8bb5eb6d443b020bb2",
+      const output = await replicate.run(
+        "fofr/face-to-many:a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf",
         {
           input: {
-            image: cfDataUri,
-            upscale: 2,
-            face_upsample: true,
-            background_enhance: true,
-            codeformer_fidelity: 0.75,
+            image: dataUri,
+            style: config.style,
+            prompt: config.prompt,
+            negative_prompt:
+              "ugly, deformed, noisy, blurry, distorted, disfigured, bad anatomy, extra limbs, six fingers, seven fingers, too many fingers, extra fingers, fused fingers, mutated hands, bad hands, poorly drawn hands, poorly drawn face, cloned hands, missing fingers, watermark, signature, text, logo",
+            denoising_strength: 0.6,
+            instant_id_strength: 0.9,
+            control_depth_strength: 0.8,
+            prompt_strength: 5.5,
           },
         }
       );
-      const cfUrl = extractUrl(cfOut);
-      const cfResponse = await fetch(cfUrl);
-      if (cfResponse.ok) {
-        processed = Buffer.from(await cfResponse.arrayBuffer());
-        const cfMeta = await sharp(processed).metadata();
-        console.log(`[${jobId}] CodeFormer done → ${cfMeta.width}x${cfMeta.height}`);
+
+      const rawUrl = Array.isArray(output) ? output[0] : output;
+      const resultUrl = extractUrl(rawUrl);
+      console.log(`[${jobId}] face-to-many result: ${resultUrl}`);
+
+      const response = await fetch(resultUrl);
+      if (!response.ok) throw new Error(`Failed to fetch result: ${response.status}`);
+      const rawBuffer = Buffer.from(await response.arrayBuffer());
+
+      // face-to-many outputs a wide comparison image (original | transformed)
+      // Extract just the right half (the stylized result) and trim the frame border
+      const meta = await sharp(rawBuffer).metadata();
+      processed = rawBuffer;
+      if (meta.width && meta.height && meta.width > meta.height * 1.3) {
+        console.log(`[${jobId}] Detected comparison image (${meta.width}x${meta.height}) — cropping right half...`);
+        const halfW = Math.floor(meta.width / 2);
+        const rightHalf = await sharp(rawBuffer)
+          .extract({ left: halfW, top: 0, width: halfW, height: meta.height })
+          .png().toBuffer();
+        processed = await cropToContent(rightHalf);
       }
-    } catch (cfErr) {
-      console.warn(`[${jobId}] CodeFormer failed, falling back to Lanczos:`, cfErr);
+
+      // CodeFormer: AI face restoration + 2x upscale (face pipeline only)
+      try {
+        await new Promise(r => setTimeout(r, 3000));
+        const rawMeta = await sharp(processed).metadata();
+        console.log(`[${jobId}] Running CodeFormer on ${rawMeta.width}x${rawMeta.height} image...`);
+        const cfDataUri = `data:image/png;base64,${processed.toString("base64")}`;
+        const cfOut = await replicate.run(
+          "sczhou/codeformer:cc4956dd26fa5a7185d5660cc9100fab1b8070a1d1654a8bb5eb6d443b020bb2",
+          {
+            input: {
+              image: cfDataUri,
+              upscale: 2,
+              face_upsample: true,
+              background_enhance: true,
+              codeformer_fidelity: 0.75,
+            },
+          }
+        );
+        const cfUrl = extractUrl(cfOut);
+        const cfResponse = await fetch(cfUrl);
+        if (cfResponse.ok) {
+          processed = Buffer.from(await cfResponse.arrayBuffer());
+          const cfMeta = await sharp(processed).metadata();
+          console.log(`[${jobId}] CodeFormer done → ${cfMeta.width}x${cfMeta.height}`);
+        }
+      } catch (cfErr) {
+        console.warn(`[${jobId}] CodeFormer failed, continuing with Lanczos:`, cfErr);
+      }
+
+    } catch (faceErr) {
+      // ── Fallback: img2img for images without detectable faces ─────────────
+      if (isFaceDetectionError(faceErr)) {
+        usedFacePipeline = false;
+        // Brief pause before calling another model (rate limit)
+        await new Promise(r => setTimeout(r, 2000));
+        processed = await runNoFaceFallback(jobId, buf, style);
+      } else {
+        throw faceErr;
+      }
     }
 
-    // Step 2 — Sharp Lanczos 2x with unsharp mask to reach ~2048px
+    // ── Shared finishing pipeline ─────────────────────────────────────────────
+    // Lanczos 2x upscale (applied to both face and no-face paths)
     const upMeta = await sharp(processed).metadata();
     const srcW = upMeta.width ?? 512;
-    const srcH = upMeta.height ?? 512;
     const targetW = Math.min(srcW * 2, 2048);
     processed = await sharp(processed)
       .resize(targetW, null, { kernel: "lanczos3", fastShrinkOnLoad: false })
@@ -311,14 +382,13 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
     const finalMeta = await sharp(processed).metadata();
     console.log(`[${jobId}] Final upscale → ${finalMeta.width}x${finalMeta.height}`);
 
-    // Apply the requested output format by center-cropping to the correct aspect ratio
     processed = await applyFormat(processed, format);
     const fmtMeta = await sharp(processed).metadata();
     console.log(`[${jobId}] Format "${format}" applied → ${fmtMeta.width}x${fmtMeta.height}`);
 
     job.imageBuffer = processed;
     job.status = "completed";
-    console.log(`[${jobId}] Transform complete.`);
+    console.log(`[${jobId}] ${usedFacePipeline ? "Transform (face pipeline)" : "Transform (img2img fallback)"} complete.`);
   } catch (err) {
     job.status = "failed";
     job.error = err instanceof Error ? err.message : "Unknown error";
