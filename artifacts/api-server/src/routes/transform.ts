@@ -179,7 +179,7 @@ async function cropToContent(buf: Buffer): Promise<Buffer> {
 
   return sharp(buf)
     .extract({ left, top, width: right - left + 1, height: bottom - top + 1 })
-    .png().toBuffer();
+    .jpeg({ quality: 92 }).toBuffer();
 }
 
 // ── PHOTO TRANSFORM — face-to-many with InstantID ───────────────────────────
@@ -206,7 +206,7 @@ async function applyFormat(buf: Buffer, format: Format): Promise<Buffer> {
   }
   return sharp(buf)
     .resize(targetW, targetH, { fit: "cover", position: "centre" })
-    .png().toBuffer();
+    .jpeg({ quality: 92 }).toBuffer();
 }
 
 async function runTransformJob(jobId: string, imagePath: string, style: Style, format: Format) {
@@ -300,7 +300,7 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
     processed = await sharp(processed)
       .resize(targetW, null, { kernel: "lanczos3", fastShrinkOnLoad: false })
       .sharpen({ sigma: 0.6, m1: 1.5, m2: 2.5 })
-      .png().toBuffer();
+      .jpeg({ quality: 92 }).toBuffer();
     const finalMeta = await sharp(processed).metadata();
     console.log(`[${jobId}] Final upscale → ${finalMeta.width}x${finalMeta.height}`);
 
@@ -412,8 +412,8 @@ router.get("/transform/:jobId/download", (req: Request, res: Response) => {
   if (job.status !== "completed" || !job.imageBuffer) {
     res.status(400).json({ error: "not_ready" }); return;
   }
-  res.setHeader("Content-Type", "image/png");
-  res.setHeader("Content-Disposition", `attachment; filename="${job.style}-${job.mode}.png"`);
+  res.setHeader("Content-Type", "image/jpeg");
+  res.setHeader("Content-Disposition", `attachment; filename="${job.style}-${job.mode}.jpg"`);
   res.setHeader("Content-Length", job.imageBuffer.length);
   res.end(job.imageBuffer);
 });
