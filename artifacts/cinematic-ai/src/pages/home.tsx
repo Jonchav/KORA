@@ -269,10 +269,16 @@ export default function Home() {
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = `${label}.png`;
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a); window.URL.revokeObjectURL(url);
-    } catch (e) { console.error(e); }
+      a.href = url;
+      a.download = `${label}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      console.error("Download error:", e);
+      alert("Download failed. Please try again.");
+    }
   };
 
   const resetTransform = () => {
@@ -486,9 +492,8 @@ export default function Home() {
                       </div>
                       <div className="p-4 border-t border-white/5">
                         <button
-                          onClick={() => handleDownload(transformJobId, `${style}-creative`)}
-                          className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r ${currentStyle.gradient} hover:opacity-90 transition-opacity shadow-lg`}
-                          style={{ boxShadow: `0 4px 20px -4px ${currentStyle.glow}` }}
+                          onClick={() => handleDownload(transformJobId, `kora-${style}`)}
+                          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-sm text-black bg-white hover:bg-zinc-100 active:bg-zinc-200 transition-colors"
                         >
                           <Download className="w-4 h-4" /> Download HD Image
                         </button>
@@ -503,10 +508,9 @@ export default function Home() {
                       className="flex-1 flex flex-col items-center justify-center gap-5 p-8"
                     >
                       <div className="relative">
-                        <div className="absolute inset-0 blur-3xl rounded-full opacity-60 animate-pulse-glow"
-                          style={{ background: `radial-gradient(circle, ${currentStyle.glow}, transparent)` }} />
-                        <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${currentStyle.gradient} flex items-center justify-center relative shadow-2xl animate-float`}>
-                          <Loader2 className="w-9 h-9 text-white animate-spin" />
+                        <div className="absolute inset-0 blur-3xl rounded-full opacity-20 animate-pulse-glow bg-white/10" />
+                        <div className="w-20 h-20 rounded-2xl border border-white/10 bg-white/[0.04] flex items-center justify-center relative animate-float">
+                          <Loader2 className="w-9 h-9 text-white/60 animate-spin" />
                         </div>
                       </div>
                       <div className="text-center">
@@ -515,7 +519,7 @@ export default function Home() {
                       </div>
                       <div className="w-64 h-1.5 bg-white/5 rounded-full overflow-hidden">
                         <motion.div
-                          className={`h-full bg-gradient-to-r ${currentStyle.gradient} rounded-full`}
+                          className="h-full bg-white/40 rounded-full"
                           initial={{ width: "0%" }}
                           animate={{ width: "92%" }}
                           transition={{ duration: 55, ease: "easeOut" }}
