@@ -148,35 +148,52 @@ function PreviewCard({ s, index, imgSrc }: { s: StyleConfig; index: number; imgS
   );
 }
 
-// Two independent sets of gallery items
-// Row 1: original examples (from first selfie)
-// Row 2: diverse examples (from varied photos)
+// Gallery uses 15 unique AI-generated results spread across 3 rows
+// Each row has 5 items from different source photos — duplicated for seamless scroll
 type GalleryItem = StyleConfig & { imgSrc: string };
 
-const ROW1_ITEMS: GalleryItem[] = STYLES.map(s => ({ ...s, imgSrc: `/examples/${s.id}.jpg` }));
-const ROW2_ITEMS: GalleryItem[] = [
-  { ...STYLES.find(s => s.id === "anime")!,       imgSrc: "/examples/anime-v2.jpg" },
-  { ...STYLES.find(s => s.id === "comic")!,       imgSrc: "/examples/comic-v2.jpg" },
-  { ...STYLES.find(s => s.id === "popart")!,      imgSrc: "/examples/popart-v2.jpg" },
-  { ...STYLES.find(s => s.id === "watercolor")!,  imgSrc: "/examples/watercolor-v2.jpg" },
-  { ...STYLES.find(s => s.id === "oilpainting")!, imgSrc: "/examples/oilpainting-v2.jpg" },
-  { ...STYLES.find(s => s.id === "cyberpunk")!,   imgSrc: "/examples/cyberpunk-v2.jpg" },
+const s = (id: StyleType) => STYLES.find(st => st.id === id)!;
+
+// 15 unique results — all from different photos and/or styles
+const ALL_ITEMS: GalleryItem[] = [
+  { ...s("anime"),       imgSrc: "/examples/anime.jpg" },
+  { ...s("comic"),       imgSrc: "/examples/comic-v2.jpg" },
+  { ...s("anime"),       imgSrc: "/examples/field-anime.jpg" },
+  { ...s("watercolor"),  imgSrc: "/examples/watercolor.jpg" },
+  { ...s("oilpainting"), imgSrc: "/examples/oilpainting-v2.jpg" },
+
+  { ...s("popart"),      imgSrc: "/examples/popart.jpg" },
+  { ...s("anime"),       imgSrc: "/examples/anime-v2.jpg" },
+  { ...s("cyberpunk"),   imgSrc: "/examples/cyberpunk-v2.jpg" },
+  { ...s("watercolor"),  imgSrc: "/examples/watercolor-v2.jpg" },
+  { ...s("oilpainting"), imgSrc: "/examples/mountain-oil.jpg" },
+
+  { ...s("comic"),       imgSrc: "/examples/comic.jpg" },
+  { ...s("popart"),      imgSrc: "/examples/popart-v2.jpg" },
+  { ...s("oilpainting"), imgSrc: "/examples/oilpainting.jpg" },
+  { ...s("cyberpunk"),   imgSrc: "/examples/cyberpunk.jpg" },
+  { ...s("comic"),       imgSrc: "/examples/fiat-comic.jpg" },
 ];
 
-// Duplicate each row for seamless infinite scroll
-const GALLERY_ROW1 = [...ROW1_ITEMS, ...ROW1_ITEMS];
-const GALLERY_ROW2 = [...ROW2_ITEMS, ...ROW2_ITEMS];
+// Split into 3 rows of 5, duplicated for seamless infinite scroll
+const ROW1 = [...ALL_ITEMS.slice(0, 5), ...ALL_ITEMS.slice(0, 5)];
+const ROW2 = [...ALL_ITEMS.slice(5, 10), ...ALL_ITEMS.slice(5, 10)];
+const ROW3 = [...ALL_ITEMS.slice(10, 15), ...ALL_ITEMS.slice(10, 15)];
 
 function GalleryStrip() {
   return (
-    <div className="relative w-full overflow-hidden py-4 select-none pointer-events-none">
-      {/* Row 1 — scrolls left (original examples) */}
-      <div className="flex gap-4 animate-marquee-left mb-4" style={{ width: "max-content" }}>
-        {GALLERY_ROW1.map((item, i) => <PreviewCard key={`r1-${i}`} s={item} index={i} imgSrc={item.imgSrc} />)}
+    <div className="relative w-full overflow-hidden py-3 select-none pointer-events-none">
+      {/* Row 1 — scrolls left fast */}
+      <div className="flex gap-4 animate-marquee-left mb-3" style={{ width: "max-content" }}>
+        {ROW1.map((item, i) => <PreviewCard key={`r1-${i}`} s={item} index={i} imgSrc={item.imgSrc} />)}
       </div>
-      {/* Row 2 — scrolls right (diverse photo examples) */}
-      <div className="flex gap-4 animate-marquee-right" style={{ width: "max-content" }}>
-        {GALLERY_ROW2.map((item, i) => <PreviewCard key={`r2-${i}`} s={item} index={i} imgSrc={item.imgSrc} />)}
+      {/* Row 2 — scrolls right medium */}
+      <div className="flex gap-4 animate-marquee-right mb-3" style={{ width: "max-content" }}>
+        {ROW2.map((item, i) => <PreviewCard key={`r2-${i}`} s={item} index={i} imgSrc={item.imgSrc} />)}
+      </div>
+      {/* Row 3 — scrolls left slow */}
+      <div className="flex gap-4 animate-marquee-left-slow" style={{ width: "max-content" }}>
+        {ROW3.map((item, i) => <PreviewCard key={`r3-${i}`} s={item} index={i} imgSrc={item.imgSrc} />)}
       </div>
       {/* Edge fade masks */}
       <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-background to-transparent z-10" />

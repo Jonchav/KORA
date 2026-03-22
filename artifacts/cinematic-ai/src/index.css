@@ -104,6 +104,9 @@
   .animate-marquee-left {
     animation: marquee-left 35s linear infinite;
   }
+  .animate-marquee-left-slow {
+    animation: marquee-left 48s linear infinite;
+  }
   .animate-marquee-right {
     animation: marquee-right 30s linear infinite;
   }
