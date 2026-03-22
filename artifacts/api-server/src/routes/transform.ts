@@ -225,7 +225,7 @@ async function runNoFaceFallback(jobId: string, buf: Buffer, style: Style): Prom
   const dataUri = `data:image/jpeg;base64,${buf.toString("base64")}`;
 
   const output = await replicateRunWithRetry(
-    "timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23d",
+    "timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23f",
     {
         image: dataUri,
         prompt: IMG2IMG_INSTRUCTIONS[style],
