@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { getStoredToken } from "./use-auth";
 
 export type StyleType = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa";
 export type FormatType = "square" | "portrait" | "story" | "landscape";
@@ -12,6 +13,11 @@ export interface JobResult {
   mode: "transform" | "generate";
 }
 
+function authHeaders(): Record<string, string> {
+  const token = getStoredToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export function useTransformMutation() {
   return useMutation({
     mutationFn: async (data: { image: File; style: StyleType; format: FormatType }) => {
@@ -20,7 +26,11 @@ export function useTransformMutation() {
       formData.append("style", data.style);
       formData.append("format", data.format);
 
-      const res = await fetch("/api/transform", { method: "POST", body: formData });
+      const res = await fetch("/api/transform", {
+        method: "POST",
+        headers: authHeaders(),
+        body: formData,
+      });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Failed to start transformation");
@@ -35,7 +45,7 @@ export function useGenerateMutation() {
     mutationFn: async (data: { style: StyleType; format: FormatType }) => {
       const res = await fetch("/api/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(data),
       });
       if (!res.ok) {
@@ -52,7 +62,9 @@ export function useJobPolling(jobId: string | null) {
     queryKey: ["job", jobId],
     queryFn: async () => {
       if (!jobId) throw new Error("No job ID");
-      const res = await fetch(`/api/transform/${jobId}/status`);
+      const res = await fetch(`/api/transform/${jobId}/status`, {
+        headers: authHeaders(),
+      });
       if (!res.ok) throw new Error("Failed to fetch status");
       return res.json() as Promise<JobResult>;
     },
