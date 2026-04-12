@@ -1,5 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 
+const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+
 export type StyleType = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa";
 export type FormatType = "square" | "portrait" | "story" | "landscape";
 
@@ -20,7 +22,7 @@ export function useTransformMutation() {
       formData.append("style", data.style);
       formData.append("format", data.format);
 
-      const res = await fetch("/api/transform", { method: "POST", body: formData });
+      const res = await fetch(`${API_BASE}/api/transform`, { method: "POST", body: formData });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Failed to start transformation");
@@ -33,7 +35,7 @@ export function useTransformMutation() {
 export function useGenerateMutation() {
   return useMutation({
     mutationFn: async (data: { style: StyleType; format: FormatType }) => {
-      const res = await fetch("/api/generate", {
+      const res = await fetch(`${API_BASE}/api/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -52,7 +54,7 @@ export function useJobPolling(jobId: string | null) {
     queryKey: ["job", jobId],
     queryFn: async () => {
       if (!jobId) throw new Error("No job ID");
-      const res = await fetch(`/api/transform/${jobId}/status`);
+      const res = await fetch(`${API_BASE}/api/transform/${jobId}/status`);
       if (!res.ok) throw new Error("Failed to fetch status");
       return res.json() as Promise<JobResult>;
     },
