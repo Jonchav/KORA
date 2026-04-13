@@ -11,7 +11,7 @@ import { useBilling, useInvalidateBilling } from "@/hooks/use-billing";
 import { PricingPage } from "@/pages/pricing";
 import {
   Loader2, Download, RotateCcw, AlertTriangle,
-  Sparkles, ImageIcon, Zap, Upload, Palette, LogOut, ShoppingBag, Check, Star,
+  Sparkles, ImageIcon, Zap, Upload, Palette, LogOut, ShoppingBag, Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -339,34 +339,50 @@ export default function Home() {
           {/* Left: brand mark */}
           <span className="text-[10px] font-mono tracking-[0.25em] text-zinc-700 uppercase">KORA</span>
 
-          {/* Right: credits + user */}
+          {/* Right: PRO button + credits + user */}
           {user && (
             <div className="flex items-center gap-2">
-              {/* Credit badge */}
+
+              {/* PRO upgrade button */}
+              <button
+                onClick={() => setShowPricing(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-widest uppercase transition-all hover:scale-105 active:scale-100"
+                style={{
+                  background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #ec4899 100%)",
+                  boxShadow: "0 0 16px rgba(168,85,247,0.4)",
+                }}
+              >
+                <Crown className="w-3 h-3" />
+                <span>PRO</span>
+              </button>
+
+              {/* Credit counter */}
               {billing && (
-                <button
-                  onClick={() => setShowPricing(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
-                >
-                  <Zap className="w-3 h-3 text-primary" />
-                  <span className="font-mono font-bold text-white">{billing.credits}</span>
-                  <span className="text-zinc-600 hidden sm:inline">credits</span>
-                  {billing.credits <= 2 && (
-                    <span className="ml-1 text-[9px] font-bold text-amber-400 uppercase tracking-widest">Low</span>
+                <div
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs border",
+                    billing.credits <= 2
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                      : "bg-white/5 border-white/10 text-zinc-400"
                   )}
-                </button>
+                >
+                  <Zap className={cn("w-3 h-3", billing.credits <= 2 ? "text-amber-400" : "text-primary")} />
+                  <span className="font-mono font-bold text-white">{billing.credits}</span>
+                  {billing.credits <= 2
+                    ? <span className="text-[9px] font-bold text-amber-400 uppercase tracking-widest">Low</span>
+                    : <span className="text-zinc-600 hidden sm:inline">cr</span>
+                  }
+                </div>
               )}
 
               {user.picture && (
                 <img src={user.picture} alt={user.name} className="w-7 h-7 rounded-full border border-white/10" />
               )}
-              <span className="text-xs text-zinc-500 hidden sm:block">{user.name}</span>
               <button
                 onClick={logout}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs text-zinc-600 hover:text-zinc-300 hover:bg-white/5 transition-colors"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sign out</span>
               </button>
             </div>
           )}
@@ -670,135 +686,6 @@ export default function Home() {
               </div>
             </motion.div>
 
-          </div>
-
-          {/* ── Plans section ── */}
-          <div className="mt-20 mb-8">
-
-            {/* Section header */}
-            <div className="text-center mb-10">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="flex-1 h-px bg-white/[0.06]" />
-                <span className="text-[11px] font-mono tracking-[0.2em] uppercase text-zinc-600">Pricing</span>
-                <div className="flex-1 h-px bg-white/[0.06]" />
-              </div>
-              <h2 className="text-3xl md:text-4xl font-black text-white mb-3 tracking-tight">
-                Get More Transformations
-              </h2>
-              <p className="text-zinc-500 text-sm max-w-md mx-auto">
-                Free plan includes 10 credits / month. 1 credit = 1 AI transformation.
-              </p>
-              {billing && (
-                <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs">
-                  <Zap className="w-3 h-3 text-primary" />
-                  <span className="text-zinc-400">Your balance:</span>
-                  <span className="font-mono font-bold text-white">{billing.credits} credits</span>
-                  <span className="text-zinc-700">·</span>
-                  <span className="font-semibold uppercase tracking-widest text-zinc-500 text-[10px]">{billing.tier}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Credit packs row */}
-            <div className="mb-8">
-              <p className="text-[10px] font-mono tracking-[0.18em] uppercase text-zinc-700 mb-4 text-center">One-time packs — no subscription</p>
-              <div className="grid grid-cols-3 gap-3 max-w-xl mx-auto">
-                {[
-                  { id: "pack_25",  credits: 25,  price: "$1", best: false },
-                  { id: "pack_70",  credits: 70,  price: "$2", best: false },
-                  { id: "pack_220", credits: 220, price: "$5", best: true  },
-                ].map(pack => (
-                  <button
-                    key={pack.id}
-                    onClick={() => setShowPricing(true)}
-                    className={cn(
-                      "relative glass-panel rounded-2xl p-4 text-center border transition-all hover:border-white/30 hover:-translate-y-0.5",
-                      pack.best ? "border-primary/40 bg-primary/5" : "border-white/[0.06]"
-                    )}
-                  >
-                    {pack.best && (
-                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary text-[9px] font-bold text-black tracking-widest uppercase">
-                        <Star className="w-2 h-2" /> Best
-                      </span>
-                    )}
-                    <div className="text-2xl font-black text-white font-mono">{pack.price}</div>
-                    <div className="text-zinc-400 text-xs mt-0.5">{pack.credits} credits</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Subscription plans */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-              {[
-                { id: "plan_mini", label: "MINI",  price: "$3.99", period: "/mo", credits: 100, features: ["100 credits / month", "All 12 styles", "4 social formats"], best: false, tier: "mini" },
-                { id: "plan_plus", label: "PLUS",  price: "$7.99", period: "/mo", credits: 280, features: ["280 credits / month", "All 12 styles", "4 social formats"], best: true,  tier: "plus" },
-                { id: "plan_pro",  label: "PRO",   price: "$14.99",period: "/mo", credits: 700, features: ["700 credits / month", "All 12 styles", "4 social formats"], best: false, tier: "pro"  },
-              ].map((plan) => {
-                const isCurrent = billing?.tier === plan.tier;
-                return (
-                  <motion.div
-                    key={plan.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className={cn(
-                      "relative glass-panel rounded-2xl p-5 border flex flex-col gap-4",
-                      plan.best   ? "border-primary/40 bg-primary/5" : "border-white/[0.06]",
-                      isCurrent   ? "border-green-500/30 bg-green-500/5" : ""
-                    )}
-                  >
-                    {plan.best && !isCurrent && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <span className="flex items-center gap-1 px-3 py-0.5 rounded-full bg-primary text-[10px] font-bold text-black tracking-widest uppercase">
-                          <Star className="w-2.5 h-2.5" /> Popular
-                        </span>
-                      </div>
-                    )}
-                    {isCurrent && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <span className="flex items-center gap-1 px-3 py-0.5 rounded-full bg-green-500 text-[10px] font-bold text-black tracking-widest uppercase">
-                          <Check className="w-2.5 h-2.5" /> Active
-                        </span>
-                      </div>
-                    )}
-
-                    <div>
-                      <div className="text-[10px] font-mono tracking-widest text-zinc-500 mb-1">{plan.label}</div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black text-white font-mono">{plan.price}</span>
-                        <span className="text-zinc-500 text-xs">{plan.period}</span>
-                      </div>
-                    </div>
-
-                    <ul className="space-y-1.5 flex-1">
-                      {plan.features.map(f => (
-                        <li key={f} className="flex items-center gap-2 text-xs text-zinc-400">
-                          <Check className="w-3 h-3 text-primary shrink-0" />
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-
-                    <button
-                      onClick={() => setShowPricing(true)}
-                      className={cn(
-                        "w-full py-2.5 rounded-xl text-sm font-semibold transition-all",
-                        plan.best && !isCurrent
-                          ? "bg-primary text-black hover:bg-primary/90"
-                          : "bg-white/5 border border-white/10 text-zinc-300 hover:bg-white/10"
-                      )}
-                    >
-                      {isCurrent ? "Manage" : `Get ${plan.label}`}
-                    </button>
-                  </motion.div>
-                );
-              })}
-            </div>
-
-            <p className="text-center text-xs text-zinc-700 mt-8 mb-2">
-              Secure payments via Stripe · Cancel anytime
-            </p>
           </div>
 
         </div>
