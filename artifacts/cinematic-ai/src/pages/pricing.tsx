@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Zap, Check, Star } from "lucide-react";
+import { ArrowLeft, Zap, Check, Star, AlertTriangle, ExternalLink } from "lucide-react";
 import { useCheckout, useBillingPortal, useBilling } from "@/hooks/use-billing";
 import { cn } from "@/lib/utils";
 
@@ -72,6 +72,19 @@ export function PricingPage({ onBack }: PricingPageProps) {
           <ArrowLeft className="w-4 h-4" />
           Back
         </button>
+
+        {/* Checkout error banner */}
+        {(checkout.isError || portal.isError) && (
+          <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 mb-8 text-sm text-red-300">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-red-200 mb-0.5">Payment error</p>
+              <p className="text-xs text-red-400/80">
+                {checkout.error?.message || portal.error?.message || "Could not connect to payment service. Please try again."}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Header */}
         <div className="text-center mb-12">
