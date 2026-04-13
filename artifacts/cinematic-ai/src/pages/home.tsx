@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { UploadZone } from "@/components/upload-zone";
 import { StyleCard, STYLES } from "@/components/style-card";
@@ -7,9 +7,11 @@ import { FormatSelector } from "@/components/format-selector";
 import { useTransformMutation, useJobPolling, API_BASE } from "@/hooks/use-transform";
 import type { StyleType, FormatType } from "@/hooks/use-transform";
 import { useAuth } from "@/contexts/auth-context";
+import { useBilling, useInvalidateBilling } from "@/hooks/use-billing";
+import { PricingPage } from "@/pages/pricing";
 import {
   Loader2, Download, RotateCcw, AlertTriangle,
-  Sparkles, Wand2, ImageIcon, Zap, ArrowRight, Upload, Palette, LogOut,
+  Sparkles, ImageIcon, Zap, Upload, Palette, LogOut, ShoppingBag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -245,10 +247,23 @@ export default function Home() {
   const [style, setStyle] = useState<StyleType>("comic");
   const [format, setFormat] = useState<FormatType>("square");
   const [transformJobId, setTransformJobId] = useState<string | null>(null);
+  const [showPricing, setShowPricing] = useState(false);
+  const [noCreditsError, setNoCreditsError] = useState(false);
 
   const { user, logout } = useAuth();
   const transformMutation = useTransformMutation();
   const { data: transformStatus } = useJobPolling(transformJobId);
+  const { data: billing } = useBilling();
+  const invalidateBilling = useInvalidateBilling();
+
+  // Detect payment success from URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("payment") === "success") {
+      invalidateBilling();
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [invalidateBilling]);
 
   const isTransforming = transformMutation.isPending ||
     (!!transformJobId && transformStatus?.status !== "completed" && transformStatus?.status !== "failed");
@@ -257,11 +272,18 @@ export default function Home() {
   const handleTransform = async () => {
     if (!file) return;
     setTransformJobId(null);
+    setNoCreditsError(false);
     transformMutation.reset();
     try {
       const result = await transformMutation.mutateAsync({ image: file, style, format });
       setTransformJobId(result.jobId);
-    } catch (e) { console.error(e); }
+      invalidateBilling();
+    } catch (e: any) {
+      if (e?.message?.includes("No credits")) {
+        setNoCreditsError(true);
+      }
+      console.error(e);
+    }
   };
 
   const handleDownload = async (jobId: string, label: string) => {
@@ -287,10 +309,14 @@ export default function Home() {
   };
 
   const resetTransform = () => {
-    setFile(null); setTransformJobId(null); transformMutation.reset();
+    setFile(null); setTransformJobId(null); transformMutation.reset(); setNoCreditsError(false);
   };
 
   const currentStyle = STYLES.find(s => s.id === style)!;
+
+  if (showPricing) {
+    return <PricingPage onBack={() => setShowPricing(false)} />;
+  }
 
   return (
     <div className="min-h-screen overflow-x-hidden">
@@ -309,9 +335,28 @@ export default function Home() {
       <div className="relative z-10">
 
         {/* ── Top bar ── */}
-        <div className="max-w-4xl mx-auto px-4 pt-4 flex justify-end">
+        <div className="max-w-4xl mx-auto px-4 pt-4 flex justify-between items-center">
+          {/* Left: brand mark */}
+          <span className="text-[10px] font-mono tracking-[0.25em] text-zinc-700 uppercase">KORA</span>
+
+          {/* Right: credits + user */}
           {user && (
             <div className="flex items-center gap-2">
+              {/* Credit badge */}
+              {billing && (
+                <button
+                  onClick={() => setShowPricing(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                >
+                  <Zap className="w-3 h-3 text-primary" />
+                  <span className="font-mono font-bold text-white">{billing.credits}</span>
+                  <span className="text-zinc-600 hidden sm:inline">credits</span>
+                  {billing.credits <= 2 && (
+                    <span className="ml-1 text-[9px] font-bold text-amber-400 uppercase tracking-widest">Low</span>
+                  )}
+                </button>
+              )}
+
               {user.picture && (
                 <img src={user.picture} alt={user.name} className="w-7 h-7 rounded-full border border-white/10" />
               )}
@@ -321,7 +366,7 @@ export default function Home() {
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span>Sign out</span>
+                <span className="hidden sm:inline">Sign out</span>
               </button>
             </div>
           )}
@@ -455,20 +500,38 @@ export default function Home() {
                 <FormatSelector value={format} onChange={setFormat} disabled={isTransforming} />
               </motion.div>
 
+              {noCreditsError && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-center"
+                >
+                  <p className="text-amber-300 text-sm font-semibold mb-1">No credits remaining</p>
+                  <p className="text-zinc-400 text-xs mb-3">Purchase a credit pack to keep transforming.</p>
+                  <button
+                    onClick={() => setShowPricing(true)}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-amber-500 text-black text-sm font-bold hover:bg-amber-400 transition-colors"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    Buy Credits
+                  </button>
+                </motion.div>
+              )}
+
               {!transformDone ? (
                 <motion.button
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.9 }}
                   onClick={handleTransform}
-                  disabled={!file || isTransforming}
+                  disabled={!file || isTransforming || noCreditsError}
                   className={cn(
                     "w-full py-4 rounded-2xl font-black text-base tracking-wide transition-all duration-300 flex items-center justify-center gap-2.5",
-                    file && !isTransforming
+                    file && !isTransforming && !noCreditsError
                       ? `bg-gradient-to-r ${currentStyle.gradient} text-white shadow-2xl hover:-translate-y-1 hover:shadow-3xl active:translate-y-0`
                       : "bg-zinc-800/80 text-zinc-500 cursor-not-allowed border border-zinc-700"
                   )}
-                  style={file && !isTransforming ? { boxShadow: `0 8px 40px -8px ${currentStyle.glow}` } : {}}
+                  style={file && !isTransforming && !noCreditsError ? { boxShadow: `0 8px 40px -8px ${currentStyle.glow}` } : {}}
                 >
                   {isTransforming
                     ? <><Loader2 className="w-5 h-5 animate-spin" /> Transforming...</>

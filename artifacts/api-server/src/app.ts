@@ -6,11 +6,14 @@ const app: Express = express();
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow all origins in development; in production allow any (static site on Render)
     callback(null, true);
   },
   credentials: true,
 }));
+
+// Stripe webhooks need the raw body — must come BEFORE express.json()
+app.use("/api/billing/webhook", express.raw({ type: "application/json" }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -1,6 +1,8 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { OAuth2Client } from "google-auth-library";
 import { signToken, requireAuth } from "../middleware/auth.js";
+import { db, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -38,6 +40,34 @@ router.post("/auth/google", async (req: Request, res: Response) => {
       name: payload.name || payload.email,
       picture: payload.picture || "",
     };
+
+    // Upsert user in DB — create on first login, skip on subsequent
+    try {
+      const existing = await db.select().from(usersTable).where(eq(usersTable.id, user.sub)).limit(1);
+      const now = new Date();
+      if (!existing.length) {
+        await db.insert(usersTable).values({
+          id: user.sub,
+          email: user.email,
+          name: user.name,
+          picture: user.picture,
+          tier: "free",
+          credits: 10,
+          monthlyResetAt: now,
+          createdAt: now,
+          updatedAt: now,
+        });
+        console.log(`[auth] New user created: ${user.email}`);
+      } else {
+        // Update name/picture in case they changed
+        await db.update(usersTable)
+          .set({ name: user.name, picture: user.picture, updatedAt: now })
+          .where(eq(usersTable.id, user.sub));
+      }
+    } catch (dbErr) {
+      // Non-fatal: log but don't block login
+      console.error("[auth] DB upsert error:", dbErr);
+    }
 
     const token = signToken(user);
     res.json({ token, user });

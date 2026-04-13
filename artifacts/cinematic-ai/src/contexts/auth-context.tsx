@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body.message || `Server error ${res.status}`);
+      throw new Error((body as any).message || `Server error ${res.status}`);
     }
     const { token: newToken, user: newUser } = await res.json();
     localStorage.setItem(TOKEN_KEY, newToken);

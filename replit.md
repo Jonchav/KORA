@@ -2,7 +2,7 @@
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Cinematic AI Photo Transformer application — users upload a photo and AI transforms it into a cinematic-style image using Replicate's Stable Diffusion img2img model.
+KORA — AI Creative Social Media Studio. Users upload a photo (with visible face) and transform it into 12 different AI art styles using Replicate's `fofr/face-to-many` (InstantID) model. 4 social media output formats. Deployed to Render, domain: `koraframe.com`.
 
 ## Stack
 

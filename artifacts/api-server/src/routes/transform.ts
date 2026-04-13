@@ -6,6 +6,8 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { requireAuth } from "../middleware/auth.js";
+import { db, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -288,6 +290,7 @@ async function replicateRunWithRetry(
       }
     }
   }
+  throw new Error("Max retries exceeded");
 }
 
 // ── PHOTO TRANSFORM — face-to-many with InstantID ───────────────────────────
@@ -478,6 +481,34 @@ async function runGenerateJob(jobId: string, style: Style, format: Format) {
   }
 }
 
+// ── Credit check & deduction helper ──────────────────────────────────────────
+async function checkAndDeductCredit(userId: string): Promise<{ ok: boolean; credits?: number; message?: string }> {
+  const rows = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (!rows.length) return { ok: false, message: "User account not found. Please sign in again." };
+  const user = rows[0];
+
+  // Monthly reset for free users
+  const now = new Date();
+  const resetAt = new Date(user.monthlyResetAt);
+  const isNewMonth = now.getFullYear() > resetAt.getFullYear() || now.getMonth() > resetAt.getMonth();
+  let currentCredits = user.credits;
+  if (isNewMonth && user.tier === "free") {
+    currentCredits = 10;
+    await db.update(usersTable).set({ credits: 10, monthlyResetAt: now, updatedAt: now }).where(eq(usersTable.id, userId));
+  }
+
+  if (currentCredits <= 0) {
+    return { ok: false, credits: 0, message: "No credits remaining. Purchase a credit pack to continue." };
+  }
+
+  // Deduct 1 credit
+  await db.update(usersTable)
+    .set({ credits: currentCredits - 1, updatedAt: now })
+    .where(eq(usersTable.id, userId));
+
+  return { ok: true, credits: currentCredits - 1 };
+}
+
 // ── ROUTES ────────────────────────────────────────────────────────────────────
 router.post("/transform", requireAuth, upload.single("image"), async (req: Request, res: Response) => {
   if (!req.file) {
@@ -495,10 +526,17 @@ router.post("/transform", requireAuth, upload.single("image"), async (req: Reque
     res.status(400).json({ error: "invalid_format" }); return;
   }
 
+  const creditResult = await checkAndDeductCredit(req.user!.sub);
+  if (!creditResult.ok) {
+    try { fs.unlinkSync(req.file.path); } catch {}
+    res.status(402).json({ error: "no_credits", message: creditResult.message });
+    return;
+  }
+
   const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   jobs.set(jobId, { jobId, status: "pending", style, mode: "transform" });
   runTransformJob(jobId, req.file.path, style, format);
-  res.json({ jobId, status: "pending", style, mode: "transform" });
+  res.json({ jobId, status: "pending", style, mode: "transform", creditsRemaining: creditResult.credits });
 });
 
 router.post("/generate", requireAuth, async (req: Request, res: Response) => {
@@ -514,14 +552,21 @@ router.post("/generate", requireAuth, async (req: Request, res: Response) => {
     res.status(400).json({ error: "invalid_format" }); return;
   }
 
+  const creditResult = await checkAndDeductCredit(req.user!.sub);
+  if (!creditResult.ok) {
+    res.status(402).json({ error: "no_credits", message: creditResult.message });
+    return;
+  }
+
   const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   jobs.set(jobId, { jobId, status: "pending", style, mode: "generate" });
   runGenerateJob(jobId, style, format);
-  res.json({ jobId, status: "pending", style, mode: "generate" });
+  res.json({ jobId, status: "pending", style, mode: "generate", creditsRemaining: creditResult.credits });
 });
 
 router.get("/transform/:jobId/status", (req: Request, res: Response) => {
-  const job = jobs.get(req.params.jobId);
+  const jobId = Array.isArray(req.params.jobId) ? req.params.jobId[0] : req.params.jobId;
+  const job = jobs.get(jobId);
   if (!job) { res.status(404).json({ error: "not_found" }); return; }
   res.json({
     jobId: job.jobId, status: job.status,
@@ -531,7 +576,8 @@ router.get("/transform/:jobId/status", (req: Request, res: Response) => {
 });
 
 router.get("/transform/:jobId/download", (req: Request, res: Response) => {
-  const job = jobs.get(req.params.jobId);
+  const jobId = Array.isArray(req.params.jobId) ? req.params.jobId[0] : req.params.jobId;
+  const job = jobs.get(jobId);
   if (!job) { res.status(404).json({ error: "not_found" }); return; }
   if (job.status !== "completed" || !job.imageBuffer) {
     res.status(400).json({ error: "not_ready" }); return;
