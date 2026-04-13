@@ -45,13 +45,14 @@ export function LoginPage() {
             onSuccess={async (resp) => {
               try {
                 setError(null);
-                if (!resp.credential) throw new Error("No credential");
+                if (!resp.credential) throw new Error("No credential received from Google");
                 await loginWithGoogle(resp.credential);
-              } catch {
-                setError("Sign-in failed. Please try again.");
+              } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : String(e);
+                setError(`Error: ${msg}`);
               }
             }}
-            onError={() => setError("Google sign-in was cancelled or failed.")}
+            onError={() => setError("Google popup was closed or blocked.")}
             theme="filled_black"
             shape="pill"
             size="large"

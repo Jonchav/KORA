@@ -49,7 +49,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ credential }),
     });
-    if (!res.ok) throw new Error("Authentication failed");
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message || `Server error ${res.status}`);
+    }
     const { token: newToken, user: newUser } = await res.json();
     localStorage.setItem(TOKEN_KEY, newToken);
     setToken(newToken);
