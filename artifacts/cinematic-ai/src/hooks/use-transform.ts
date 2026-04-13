@@ -2,6 +2,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 export const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 
+const TOKEN_KEY = "kora_auth_token";
+
+function authHeaders(): Record<string, string> {
+  const token = localStorage.getItem(TOKEN_KEY);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export type StyleType = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa";
 export type FormatType = "square" | "portrait" | "story" | "landscape";
 
@@ -22,7 +29,11 @@ export function useTransformMutation() {
       formData.append("style", data.style);
       formData.append("format", data.format);
 
-      const res = await fetch(`${API_BASE}/api/transform`, { method: "POST", body: formData });
+      const res = await fetch(`${API_BASE}/api/transform`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: formData,
+      });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Failed to start transformation");
@@ -37,7 +48,7 @@ export function useGenerateMutation() {
     mutationFn: async (data: { style: StyleType; format: FormatType }) => {
       const res = await fetch(`${API_BASE}/api/generate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(data),
       });
       if (!res.ok) {
@@ -54,7 +65,9 @@ export function useJobPolling(jobId: string | null) {
     queryKey: ["job", jobId],
     queryFn: async () => {
       if (!jobId) throw new Error("No job ID");
-      const res = await fetch(`${API_BASE}/api/transform/${jobId}/status`);
+      const res = await fetch(`${API_BASE}/api/transform/${jobId}/status`, {
+        headers: authHeaders(),
+      });
       if (!res.ok) throw new Error("Failed to fetch status");
       return res.json() as Promise<JobResult>;
     },

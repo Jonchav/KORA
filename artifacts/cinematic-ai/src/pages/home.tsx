@@ -6,9 +6,10 @@ import type { StyleConfig } from "@/components/style-card";
 import { FormatSelector } from "@/components/format-selector";
 import { useTransformMutation, useJobPolling, API_BASE } from "@/hooks/use-transform";
 import type { StyleType, FormatType } from "@/hooks/use-transform";
+import { useAuth } from "@/contexts/auth-context";
 import {
   Loader2, Download, RotateCcw, AlertTriangle,
-  Sparkles, Wand2, ImageIcon, Zap, ArrowRight, Upload, Palette,
+  Sparkles, Wand2, ImageIcon, Zap, ArrowRight, Upload, Palette, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -245,6 +246,7 @@ export default function Home() {
   const [format, setFormat] = useState<FormatType>("square");
   const [transformJobId, setTransformJobId] = useState<string | null>(null);
 
+  const { user, logout } = useAuth();
   const transformMutation = useTransformMutation();
   const { data: transformStatus } = useJobPolling(transformJobId);
 
@@ -264,7 +266,10 @@ export default function Home() {
 
   const handleDownload = async (jobId: string, label: string) => {
     try {
-      const response = await fetch(`${API_BASE}/api/transform/${jobId}/download`);
+      const token = localStorage.getItem("kora_auth_token");
+      const response = await fetch(`${API_BASE}/api/transform/${jobId}/download`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!response.ok) throw new Error("Download failed");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -303,8 +308,27 @@ export default function Home() {
 
       <div className="relative z-10">
 
+        {/* ── Top bar ── */}
+        <div className="max-w-4xl mx-auto px-4 pt-4 flex justify-end">
+          {user && (
+            <div className="flex items-center gap-2">
+              {user.picture && (
+                <img src={user.picture} alt={user.name} className="w-7 h-7 rounded-full border border-white/10" />
+              )}
+              <span className="text-xs text-zinc-500 hidden sm:block">{user.name}</span>
+              <button
+                onClick={logout}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign out</span>
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* ── Hero ── */}
-        <div className="max-w-4xl mx-auto px-4 pt-12 sm:pt-16 text-center">
+        <div className="max-w-4xl mx-auto px-4 pt-8 sm:pt-12 text-center">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}

@@ -5,6 +5,7 @@ import Replicate from "replicate";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { requireAuth } from "../middleware/auth.js";
 
 const router: IRouter = Router();
 
@@ -478,7 +479,7 @@ async function runGenerateJob(jobId: string, style: Style, format: Format) {
 }
 
 // ── ROUTES ────────────────────────────────────────────────────────────────────
-router.post("/transform", upload.single("image"), async (req: Request, res: Response) => {
+router.post("/transform", requireAuth, upload.single("image"), async (req: Request, res: Response) => {
   if (!req.file) {
     res.status(400).json({ error: "missing_file", message: "No image file uploaded" }); return;
   }
@@ -500,7 +501,7 @@ router.post("/transform", upload.single("image"), async (req: Request, res: Resp
   res.json({ jobId, status: "pending", style, mode: "transform" });
 });
 
-router.post("/generate", async (req: Request, res: Response) => {
+router.post("/generate", requireAuth, async (req: Request, res: Response) => {
   const style = req.body.style as Style;
   const format = (req.body.format as Format) ?? "landscape";
   const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa"];
