@@ -4,7 +4,7 @@ import { UploadZone } from "@/components/upload-zone";
 import { StyleCard, STYLES } from "@/components/style-card";
 import type { StyleConfig } from "@/components/style-card";
 import { FormatSelector } from "@/components/format-selector";
-import { useTransformMutation, useJobPolling } from "@/hooks/use-transform";
+import { useTransformMutation, useJobPolling, API_BASE } from "@/hooks/use-transform";
 import type { StyleType, FormatType } from "@/hooks/use-transform";
 import {
   Loader2, Download, RotateCcw, AlertTriangle,
@@ -264,7 +264,7 @@ export default function Home() {
 
   const handleDownload = async (jobId: string, label: string) => {
     try {
-      const response = await fetch(`/api/transform/${jobId}/download`);
+      const response = await fetch(`${API_BASE}/api/transform/${jobId}/download`);
       if (!response.ok) throw new Error("Download failed");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -480,7 +480,7 @@ export default function Home() {
                     >
                       <div className="relative flex-1 min-h-[400px]">
                         <img
-                          src={`/api/transform/${transformJobId}/download`}
+                          src={`${API_BASE}/api/transform/${transformJobId}/download`}
                           alt={`${style} transformation`}
                           className="w-full h-full object-contain"
                         />
