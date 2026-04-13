@@ -537,8 +537,9 @@ router.get("/transform/:jobId/download", (req: Request, res: Response) => {
     res.status(400).json({ error: "not_ready" }); return;
   }
   res.setHeader("Content-Type", "image/jpeg");
-  res.setHeader("Content-Disposition", `attachment; filename="${job.style}-${job.mode}.jpg"`);
+  res.setHeader("Content-Disposition", `inline; filename="${job.style}-${job.mode}.jpg"`);
   res.setHeader("Content-Length", job.imageBuffer.length);
+  res.setHeader("Cache-Control", "no-store");
   res.end(job.imageBuffer);
 });
 
