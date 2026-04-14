@@ -142,6 +142,37 @@ interface JobRecord {
   error?: string;
   style: string;
   mode: "transform" | "generate";
+  watermark?: boolean;
+}
+
+// ── Watermark for free tier ───────────────────────────────────────────────────
+async function applyWatermark(buf: Buffer): Promise<Buffer> {
+  const meta = await sharp(buf).metadata();
+  const w = meta.width ?? 800;
+  const h = meta.height ?? 800;
+
+  // Font size scales with image width
+  const fontSize = Math.max(28, Math.round(w * 0.055));
+  const gap = Math.round(fontSize * 3.5);
+
+  // Repeating diagonal tiles across the image
+  const rows: string[] = [];
+  for (let y = -gap; y < h + gap; y += gap) {
+    for (let x = -gap; x < w + gap; x += gap) {
+      rows.push(
+        `<text x="${x}" y="${y}" transform="rotate(-35,${x},${y})"
+          font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="900"
+          fill="white" fill-opacity="0.22" letter-spacing="4">KORA</text>`
+      );
+    }
+  }
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">${rows.join("")}</svg>`;
+
+  return sharp(buf)
+    .composite([{ input: Buffer.from(svg), gravity: "northwest" }])
+    .jpeg({ quality: 92 })
+    .toBuffer();
 }
 
 const jobs = new Map<string, JobRecord>();
@@ -436,6 +467,11 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
     const fmtMeta = await sharp(processed).metadata();
     console.log(`[${jobId}] Format "${format}" applied → ${fmtMeta.width}x${fmtMeta.height}`);
 
+    if (job.watermark) {
+      processed = await applyWatermark(processed);
+      console.log(`[${jobId}] Watermark applied (free tier).`);
+    }
+
     job.imageBuffer = processed;
     job.status = "completed";
     console.log(`[${jobId}] ${usedFacePipeline ? "Transform (face pipeline)" : "Transform (img2img fallback)"} complete.`);
@@ -471,7 +507,14 @@ async function runGenerateJob(jobId: string, style: Style, format: Format) {
     const resultUrl = extractUrl(rawUrl);
     const response = await fetch(resultUrl);
     if (!response.ok) throw new Error(`Failed to fetch result: ${response.status}`);
-    job.imageBuffer = Buffer.from(await response.arrayBuffer());
+    let generated = Buffer.from(await response.arrayBuffer());
+
+    if (job.watermark) {
+      generated = await applyWatermark(generated);
+      console.log(`[${jobId}] Watermark applied (free tier).`);
+    }
+
+    job.imageBuffer = generated;
     job.status = "completed";
     console.log(`[${jobId}] Seedream done.`);
   } catch (err) {
@@ -482,7 +525,7 @@ async function runGenerateJob(jobId: string, style: Style, format: Format) {
 }
 
 // ── Credit check & deduction helper ──────────────────────────────────────────
-async function checkAndDeductCredit(userId: string): Promise<{ ok: boolean; credits?: number; message?: string }> {
+async function checkAndDeductCredit(userId: string): Promise<{ ok: boolean; credits?: number; tier?: string; message?: string }> {
   const rows = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   if (!rows.length) return { ok: false, message: "User account not found. Please sign in again." };
   const user = rows[0];
@@ -493,8 +536,8 @@ async function checkAndDeductCredit(userId: string): Promise<{ ok: boolean; cred
   const isNewMonth = now.getFullYear() > resetAt.getFullYear() || now.getMonth() > resetAt.getMonth();
   let currentCredits = user.credits;
   if (isNewMonth && user.tier === "free") {
-    currentCredits = 10;
-    await db.update(usersTable).set({ credits: 10, monthlyResetAt: now, updatedAt: now }).where(eq(usersTable.id, userId));
+    currentCredits = 5;
+    await db.update(usersTable).set({ credits: 5, monthlyResetAt: now, updatedAt: now }).where(eq(usersTable.id, userId));
   }
 
   if (currentCredits <= 0) {
@@ -506,7 +549,7 @@ async function checkAndDeductCredit(userId: string): Promise<{ ok: boolean; cred
     .set({ credits: currentCredits - 1, updatedAt: now })
     .where(eq(usersTable.id, userId));
 
-  return { ok: true, credits: currentCredits - 1 };
+  return { ok: true, credits: currentCredits - 1, tier: user.tier };
 }
 
 // ── ROUTES ────────────────────────────────────────────────────────────────────
@@ -534,7 +577,8 @@ router.post("/transform", requireAuth, upload.single("image"), async (req: Reque
   }
 
   const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  jobs.set(jobId, { jobId, status: "pending", style, mode: "transform" });
+  const watermark = creditResult.tier === "free";
+  jobs.set(jobId, { jobId, status: "pending", style, mode: "transform", watermark });
   runTransformJob(jobId, req.file.path, style, format);
   res.json({ jobId, status: "pending", style, mode: "transform", creditsRemaining: creditResult.credits });
 });
@@ -559,7 +603,8 @@ router.post("/generate", requireAuth, async (req: Request, res: Response) => {
   }
 
   const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  jobs.set(jobId, { jobId, status: "pending", style, mode: "generate" });
+  const watermark = creditResult.tier === "free";
+  jobs.set(jobId, { jobId, status: "pending", style, mode: "generate", watermark });
   runGenerateJob(jobId, style, format);
   res.json({ jobId, status: "pending", style, mode: "generate", creditsRemaining: creditResult.credits });
 });

@@ -41,9 +41,9 @@ router.get("/billing/me", requireAuth, async (req: Request, res: Response) => {
       now.getMonth() > resetAt.getMonth();
     if (isNewMonth && u.tier === "free") {
       await db.update(usersTable)
-        .set({ credits: 10, monthlyResetAt: now, updatedAt: now })
+        .set({ credits: 5, monthlyResetAt: now, updatedAt: now })
         .where(eq(usersTable.id, u.id));
-      u.credits = 10;
+      u.credits = 5;
       u.monthlyResetAt = now;
     }
 

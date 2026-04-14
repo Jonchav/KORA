@@ -103,6 +103,15 @@ export function PricingPage({ onBack }: PricingPageProps) {
             Plan mensual o tokens según lo que necesites.
           </motion.p>
 
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.12 }}
+            className="mt-2 text-xs text-zinc-600"
+          >
+            Plan gratuito: 5 imágenes / mes · con marca de agua
+          </motion.p>
+
           {billing && (
             <motion.div
               initial={{ opacity: 0 }}
