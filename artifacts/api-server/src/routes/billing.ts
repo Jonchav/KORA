@@ -15,19 +15,16 @@ const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://koraframe.com";
 
 // ── Credit pack definitions (one-time purchases) ────────────────────────────
-// Each pack uses a Stripe Price ID (created via Stripe dashboard or API first-run)
-// Format: { id, label, credits, price_usd_cents }
 export const CREDIT_PACKS = [
-  { id: "pack_25",  label: "25 Credits",  credits: 25,  priceCents: 100,  priceLabel: "$1" },
-  { id: "pack_70",  label: "70 Credits",  credits: 70,  priceCents: 200,  priceLabel: "$2" },
-  { id: "pack_220", label: "220 Credits", credits: 220, priceCents: 500,  priceLabel: "$5" },
+  { id: "pack_20",  label: "20 Images",  credits: 20,  priceCents: 100,  priceLabel: "$1" },
+  { id: "pack_75",  label: "75 Images",  credits: 75,  priceCents: 300,  priceLabel: "$3" },
+  { id: "pack_160", label: "160 Images", credits: 160, priceCents: 500,  priceLabel: "$5" },
+  { id: "pack_380", label: "380 Images", credits: 380, priceCents: 1000, priceLabel: "$10" },
 ];
 
 // ── Subscription plan definitions ───────────────────────────────────────────
 export const SUBSCRIPTION_PLANS = [
-  { id: "plan_mini", label: "MINI",  tier: "mini" as const, credits: 100, priceCents: 399,  priceLabel: "$3.99/mo",  description: "100 credits / month" },
-  { id: "plan_plus", label: "PLUS",  tier: "plus" as const, credits: 280, priceCents: 799,  priceLabel: "$7.99/mo",  description: "280 credits / month" },
-  { id: "plan_pro",  label: "PRO",   tier: "pro"  as const, credits: 700, priceCents: 1499, priceLabel: "$14.99/mo", description: "700 credits / month" },
+  { id: "plan_creator", label: "CREATOR", tier: "creator" as const, credits: 120, priceCents: 435, priceLabel: "$4.35/mo", description: "120 images / month" },
 ];
 
 // ── GET /api/billing/me — user tier + credits ────────────────────────────────

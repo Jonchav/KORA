@@ -9,7 +9,7 @@ function authHeaders(): Record<string, string> {
 }
 
 export interface BillingInfo {
-  tier: "free" | "mini" | "plus" | "pro";
+  tier: "free" | "mini" | "plus" | "pro" | "creator";
   credits: number;
   monthlyResetAt: string;
 }

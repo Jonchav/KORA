@@ -2,7 +2,7 @@ import { pgTable, text, integer, timestamp, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const tierEnum = pgEnum("tier", ["free", "mini", "plus", "pro"]);
+export const tierEnum = pgEnum("tier", ["free", "mini", "plus", "pro", "creator"]);
 
 export const usersTable = pgTable("users", {
   id: text("id").primaryKey(), // Google sub

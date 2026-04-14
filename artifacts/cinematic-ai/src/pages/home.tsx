@@ -370,7 +370,7 @@ export default function Home() {
                   <span className="font-mono font-bold text-white">{billing.credits}</span>
                   {billing.credits <= 2
                     ? <span className="text-[9px] font-bold text-amber-400 uppercase tracking-widest">Low</span>
-                    : <span className="text-zinc-600 hidden sm:inline">cr</span>
+                    : <span className="text-zinc-600 hidden sm:inline">img</span>
                   }
                 </div>
               )}
@@ -522,14 +522,14 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-center"
                 >
-                  <p className="text-amber-300 text-sm font-semibold mb-1">No credits remaining</p>
-                  <p className="text-zinc-400 text-xs mb-3">Purchase a credit pack to keep transforming.</p>
+                  <p className="text-amber-300 text-sm font-semibold mb-1">Sin imágenes disponibles</p>
+                  <p className="text-zinc-400 text-xs mb-3">Compra un pack de tokens para seguir creando.</p>
                   <button
                     onClick={() => setShowPricing(true)}
                     className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-amber-500 text-black text-sm font-bold hover:bg-amber-400 transition-colors"
                   >
                     <ShoppingBag className="w-4 h-4" />
-                    Buy Credits
+                    Obtener más imágenes
                   </button>
                 </motion.div>
               )}
