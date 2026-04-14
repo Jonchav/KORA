@@ -11,7 +11,7 @@ import { useBilling, useInvalidateBilling } from "@/hooks/use-billing";
 import { PricingPage } from "@/pages/pricing";
 import {
   Loader2, Download, RotateCcw, AlertTriangle,
-  Sparkles, ImageIcon, Zap, Upload, Palette, LogOut, ShoppingBag, Crown,
+  Sparkles, ImageIcon, Zap, Upload, Palette, LogOut, ShoppingBag, Crown, Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -343,6 +343,44 @@ export default function Home() {
           {user && (
             <div className="flex items-center gap-2">
 
+              {/* Token counter + buy button */}
+              {billing && (
+                <div
+                  className={cn(
+                    "flex items-center rounded-lg border overflow-hidden text-xs transition-colors",
+                    billing.credits <= 2
+                      ? "border-amber-500/40 bg-amber-500/10"
+                      : "border-white/10 bg-white/5"
+                  )}
+                >
+                  {/* Counter area */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5">
+                    <Zap className={cn("w-3 h-3 shrink-0", billing.credits <= 2 ? "text-amber-400" : "text-primary")} />
+                    <span className="font-mono font-bold text-white tabular-nums">{billing.credits}</span>
+                    <span className={cn("text-[10px] font-medium hidden sm:inline", billing.credits <= 2 ? "text-amber-500" : "text-zinc-600")}>
+                      {billing.credits <= 2 ? "bajo" : "img"}
+                    </span>
+                  </div>
+
+                  {/* Divider */}
+                  <div className={cn("w-px self-stretch", billing.credits <= 2 ? "bg-amber-500/30" : "bg-white/10")} />
+
+                  {/* + Buy button */}
+                  <button
+                    onClick={() => setShowPricing(true)}
+                    title="Comprar más imágenes"
+                    className={cn(
+                      "flex items-center justify-center w-7 h-full transition-colors",
+                      billing.credits <= 2
+                        ? "text-amber-400 hover:bg-amber-500/20"
+                        : "text-zinc-500 hover:text-zinc-200 hover:bg-white/10"
+                    )}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
               {/* PRO upgrade button */}
               <button
                 onClick={() => setShowPricing(true)}
@@ -355,25 +393,6 @@ export default function Home() {
                 <Crown className="w-3 h-3" />
                 <span>PRO</span>
               </button>
-
-              {/* Credit counter */}
-              {billing && (
-                <div
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs border",
-                    billing.credits <= 2
-                      ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
-                      : "bg-white/5 border-white/10 text-zinc-400"
-                  )}
-                >
-                  <Zap className={cn("w-3 h-3", billing.credits <= 2 ? "text-amber-400" : "text-primary")} />
-                  <span className="font-mono font-bold text-white">{billing.credits}</span>
-                  {billing.credits <= 2
-                    ? <span className="text-[9px] font-bold text-amber-400 uppercase tracking-widest">Low</span>
-                    : <span className="text-zinc-600 hidden sm:inline">img</span>
-                  }
-                </div>
-              )}
 
               {user.picture && (
                 <img src={user.picture} alt={user.name} className="w-7 h-7 rounded-full border border-white/10" />
