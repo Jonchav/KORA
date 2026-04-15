@@ -249,7 +249,7 @@ export default function Home() {
   const [transformJobId, setTransformJobId] = useState<string | null>(null);
   const [showPricing, setShowPricing] = useState<false | "packs" | "subscription">(false);
   const [noCreditsError, setNoCreditsError] = useState(false);
-  const [faceWarning, setFaceWarning] = useState<"none" | "tip" | "warn">("none");
+  const [faceWarning, setFaceWarning] = useState<"none" | "tip" | "warn" | "error">("none");
 
   const { user, logout } = useAuth();
   const transformMutation = useTransformMutation();
@@ -316,9 +316,40 @@ export default function Home() {
   const analyzePhoto = (f: File) => {
     const img = new Image();
     const url = URL.createObjectURL(f);
-    img.onload = () => {
+
+    img.onload = async () => {
       const ratio = img.naturalWidth / img.naturalHeight;
       const pixels = img.naturalWidth * img.naturalHeight;
+
+      // ── Try native FaceDetector API (Chrome/Edge) ──────────────────────────
+      if ("FaceDetector" in window) {
+        try {
+          const detector = new (window as any).FaceDetector({ fastMode: true, maxDetectedFaces: 3 });
+          const faces: { boundingBox: { width: number; height: number } }[] = await detector.detect(img);
+          URL.revokeObjectURL(url);
+
+          if (faces.length === 0) {
+            setFaceWarning("error");
+            return;
+          }
+
+          // Check the largest face covers at least 3% of the image area
+          const imgArea = img.naturalWidth * img.naturalHeight;
+          const largestFaceArea = Math.max(...faces.map(face => face.boundingBox.width * face.boundingBox.height));
+          const faceFraction = largestFaceArea / imgArea;
+
+          if (faceFraction < 0.03) {
+            setFaceWarning("warn");
+          } else {
+            setFaceWarning("tip");
+          }
+          return;
+        } catch {
+          // FaceDetector threw — fall through to heuristic
+        }
+      }
+
+      // ── Heuristic fallback for Firefox / Safari ────────────────────────────
       URL.revokeObjectURL(url);
       if (ratio > 1.7 || pixels < 90000) {
         setFaceWarning("warn");
@@ -326,6 +357,7 @@ export default function Home() {
         setFaceWarning("tip");
       }
     };
+
     img.src = url;
   };
 
@@ -528,18 +560,40 @@ export default function Home() {
 
               {/* ── Face warning ── */}
               <AnimatePresence>
+                {faceWarning === "error" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-red-500/40 bg-red-500/15"
+                  >
+                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-red-300">No detectamos una cara en la foto</p>
+                      <p className="text-xs text-red-400/80 mt-1 leading-relaxed">
+                        Para no gastar tus créditos, bloqueamos la transformación. Sube una selfie o foto donde tu cara sea visible y grande.
+                      </p>
+                      <button
+                        onClick={() => handleFileSelect(null)}
+                        className="mt-2 text-xs text-red-300 underline underline-offset-2 hover:text-red-200"
+                      >
+                        Cambiar foto →
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
                 {faceWarning === "warn" && (
                   <motion.div
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
-                    className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-red-500/30 bg-red-500/10"
+                    className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10"
                   >
-                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-semibold text-red-300">Cara muy pequeña o imagen muy amplia</p>
-                      <p className="text-xs text-red-400/80 mt-0.5">
-                        El resultado puede ser abstracto o no preservar tu cara. Usa una foto donde tu cara sea clara y ocupe al menos 1/3 de la imagen.
+                      <p className="text-sm font-semibold text-amber-300">Cara pequeña o imagen muy amplia</p>
+                      <p className="text-xs text-amber-400/80 mt-0.5 leading-relaxed">
+                        El resultado puede no preservar bien tu cara. Recomendamos usar una foto más cercana, pero puedes continuar si lo prefieres.
                       </p>
                     </div>
                   </motion.div>
@@ -615,10 +669,10 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.9 }}
                   onClick={handleTransform}
-                  disabled={!file || isTransforming || noCreditsError}
+                  disabled={!file || isTransforming || noCreditsError || faceWarning === "error"}
                   className={cn(
                     "w-full py-4 rounded-2xl font-black text-base tracking-wide transition-all duration-300 flex items-center justify-center gap-2.5",
-                    file && !isTransforming && !noCreditsError
+                    file && !isTransforming && !noCreditsError && faceWarning !== "error"
                       ? `bg-gradient-to-r ${currentStyle.gradient} text-white shadow-2xl hover:-translate-y-1 hover:shadow-3xl active:translate-y-0`
                       : "bg-zinc-800/80 text-zinc-500 cursor-not-allowed border border-zinc-700"
                   )}
