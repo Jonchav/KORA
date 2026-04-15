@@ -151,23 +151,26 @@ async function applyWatermark(buf: Buffer): Promise<Buffer> {
   const w = meta.width ?? 800;
   const h = meta.height ?? 800;
 
-  // Font size scales with image width
-  const fontSize = Math.max(28, Math.round(w * 0.055));
-  const gap = Math.round(fontSize * 3.5);
+  const fontSize = Math.max(13, Math.round(w * 0.022));
+  const label = "Koraframe.com";
+  const charW = fontSize * 0.52;
+  const textW = Math.round(label.length * charW);
+  const padX = Math.round(fontSize * 0.7);
+  const padY = Math.round(fontSize * 0.45);
+  const margin = Math.round(w * 0.022);
+  const bgW = textW + padX * 2;
+  const bgH = fontSize + padY * 2;
+  const bgX = w - bgW - margin;
+  const bgY = h - bgH - margin;
+  const textX = bgX + padX;
+  const textY = bgY + padY + Math.round(fontSize * 0.82);
 
-  // Repeating diagonal tiles across the image
-  const rows: string[] = [];
-  for (let y = -gap; y < h + gap; y += gap) {
-    for (let x = -gap; x < w + gap; x += gap) {
-      rows.push(
-        `<text x="${x}" y="${y}" transform="rotate(-35,${x},${y})"
-          font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="900"
-          fill="white" fill-opacity="0.22" letter-spacing="4">KORA</text>`
-      );
-    }
-  }
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">${rows.join("")}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+    <rect x="${bgX}" y="${bgY}" width="${bgW}" height="${bgH}" rx="4" fill="black" fill-opacity="0.50"/>
+    <text x="${textX}" y="${textY}"
+      font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="700"
+      fill="white" fill-opacity="0.88" letter-spacing="0.3">${label}</text>
+  </svg>`;
 
   return sharp(buf)
     .composite([{ input: Buffer.from(svg), gravity: "northwest" }])
