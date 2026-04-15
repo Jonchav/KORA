@@ -247,7 +247,7 @@ export default function Home() {
   const [style, setStyle] = useState<StyleType>("comic");
   const [format, setFormat] = useState<FormatType>("square");
   const [transformJobId, setTransformJobId] = useState<string | null>(null);
-  const [showPricing, setShowPricing] = useState(false);
+  const [showPricing, setShowPricing] = useState<false | "packs" | "subscription">(false);
   const [noCreditsError, setNoCreditsError] = useState(false);
 
   const { user, logout } = useAuth();
@@ -315,7 +315,7 @@ export default function Home() {
   const currentStyle = STYLES.find(s => s.id === style)!;
 
   if (showPricing) {
-    return <PricingPage onBack={() => setShowPricing(false)} />;
+    return <PricingPage view={showPricing} onBack={() => setShowPricing(false)} />;
   }
 
   return (
@@ -367,7 +367,7 @@ export default function Home() {
 
                   {/* + Buy button */}
                   <button
-                    onClick={() => setShowPricing(true)}
+                    onClick={() => setShowPricing("packs")}
                     title="Comprar más imágenes"
                     className={cn(
                       "flex items-center justify-center w-7 h-full transition-colors",
@@ -383,7 +383,7 @@ export default function Home() {
 
               {/* PRO upgrade button */}
               <button
-                onClick={() => setShowPricing(true)}
+                onClick={() => setShowPricing("subscription")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-widest uppercase transition-all hover:scale-105 active:scale-100"
                 style={{
                   background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #ec4899 100%)",
