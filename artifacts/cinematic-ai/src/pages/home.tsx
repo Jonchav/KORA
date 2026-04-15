@@ -249,6 +249,7 @@ export default function Home() {
   const [transformJobId, setTransformJobId] = useState<string | null>(null);
   const [showPricing, setShowPricing] = useState<false | "packs" | "subscription">(false);
   const [noCreditsError, setNoCreditsError] = useState(false);
+  const [faceWarning, setFaceWarning] = useState<"none" | "tip" | "warn">("none");
 
   const { user, logout } = useAuth();
   const transformMutation = useTransformMutation();
@@ -309,7 +310,29 @@ export default function Home() {
   };
 
   const resetTransform = () => {
-    setFile(null); setTransformJobId(null); transformMutation.reset(); setNoCreditsError(false);
+    setFile(null); setTransformJobId(null); transformMutation.reset(); setNoCreditsError(false); setFaceWarning("none");
+  };
+
+  const analyzePhoto = (f: File) => {
+    const img = new Image();
+    const url = URL.createObjectURL(f);
+    img.onload = () => {
+      const ratio = img.naturalWidth / img.naturalHeight;
+      const pixels = img.naturalWidth * img.naturalHeight;
+      URL.revokeObjectURL(url);
+      if (ratio > 1.7 || pixels < 90000) {
+        setFaceWarning("warn");
+      } else {
+        setFaceWarning("tip");
+      }
+    };
+    img.src = url;
+  };
+
+  const handleFileSelect = (f: File | null) => {
+    setFile(f);
+    setFaceWarning("none");
+    if (f) analyzePhoto(f);
   };
 
   const currentStyle = STYLES.find(s => s.id === style)!;
@@ -499,9 +522,42 @@ export default function Home() {
                     <span className="flex-1 h-px bg-white/[0.05]" />
                     Upload Your Photo
                   </h3>
-                  <UploadZone onFileSelect={setFile} selectedFile={file} disabled={isTransforming} />
+                  <UploadZone onFileSelect={handleFileSelect} selectedFile={file} disabled={isTransforming} />
                 </motion.div>
               )}
+
+              {/* ── Face warning ── */}
+              <AnimatePresence>
+                {faceWarning === "warn" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-red-500/30 bg-red-500/10"
+                  >
+                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-red-300">Cara muy pequeña o imagen muy amplia</p>
+                      <p className="text-xs text-red-400/80 mt-0.5">
+                        El resultado puede ser abstracto o no preservar tu cara. Usa una foto donde tu cara sea clara y ocupe al menos 1/3 de la imagen.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+                {faceWarning === "tip" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="flex items-center gap-3 px-4 py-2.5 rounded-2xl border border-white/[0.06] bg-white/[0.03]"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                    <p className="text-xs text-zinc-500">
+                      Mejores resultados con cara frontal, bien iluminada y sin gafas de sol.
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <motion.div
                 initial={{ opacity: 0, x: -16 }}
