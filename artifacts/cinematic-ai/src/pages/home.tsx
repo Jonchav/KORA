@@ -318,10 +318,7 @@ export default function Home() {
     const url = URL.createObjectURL(f);
 
     img.onload = async () => {
-      const ratio = img.naturalWidth / img.naturalHeight;
-      const pixels = img.naturalWidth * img.naturalHeight;
-
-      // ── Try native FaceDetector API (Chrome/Edge) ──────────────────────────
+      // ── Try native FaceDetector API (Chrome/Edge/Android) ──────────────────
       if ("FaceDetector" in window) {
         try {
           const detector = new (window as any).FaceDetector({ fastMode: true, maxDetectedFaces: 3 });
@@ -329,6 +326,7 @@ export default function Home() {
           URL.revokeObjectURL(url);
 
           if (faces.length === 0) {
+            // Confirmed: no face detected → block
             setFaceWarning("error");
             return;
           }
@@ -338,24 +336,19 @@ export default function Home() {
           const largestFaceArea = Math.max(...faces.map(face => face.boundingBox.width * face.boundingBox.height));
           const faceFraction = largestFaceArea / imgArea;
 
-          if (faceFraction < 0.03) {
-            setFaceWarning("warn");
-          } else {
-            setFaceWarning("tip");
-          }
+          // Face confirmed: tip if large enough, warn if too small
+          setFaceWarning(faceFraction < 0.03 ? "warn" : "tip");
           return;
         } catch {
-          // FaceDetector threw — fall through to heuristic
+          // FaceDetector threw (unsupported device, cross-origin, etc.)
+          // Fall through — treat as undetectable → warn
         }
       }
 
-      // ── Heuristic fallback for Firefox / Safari ────────────────────────────
+      // ── No reliable detector available: always warn the user ───────────────
+      // We cannot confirm a face is present, so show a warning but don't block.
       URL.revokeObjectURL(url);
-      if (ratio > 1.7 || pixels < 90000) {
-        setFaceWarning("warn");
-      } else {
-        setFaceWarning("tip");
-      }
+      setFaceWarning("warn");
     };
 
     img.src = url;
@@ -578,9 +571,9 @@ export default function Home() {
                   >
                     <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-semibold text-amber-300">Cara pequeña o imagen muy amplia</p>
+                      <p className="text-sm font-semibold text-amber-300">¿Tu foto tiene un rostro visible?</p>
                       <p className="text-xs text-amber-400/80 mt-0.5 leading-relaxed">
-                        El resultado puede no preservar bien tu cara. Recomendamos usar una foto más cercana, pero puedes continuar si lo prefieres.
+                        No detectamos un rostro claro. Para mejores resultados usa una selfie o foto donde tu cara esté centrada y bien iluminada. Puedes continuar, pero se descontará un crédito.
                       </p>
                     </div>
                   </motion.div>
