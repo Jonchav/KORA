@@ -100,6 +100,14 @@ export const STYLES: StyleConfig[] = [
     glow: "rgba(126,34,206,0.4)",
   },
   {
+    id: "dccomic",
+    label: "DC Noir",
+    description: "Batman era, tinta retro, sombras noir",
+    emoji: "🦇",
+    gradient: "from-amber-600 to-stone-800",
+    glow: "rgba(217,119,6,0.35)",
+  },
+  {
     id: "gtasa",
     label: "San Andrés",
     description: "GTA SA — CJ, Grove Street, Los Santos",

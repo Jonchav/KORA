@@ -18,6 +18,7 @@ const STYLE_LABELS: Record<string, string> = {
   vaporwave: "Vaporwave",
   fantasy: "Fantasy RPG",
   gtasa: "GTA San Andreas",
+  dccomic: "DC Noir",
 };
 
 const FORMAT_LABELS: Record<string, string> = {

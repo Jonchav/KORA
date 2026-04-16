@@ -38,7 +38,7 @@ const upload = multer({
 
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 
-export type Style = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa";
+export type Style = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa" | "dccomic";
 export type Format = "square" | "portrait" | "story" | "landscape";
 
 const FORMAT_RATIOS: Record<Format, string> = {
@@ -109,6 +109,11 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string }> = {
     prompt:
       "GTA San Andreas video game character, PS2 era 3D graphics style, early 2000s Rockstar Games aesthetic, low-poly but detailed character model, Grove Street Los Santos gang neighborhood background, warm California golden sunlight, white tank top baggy jeans and Nikes, gang bandana and fitted cap, gritty urban street environment, CJ character style, iconic GTA San Andreas cutscene quality",
   },
+  dccomic: {
+    style: "3D",
+    prompt:
+      "retro DC Comics noir comic book illustration, Batman detective era 1940s-1970s style, heavy black ink cross-hatching and bold outlines, dramatic chiaroscuro noir shadows, classic 4-color CMYK halftone dot printing, aged newsprint texture, high contrast black and deep shadow areas, limited vintage color palette of flat reds blues and yellows, Jack Kirby Neal Adams Jim Aparo golden age comic art style, gritty heroic portrait",
+  },
 };
 
 const SEEDREAM_PROMPTS: Record<Style, string> = {
@@ -136,6 +141,8 @@ const SEEDREAM_PROMPTS: Record<Style, string> = {
     "Epic dark fantasy world panorama, ancient kingdom under a dramatic stormy sky with twin moons, glowing magical runes on massive stone gates, an armored hero silhouetted against a burning horizon, dragons in the sky, volumetric god rays, Artstation fantasy concept art, cinematic and breathtaking",
   gtasa:
     "GTA San Andreas game world panorama, aerial view of Los Santos city circa 2004, Grove Street neighborhood with low-rider cars and palm trees, warm smoggy California sunset, PS2 era 3D graphics aesthetic, Rockstar Games style urban sprawl, iconic green-and-purple gang territory, early 2000s hip-hop culture street scene, cinematic wide shot",
+  dccomic:
+    "Retro DC Comics noir city rooftop scene, Batman-era 1950s Gotham at night, dramatic gargoyle silhouettes against a full moon, rain-slicked rooftops, heavy black ink cross-hatching shadows, golden age comic book halftone dots, vintage 4-color print palette, a caped detective figure in the foreground, dramatic upward angle, Jack Kirby golden age quality, aged newsprint texture, cinematic noir masterpiece",
 };
 
 interface JobRecord {
@@ -240,6 +247,7 @@ const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
   vaporwave:   "apply vaporwave aesthetic to this image, keep the same subject and composition, add dreamy pastel purple and pink tones with 80s nostalgia",
   fantasy:     "apply dark fantasy RPG illustration style to this image, keep the same subject and composition, add dramatic magical lighting and painterly detail",
   gtasa:       "apply GTA San Andreas PS2 video game graphics style to this image, keep the same subject and composition with early 2000s Rockstar Games look",
+  dccomic:     "apply retro DC Comics golden age noir style to this image, keep the same subject, add heavy black ink cross-hatching, dramatic noir shadows, halftone dot shading, and a vintage 4-color limited palette like 1950s Batman comics",
 };
 
 function isFaceDetectionError(err: unknown): boolean {
@@ -582,7 +590,7 @@ router.post("/transform", requireAuth, upload.single("image"), async (req: Reque
   }
   const style = req.body.style as Style;
   const format = (req.body.format as Format) ?? "square";
-  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa"];
+  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic"];
   const validFormats: Format[] = ["square", "portrait", "story", "landscape"];
 
   if (!style || !validStyles.includes(style)) {
@@ -609,7 +617,7 @@ router.post("/transform", requireAuth, upload.single("image"), async (req: Reque
 router.post("/generate", requireAuth, async (req: Request, res: Response) => {
   const style = req.body.style as Style;
   const format = (req.body.format as Format) ?? "landscape";
-  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa"];
+  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic"];
   const validFormats: Format[] = ["square", "portrait", "story", "landscape"];
 
   if (!style || !validStyles.includes(style)) {
