@@ -1,3 +1,4 @@
+import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Download, ImageIcon, Loader2, RefreshCw, Sparkles, Clock } from "lucide-react";
 import { useGallery, type GalleryItem } from "@/hooks/use-gallery";
@@ -109,13 +110,14 @@ function ImagePreview({ url, style }: { url: string; style: string }) {
   const [failed, setFailed] = React.useState(false);
 
   React.useEffect(() => {
+    let objectUrl: string | null = null;
     const token = localStorage.getItem("kora_auth_token");
-    const fullUrl = `${API_BASE}${url}`;
-    fetch(fullUrl, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    // url is already the full absolute URL — do NOT prepend API_BASE again
+    fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then(r => { if (!r.ok) throw new Error("not ok"); return r.blob(); })
-      .then(blob => setSrc(URL.createObjectURL(blob)))
+      .then(blob => { objectUrl = URL.createObjectURL(blob); setSrc(objectUrl); })
       .catch(() => setFailed(true));
-    return () => { if (src) URL.revokeObjectURL(src); };
+    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [url]);
 
   if (failed) return (

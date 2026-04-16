@@ -16,6 +16,36 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// ── Authenticated image viewer (avoids sending auth header via <img> src) ─────
+function ResultImage({ jobId, alt }: { jobId: string; alt: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    const token = localStorage.getItem("kora_auth_token");
+    fetch(`${API_BASE}/api/transform/${jobId}/download`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(r => { if (!r.ok) throw new Error("not ok"); return r.blob(); })
+      .then(blob => { objectUrl = URL.createObjectURL(blob); setSrc(objectUrl); })
+      .catch(() => setFailed(true));
+    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [jobId]);
+
+  if (failed) return (
+    <div className="w-full h-full flex items-center justify-center text-zinc-600 text-sm">
+      No se pudo cargar la imagen
+    </div>
+  );
+  if (!src) return (
+    <div className="w-full h-full flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-zinc-600 animate-spin" />
+    </div>
+  );
+  return <img src={src} alt={alt} className="w-full h-full object-contain" />;
+}
+
 // ── Preview card for the scrolling gallery ────────────────────────────────────
 const CARD_PATTERNS: Record<StyleType, string> = {
   comic:      "repeating-radial-gradient(circle at 1px 1px, rgba(0,0,0,0.15) 1px, transparent 0) 0 0 / 10px 10px",
@@ -704,11 +734,7 @@ export default function Home() {
                       className="flex-1 flex flex-col"
                     >
                       <div className="relative flex-1 min-h-[400px]">
-                        <img
-                          src={`${API_BASE}/api/transform/${transformJobId}/download`}
-                          alt={`${style} transformation`}
-                          className="w-full h-full object-contain"
-                        />
+                        <ResultImage jobId={transformJobId} alt={`${style} transformation`} />
                         {/* Success badge */}
                         <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
                           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
