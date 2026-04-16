@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { LoginPage } from "@/components/login-page";
 import Home from "@/pages/home";
+import PublicPricingPage from "@/pages/public-pricing";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string || "";
 
@@ -42,10 +43,20 @@ function AuthGate() {
     return <LoginPage />;
   }
 
+  return <Router />;
+}
+
+function AppRoutes() {
+  const [location] = useLocation();
+
+  if (location === "/pricing") {
+    return <PublicPricingPage />;
+  }
+
   return (
-    <WouterRouter base="">
-      <Router />
-    </WouterRouter>
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
   );
 }
 
@@ -54,9 +65,9 @@ function App() {
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <AuthProvider>
-            <AuthGate />
-          </AuthProvider>
+          <WouterRouter base="">
+            <AppRoutes />
+          </WouterRouter>
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>
