@@ -1,15 +1,15 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Zap, Check, AlertTriangle, ShieldCheck, Infinity, Sparkles, Package } from "lucide-react";
+import { ArrowLeft, Zap, Check, AlertTriangle, ShieldCheck, Infinity, Sparkles, Package, Gift } from "lucide-react";
 import { useCheckout, useBilling } from "@/hooks/use-billing";
 import { cn } from "@/lib/utils";
 
 const PACKS = [
   {
     id: "pack_10",
-    images: 10,
+    gens: 10,
     price: "$1",
     priceCents: 100,
-    perImage: "$0.10",
+    perGen: "$0.10",
     label: "MICRO",
     gradient: "from-zinc-800 to-zinc-900",
     accent: "text-zinc-300",
@@ -21,40 +21,40 @@ const PACKS = [
   },
   {
     id: "pack_30",
-    images: 30,
+    gens: 30,
     price: "$3",
     priceCents: 300,
-    perImage: "$0.10",
+    perGen: "$0.10",
     label: "POPULAR",
     gradient: "from-amber-950 to-zinc-900",
     accent: "text-amber-300",
     border: "border-amber-500/40",
     glow: "rgba(245,158,11,0.12)",
-    tag: "MÁS PEDIDO",
+    tag: "MÁS POPULAR",
     tagColor: "bg-amber-400 text-black",
     best: true,
   },
   {
     id: "pack_60",
-    images: 60,
+    gens: 60,
     price: "$5",
     priceCents: 500,
-    perImage: "$0.083",
+    perGen: "$0.083",
     label: "ESTUDIO",
     gradient: "from-violet-950 to-zinc-900",
     accent: "text-violet-300",
     border: "border-violet-500/30",
     glow: "rgba(139,92,246,0.12)",
-    tag: "MEJOR VALOR",
+    tag: "RECOMENDADO",
     tagColor: "bg-violet-500 text-white",
     best: false,
   },
   {
     id: "pack_120",
-    images: 120,
+    gens: 120,
     price: "$10",
     priceCents: 1000,
-    perImage: "$0.083",
+    perGen: "$0.083",
     label: "PRO",
     gradient: "from-pink-950 to-zinc-900",
     accent: "text-pink-300",
@@ -113,28 +113,34 @@ export function PricingPage({ onBack }: PricingPageProps) {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
 
           {/* Header */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-10">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 mb-5"
             >
               <Package className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-xs font-semibold text-amber-400 tracking-widest uppercase">Packs de imágenes</span>
+              <span className="text-xs font-semibold text-amber-400 tracking-widest uppercase">Packs de créditos</span>
             </motion.div>
 
             <h1 className="text-4xl md:text-5xl font-black text-white mb-3 tracking-tight">
               Compra y usa cuando quieras
             </h1>
-            <p className="text-zinc-400 text-base max-w-sm mx-auto">
-              Pago único. Sin suscripción. Los tokens no caducan nunca.
+            <p className="text-zinc-400 text-base max-w-sm mx-auto mb-4">
+              Pago único. Sin suscripción. Los créditos no caducan nunca.
             </p>
+
+            {/* Explicación simple */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-zinc-400">
+              <Zap className="w-3 h-3 text-amber-400 shrink-0" />
+              1 generación = 1 foto transformada con IA
+            </div>
 
             {billing && (
               <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm">
                 <Zap className="w-3.5 h-3.5 text-amber-400" />
                 <span className="text-zinc-500">Balance actual:</span>
-                <span className="font-mono font-bold text-white">{billing.credits} img</span>
+                <span className="font-mono font-bold text-white">{billing.credits} créditos</span>
               </div>
             )}
           </div>
@@ -173,10 +179,10 @@ export function PricingPage({ onBack }: PricingPageProps) {
                   </div>
 
                   <div className="flex items-end gap-2">
-                    <span className="text-5xl font-black text-white font-mono leading-none">{pack.images}</span>
+                    <span className="text-5xl font-black text-white font-mono leading-none">{pack.gens}</span>
                     <div className="pb-1">
-                      <div className="text-zinc-300 text-sm font-semibold">imágenes</div>
-                      <div className={cn("text-[11px] font-mono", pack.accent)}>{pack.perImage} / imagen</div>
+                      <div className="text-zinc-300 text-sm font-semibold">generaciones</div>
+                      <div className={cn("text-[11px] font-mono", pack.accent)}>{pack.perGen} / generación</div>
                     </div>
                   </div>
 
@@ -202,12 +208,28 @@ export function PricingPage({ onBack }: PricingPageProps) {
                     )}
                     style={pack.best ? { boxShadow: "0 4px 16px rgba(245,158,11,0.3)" } : {}}
                   >
-                    {checkout.isPending ? "Redirigiendo..." : `Comprar ${pack.images} imágenes`}
+                    {checkout.isPending ? "Redirigiendo..." : `Obtener ${pack.gens} generaciones`}
                   </button>
                 </div>
               </motion.div>
             ))}
           </div>
+
+          {/* Free tier hook */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+            className="flex items-center gap-4 p-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] mb-8"
+          >
+            <div className="w-9 h-9 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
+              <Gift className="w-4 h-4 text-green-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white">Empieza gratis</p>
+              <p className="text-xs text-zinc-500">5 generaciones gratis al registrarte · No necesitas tarjeta</p>
+            </div>
+          </motion.div>
 
           <motion.div
             initial={{ opacity: 0 }}
@@ -217,7 +239,7 @@ export function PricingPage({ onBack }: PricingPageProps) {
           >
             <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" /> Stripe · pago seguro</span>
             <span className="text-zinc-800">·</span>
-            <span className="flex items-center gap-1.5"><Infinity className="w-3.5 h-3.5" /> Tokens sin caducidad</span>
+            <span className="flex items-center gap-1.5"><Infinity className="w-3.5 h-3.5" /> Créditos sin caducidad</span>
             <span className="text-zinc-800">·</span>
             <span className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" /> Sin suscripción</span>
           </motion.div>

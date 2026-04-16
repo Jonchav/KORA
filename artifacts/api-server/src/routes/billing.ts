@@ -16,10 +16,10 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "https://koraframe.com";
 
 // ── Credit pack definitions (one-time purchases) ────────────────────────────
 export const CREDIT_PACKS = [
-  { id: "pack_10",  label: "10 Images",  credits: 10,  priceCents: 100,  priceLabel: "$1" },
-  { id: "pack_30",  label: "30 Images",  credits: 30,  priceCents: 300,  priceLabel: "$3" },
-  { id: "pack_60",  label: "60 Images",  credits: 60,  priceCents: 500,  priceLabel: "$5" },
-  { id: "pack_120", label: "120 Images", credits: 120, priceCents: 1000, priceLabel: "$10" },
+  { id: "pack_10",  label: "10 Generaciones",  credits: 10,  priceCents: 100,  priceLabel: "$1" },
+  { id: "pack_30",  label: "30 Generaciones",  credits: 30,  priceCents: 300,  priceLabel: "$3" },
+  { id: "pack_60",  label: "60 Generaciones",  credits: 60,  priceCents: 500,  priceLabel: "$5" },
+  { id: "pack_120", label: "120 Generaciones", credits: 120, priceCents: 1000, priceLabel: "$10" },
 ];
 
 // ── GET /api/billing/me — user tier + credits ────────────────────────────────
@@ -77,7 +77,7 @@ router.post("/billing/checkout", requireAuth, async (req: Request, res: Response
             currency: "usd",
             product_data: {
               name: `KORA — ${pack.label}`,
-              description: `${pack.credits} AI transformation credits. One-time purchase, no expiry.`,
+              description: `${pack.credits} generaciones con IA. Pago único, sin caducidad.`,
             },
             unit_amount: pack.priceCents,
           },

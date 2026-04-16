@@ -413,7 +413,7 @@ export default function Home() {
                     <Zap className={cn("w-3 h-3 shrink-0", billing.credits <= 2 ? "text-amber-400" : "text-primary")} />
                     <span className="font-mono font-bold text-white tabular-nums">{billing.credits}</span>
                     <span className={cn("text-[10px] font-medium hidden sm:inline", billing.credits <= 2 ? "text-amber-500" : "text-zinc-600")}>
-                      {billing.credits <= 2 ? "bajo" : "img"}
+                      {billing.credits <= 2 ? "bajo" : "créd"}
                     </span>
                   </div>
 
@@ -423,7 +423,7 @@ export default function Home() {
                   {/* + Buy button */}
                   <button
                     onClick={() => setShowPricing(true)}
-                    title="Comprar más imágenes"
+                    title="Comprar más créditos"
                     className={cn(
                       "flex items-center justify-center w-7 h-full transition-colors",
                       billing.credits <= 2
@@ -638,14 +638,14 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-center"
                 >
-                  <p className="text-amber-300 text-sm font-semibold mb-1">Sin imágenes disponibles</p>
-                  <p className="text-zinc-400 text-xs mb-3">Compra un pack de tokens para seguir creando.</p>
+                  <p className="text-amber-300 text-sm font-semibold mb-1">Sin créditos disponibles</p>
+                  <p className="text-zinc-400 text-xs mb-3">Compra un pack para seguir generando.</p>
                   <button
                     onClick={() => setShowPricing(true)}
                     className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-amber-500 text-black text-sm font-bold hover:bg-amber-400 transition-colors"
                   >
                     <ShoppingBag className="w-4 h-4" />
-                    Obtener más imágenes
+                    Obtener más generaciones
                   </button>
                 </motion.div>
               )}
