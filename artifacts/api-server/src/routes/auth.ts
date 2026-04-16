@@ -2,7 +2,6 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { OAuth2Client } from "google-auth-library";
 import { signToken, requireAuth } from "../middleware/auth.js";
 import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -41,12 +40,13 @@ router.post("/auth/google", async (req: Request, res: Response) => {
       picture: payload.picture || "",
     };
 
-    // Upsert user in DB — create on first login, skip on subsequent
+    // Atomic upsert: create new user with 2 credits, or on conflict ONLY update
+    // name/picture — credits are NEVER touched for existing users.
+    const now = new Date();
     try {
-      const existing = await db.select().from(usersTable).where(eq(usersTable.id, user.sub)).limit(1);
-      const now = new Date();
-      if (!existing.length) {
-        await db.insert(usersTable).values({
+      const result = await db
+        .insert(usersTable)
+        .values({
           id: user.sub,
           email: user.email,
           name: user.name,
@@ -56,16 +56,21 @@ router.post("/auth/google", async (req: Request, res: Response) => {
           monthlyResetAt: now,
           createdAt: now,
           updatedAt: now,
-        });
-        console.log(`[auth] New user created: ${user.email}`);
-      } else {
-        // Update name/picture in case they changed
-        await db.update(usersTable)
-          .set({ name: user.name, picture: user.picture, updatedAt: now })
-          .where(eq(usersTable.id, user.sub));
-      }
+        })
+        .onConflictDoUpdate({
+          target: usersTable.id,
+          set: {
+            name: user.name,
+            picture: user.picture,
+            updatedAt: now,
+          },
+        })
+        .returning({ id: usersTable.id, credits: usersTable.credits });
+
+      const isNew = result[0]?.credits === 2;
+      console.log(`[auth] ${isNew ? "New user created" : "Existing user login"}: ${user.email}`);
     } catch (dbErr) {
-      // Non-fatal: log but don't block login
+      // Non-fatal: log but don't block login — user still gets a valid JWT
       console.error("[auth] DB upsert error:", dbErr);
     }
 
