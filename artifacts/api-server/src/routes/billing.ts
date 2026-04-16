@@ -22,30 +22,16 @@ export const CREDIT_PACKS = [
   { id: "pack_120", label: "120 Generaciones", credits: 120, priceCents: 1000, priceLabel: "$10" },
 ];
 
-// ── GET /api/billing/me — user tier + credits ────────────────────────────────
+// ── GET /api/billing/me — user credits ───────────────────────────────────────
 router.get("/billing/me", requireAuth, async (req: Request, res: Response) => {
   try {
     const rows = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.sub)).limit(1);
     if (!rows.length) { res.status(404).json({ message: "User not found" }); return; }
     const u = rows[0];
 
-    // Monthly reset for free tier: reset to 10 on the 1st of every month
-    const now = new Date();
-    const resetAt = new Date(u.monthlyResetAt);
-    const isNewMonth = now.getFullYear() > resetAt.getFullYear() ||
-      now.getMonth() > resetAt.getMonth();
-    if (isNewMonth && u.tier === "free") {
-      await db.update(usersTable)
-        .set({ credits: 5, monthlyResetAt: now, updatedAt: now })
-        .where(eq(usersTable.id, u.id));
-      u.credits = 5;
-      u.monthlyResetAt = now;
-    }
-
     res.json({
       tier: u.tier,
       credits: u.credits,
-      monthlyResetAt: u.monthlyResetAt,
     });
   } catch (err) {
     console.error("billing/me error:", err);
@@ -142,74 +128,32 @@ router.post("/billing/webhook", async (req: Request, res: Response) => {
       const session = event.data.object as Stripe.Checkout.Session;
       const meta = session.metadata || {};
       const userId = meta.userId;
-      if (!userId) { res.json({ received: true }); return; }
 
-      if (meta.type === "pack") {
-        const credits = parseInt(meta.credits || "0");
-        const now = new Date();
+      if (!userId || meta.type !== "pack") {
+        res.json({ received: true });
+        return;
+      }
 
-        // Fetch current credits then increment
-        const rows = await db.select({ credits: usersTable.credits }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-        if (rows.length) {
-          await db.update(usersTable)
-            .set({
-              credits: rows[0].credits + credits,
-              stripeCustomerId: (session.customer as string) || undefined,
-              updatedAt: now,
-            })
-            .where(eq(usersTable.id, userId));
-        }
-        console.log(`[webhook] +${credits} credits → user ${userId}`);
+      const credits = parseInt(meta.credits || "0");
+      if (credits <= 0) { res.json({ received: true }); return; }
 
-      } else if (meta.type === "subscription") {
-        const plan = SUBSCRIPTION_PLANS.find(p => p.id === meta.planId);
-        if (!plan) { res.json({ received: true }); return; }
-        const now = new Date();
+      const now = new Date();
+      const rows = await db.select({ credits: usersTable.credits })
+        .from(usersTable)
+        .where(eq(usersTable.id, userId))
+        .limit(1);
+
+      if (rows.length) {
         await db.update(usersTable)
           .set({
-            tier: plan.tier,
-            credits: plan.credits,
-            monthlyResetAt: now,
-            stripeCustomerId: session.customer as string || undefined,
-            stripeSubscriptionId: session.subscription as string || undefined,
+            credits: rows[0].credits + credits,
+            stripeCustomerId: (session.customer as string) || undefined,
             updatedAt: now,
           })
           .where(eq(usersTable.id, userId));
-        console.log(`[webhook] subscription ${plan.tier} → user ${userId}`);
-      }
-
-    } else if (event.type === "customer.subscription.deleted") {
-      // Subscription cancelled — downgrade to free
-      const sub = event.data.object as Stripe.Subscription;
-      const rows = await db.select().from(usersTable)
-        .where(eq(usersTable.stripeSubscriptionId, sub.id)).limit(1);
-      if (rows.length) {
-        const now = new Date();
-        await db.update(usersTable)
-          .set({ tier: "free", credits: 10, stripeSubscriptionId: null, updatedAt: now })
-          .where(eq(usersTable.id, rows[0].id));
-        console.log(`[webhook] subscription cancelled → free tier user ${rows[0].id}`);
-      }
-
-    } else if (event.type === "invoice.paid") {
-      // Monthly renewal — top up credits
-      const invoice = event.data.object as any;
-      const invoiceSubscriptionId: string | null =
-        typeof invoice.subscription === "string" ? invoice.subscription :
-        typeof invoice.subscription?.id === "string" ? invoice.subscription.id : null;
-      if (!invoiceSubscriptionId) { res.json({ received: true }); return; }
-      const rows = await db.select().from(usersTable)
-        .where(eq(usersTable.stripeSubscriptionId, invoiceSubscriptionId)).limit(1);
-      if (rows.length) {
-        const user = rows[0];
-        const plan = SUBSCRIPTION_PLANS.find(p => p.tier === user.tier);
-        if (plan) {
-          const now = new Date();
-          await db.update(usersTable)
-            .set({ credits: plan.credits, monthlyResetAt: now, updatedAt: now })
-            .where(eq(usersTable.id, user.id));
-          console.log(`[webhook] renewal +${plan.credits} credits → user ${user.id}`);
-        }
+        console.log(`[webhook] +${credits} generaciones → user ${userId} (total: ${rows[0].credits + credits})`);
+      } else {
+        console.warn(`[webhook] user not found: ${userId}`);
       }
     }
   } catch (err) {
