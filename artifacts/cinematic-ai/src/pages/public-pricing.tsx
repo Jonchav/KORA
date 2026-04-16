@@ -116,7 +116,7 @@ export default function PublicPricingPage() {
           <div className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-green-500/10 border border-green-500/20">
             <Gift className="w-4 h-4 text-green-400 shrink-0" />
             <div className="text-left">
-              <p className="text-sm font-bold text-green-300">Empieza gratis — 5 generaciones incluidas</p>
+              <p className="text-sm font-bold text-green-300">Empieza gratis — 2 generaciones incluidas</p>
               <p className="text-xs text-green-600">No necesitas tarjeta de crédito</p>
             </div>
           </div>
@@ -240,7 +240,7 @@ export default function PublicPricingPage() {
             </div>
             <div className="flex-1">
               <p className="text-white font-bold text-sm mb-0.5">Empieza gratis, sin tarjeta</p>
-              <p className="text-zinc-500 text-xs">5 generaciones gratuitas al crear tu cuenta · Con marca de agua · Sin compromisos</p>
+              <p className="text-zinc-500 text-xs">2 generaciones gratuitas al crear tu cuenta · Con marca de agua · Sin compromisos</p>
             </div>
             <a
               href="/"

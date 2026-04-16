@@ -227,7 +227,7 @@ export function PricingPage({ onBack }: PricingPageProps) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white">Empieza gratis</p>
-              <p className="text-xs text-zinc-500">5 generaciones gratis al registrarte · No necesitas tarjeta</p>
+              <p className="text-xs text-zinc-500">2 generaciones gratis al registrarte · No necesitas tarjeta</p>
             </div>
           </motion.div>
 

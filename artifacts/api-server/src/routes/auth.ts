@@ -52,7 +52,7 @@ router.post("/auth/google", async (req: Request, res: Response) => {
           name: user.name,
           picture: user.picture,
           tier: "free",
-          credits: 5,
+          credits: 2,
           monthlyResetAt: now,
           createdAt: now,
           updatedAt: now,
