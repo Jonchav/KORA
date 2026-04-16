@@ -16,15 +16,10 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "https://koraframe.com";
 
 // ── Credit pack definitions (one-time purchases) ────────────────────────────
 export const CREDIT_PACKS = [
-  { id: "pack_20",  label: "20 Images",  credits: 20,  priceCents: 100,  priceLabel: "$1" },
-  { id: "pack_75",  label: "75 Images",  credits: 75,  priceCents: 300,  priceLabel: "$3" },
-  { id: "pack_160", label: "160 Images", credits: 160, priceCents: 500,  priceLabel: "$5" },
-  { id: "pack_380", label: "380 Images", credits: 380, priceCents: 1000, priceLabel: "$10" },
-];
-
-// ── Subscription plan definitions ───────────────────────────────────────────
-export const SUBSCRIPTION_PLANS = [
-  { id: "plan_creator", label: "CREATOR", tier: "creator" as const, credits: 120, priceCents: 435, priceLabel: "$4.35/mo", description: "120 images / month" },
+  { id: "pack_10",  label: "10 Images",  credits: 10,  priceCents: 100,  priceLabel: "$1" },
+  { id: "pack_30",  label: "30 Images",  credits: 30,  priceCents: 300,  priceLabel: "$3" },
+  { id: "pack_60",  label: "60 Images",  credits: 60,  priceCents: 500,  priceLabel: "$5" },
+  { id: "pack_120", label: "120 Images", credits: 120, priceCents: 1000, priceLabel: "$10" },
 ];
 
 // ── GET /api/billing/me — user tier + credits ────────────────────────────────
@@ -60,7 +55,7 @@ router.get("/billing/me", requireAuth, async (req: Request, res: Response) => {
 
 // ── POST /api/billing/checkout — create Stripe checkout session ─────────────
 router.post("/billing/checkout", requireAuth, async (req: Request, res: Response) => {
-  const { type, itemId } = req.body as { type: "pack" | "subscription"; itemId: string };
+  const { type, itemId } = req.body as { type: "pack"; itemId: string };
 
   const rows = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.sub)).limit(1);
   if (!rows.length) { res.status(404).json({ message: "User not found" }); return; }
@@ -95,37 +90,6 @@ router.post("/billing/checkout", requireAuth, async (req: Request, res: Response
           credits: String(pack.credits),
         },
         success_url: `${FRONTEND_URL}/?payment=success&credits=${pack.credits}`,
-        cancel_url: `${FRONTEND_URL}/?payment=cancelled`,
-      });
-
-    } else if (type === "subscription") {
-      const plan = SUBSCRIPTION_PLANS.find(p => p.id === itemId);
-      if (!plan) { res.status(400).json({ message: "Invalid plan" }); return; }
-
-      session = await stripe.checkout.sessions.create({
-        mode: "subscription",
-        customer_email: user.stripeCustomerId ? undefined : req.user!.email,
-        customer: user.stripeCustomerId || undefined,
-        line_items: [{
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: `KORA ${plan.label}`,
-              description: plan.description,
-            },
-            unit_amount: plan.priceCents,
-            recurring: { interval: "month" },
-          },
-          quantity: 1,
-        }],
-        metadata: {
-          userId: req.user!.sub,
-          type: "subscription",
-          planId: plan.id,
-          tier: plan.tier,
-          credits: String(plan.credits),
-        },
-        success_url: `${FRONTEND_URL}/?payment=success&plan=${plan.tier}`,
         cancel_url: `${FRONTEND_URL}/?payment=cancelled`,
       });
 

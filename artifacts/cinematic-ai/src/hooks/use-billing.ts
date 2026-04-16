@@ -29,7 +29,7 @@ export function useBilling() {
 
 export function useCheckout() {
   return useMutation({
-    mutationFn: async (params: { type: "pack" | "subscription"; itemId: string }) => {
+    mutationFn: async (params: { type: "pack"; itemId: string }) => {
       const res = await fetch(`${API_BASE}/api/billing/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },

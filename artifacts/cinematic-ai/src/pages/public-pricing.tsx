@@ -1,13 +1,13 @@
 import { motion } from "framer-motion";
-import { Check, ShieldCheck, Infinity, Crown, Sparkles, Package, Zap, Star } from "lucide-react";
+import { Check, ShieldCheck, Infinity, Sparkles, Package, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PACKS = [
   {
-    id: "pack_20",
-    images: 20,
+    id: "pack_10",
+    images: 10,
     price: "$1",
-    perImage: "$0.05",
+    perImage: "$0.10",
     label: "MICRO",
     gradient: "from-zinc-800 to-zinc-900",
     accent: "text-zinc-300",
@@ -18,10 +18,10 @@ const PACKS = [
     best: false,
   },
   {
-    id: "pack_75",
-    images: 75,
+    id: "pack_30",
+    images: 30,
     price: "$3",
-    perImage: "$0.04",
+    perImage: "$0.10",
     label: "POPULAR",
     gradient: "from-amber-950 to-zinc-900",
     accent: "text-amber-300",
@@ -32,10 +32,10 @@ const PACKS = [
     best: true,
   },
   {
-    id: "pack_160",
-    images: 160,
+    id: "pack_60",
+    images: 60,
     price: "$5",
-    perImage: "$0.031",
+    perImage: "$0.083",
     label: "ESTUDIO",
     gradient: "from-violet-950 to-zinc-900",
     accent: "text-violet-300",
@@ -46,10 +46,10 @@ const PACKS = [
     best: false,
   },
   {
-    id: "pack_380",
-    images: 380,
+    id: "pack_120",
+    images: 120,
     price: "$10",
-    perImage: "$0.026",
+    perImage: "$0.083",
     label: "PRO",
     gradient: "from-pink-950 to-zinc-900",
     accent: "text-pink-300",
@@ -59,14 +59,6 @@ const PACKS = [
     tagColor: "bg-pink-500 text-white",
     best: false,
   },
-];
-
-const CREATOR_FEATURES = [
-  "120 imágenes / mes",
-  "Sin marca de agua",
-  "Todos los estilos",
-  "Sin límite diario",
-  "Cancela cuando quieras",
 ];
 
 const PACK_FEATURES = ["Sin marca de agua", "Todos los estilos", "Sin caducidad"];
@@ -117,90 +109,22 @@ export default function PublicPricingPage() {
             Simple y transparente
           </h1>
           <p className="text-zinc-400 text-lg max-w-md mx-auto">
-            Plan mensual o tokens por uso. Sin compromisos.
+            Paga solo lo que usas. Sin suscripción. Sin compromisos.
           </p>
         </motion.div>
-
-        {/* ── PLAN CREATOR ─────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-6"
-        >
-          <div className="flex items-center gap-3 mb-5">
-            <Crown className="w-4 h-4 text-primary" />
-            <h2 className="text-xs font-mono tracking-[0.25em] text-zinc-500 uppercase">Plan mensual</h2>
-          </div>
-
-          <div
-            className="relative rounded-2xl p-8 border border-primary/30 bg-primary/5"
-            style={{ boxShadow: "0 0 60px rgba(168,85,247,0.1)" }}
-          >
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-              <span
-                className="flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[10px] font-bold text-white tracking-widest uppercase"
-                style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}
-              >
-                <Star className="w-2.5 h-2.5" /> Recomendado
-              </span>
-            </div>
-
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
-              <div>
-                <div className="text-[10px] font-mono tracking-[0.25em] text-zinc-500 mb-3 uppercase">CREATOR</div>
-                <div className="flex items-baseline gap-1.5 mb-1">
-                  <span className="text-6xl font-black text-white font-mono">$4.35</span>
-                  <span className="text-zinc-500 text-sm">/mes</span>
-                </div>
-                <div className="text-zinc-500 text-sm mt-1">120 imágenes incluidas · renueva automáticamente</div>
-              </div>
-
-              <ul className="space-y-3 md:min-w-[220px]">
-                {CREATOR_FEATURES.map((f) => (
-                  <li key={f} className="flex items-center gap-2.5 text-sm text-zinc-300">
-                    <div className="w-5 h-5 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
-                      <Check className="w-3 h-3 text-primary" />
-                    </div>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="mt-8">
-              <a
-                href="/"
-                className="block w-full py-4 rounded-xl text-base font-bold text-center transition-all hover:scale-[1.01] active:scale-[0.99] text-white"
-                style={{
-                  background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 60%, #ec4899 100%)",
-                  boxShadow: "0 4px 32px rgba(168,85,247,0.4)",
-                }}
-              >
-                Suscribirse por $4.35/mes
-              </a>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Divider */}
-        <div className="flex items-center gap-4 my-12">
-          <div className="flex-1 h-px bg-white/[0.06]" />
-          <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08]">
-            <Package className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-xs font-semibold text-zinc-500 tracking-widest uppercase">O compra tokens</span>
-          </div>
-          <div className="flex-1 h-px bg-white/[0.06]" />
-        </div>
 
         {/* ── PACKS ─────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.1 }}
         >
+          <div className="flex items-center gap-3 mb-6">
+            <Package className="w-4 h-4 text-amber-400" />
+            <h2 className="text-xs font-mono tracking-[0.25em] text-zinc-500 uppercase">Packs de imágenes</h2>
+          </div>
           <p className="text-center text-zinc-500 text-sm mb-7">
-            Pago único · sin suscripción · los tokens no caducan nunca
+            Pago único · los tokens no caducan nunca
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">

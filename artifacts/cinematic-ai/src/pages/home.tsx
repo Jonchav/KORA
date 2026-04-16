@@ -11,7 +11,7 @@ import { useBilling, useInvalidateBilling } from "@/hooks/use-billing";
 import { PricingPage } from "@/pages/pricing";
 import {
   Loader2, Download, RotateCcw, AlertTriangle,
-  Sparkles, ImageIcon, Zap, Upload, Palette, LogOut, ShoppingBag, Crown, Plus,
+  Sparkles, ImageIcon, Zap, Upload, Palette, LogOut, ShoppingBag, Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -247,7 +247,7 @@ export default function Home() {
   const [style, setStyle] = useState<StyleType>("comic");
   const [format, setFormat] = useState<FormatType>("square");
   const [transformJobId, setTransformJobId] = useState<string | null>(null);
-  const [showPricing, setShowPricing] = useState<false | "packs" | "subscription">(false);
+  const [showPricing, setShowPricing] = useState(false);
   const [noCreditsError, setNoCreditsError] = useState(false);
   const [faceWarning, setFaceWarning] = useState<"none" | "tip" | "warn" | "error">("none");
 
@@ -370,7 +370,7 @@ export default function Home() {
   const currentStyle = STYLES.find(s => s.id === style)!;
 
   if (showPricing) {
-    return <PricingPage view={showPricing} onBack={() => setShowPricing(false)} />;
+    return <PricingPage onBack={() => setShowPricing(false)} />;
   }
 
   return (
@@ -422,7 +422,7 @@ export default function Home() {
 
                   {/* + Buy button */}
                   <button
-                    onClick={() => setShowPricing("packs")}
+                    onClick={() => setShowPricing(true)}
                     title="Comprar más imágenes"
                     className={cn(
                       "flex items-center justify-center w-7 h-full transition-colors",
@@ -435,19 +435,6 @@ export default function Home() {
                   </button>
                 </div>
               )}
-
-              {/* PRO upgrade button */}
-              <button
-                onClick={() => setShowPricing("subscription")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-widest uppercase transition-all hover:scale-105 active:scale-100"
-                style={{
-                  background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #ec4899 100%)",
-                  boxShadow: "0 0 16px rgba(168,85,247,0.4)",
-                }}
-              >
-                <Crown className="w-3 h-3" />
-                <span>PRO</span>
-              </button>
 
               {user.picture && (
                 <img src={user.picture} alt={user.name} className="w-7 h-7 rounded-full border border-white/10" />
