@@ -468,27 +468,30 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
       console.log(`[${jobId}] Watermark applied (free tier).`);
     }
 
-    // ── Save to persistent disk ───────────────────────────────────────────────
-    const filePath = await saveImageToDisk(jobId, job.userId, processed);
-    job.filePath = filePath;
-
-    // ── Record in DB ──────────────────────────────────────────────────────────
-    await db.insert(generationsTable).values({
-      id: jobId,
-      userId: job.userId,
-      style: job.style,
-      format: job.format,
-      mode: job.mode,
-      filePath,
-      watermark: job.watermark ? 1 : 0,
-    }).onConflictDoUpdate({
-      target: generationsTable.id,
-      set: { filePath },
-    });
-
     job.imageBuffer = processed;
     job.status = "completed";
-    console.log(`[${jobId}] ${usedFacePipeline ? "Transform (face pipeline)" : "Transform (img2img fallback)"} complete. Saved: ${filePath}`);
+    console.log(`[${jobId}] ${usedFacePipeline ? "Transform (face pipeline)" : "Transform (img2img fallback)"} complete.`);
+
+    // ── Save to persistent disk + record in DB (non-fatal) ───────────────────
+    try {
+      const filePath = await saveImageToDisk(jobId, job.userId, processed);
+      job.filePath = filePath;
+      await db.insert(generationsTable).values({
+        id: jobId,
+        userId: job.userId,
+        style: job.style,
+        format: job.format,
+        mode: job.mode,
+        filePath,
+        watermark: job.watermark ? 1 : 0,
+      }).onConflictDoUpdate({
+        target: generationsTable.id,
+        set: { filePath },
+      });
+      console.log(`[${jobId}] Saved to disk and DB: ${filePath}`);
+    } catch (saveErr) {
+      console.warn(`[${jobId}] Could not save to gallery (non-fatal):`, saveErr);
+    }
   } catch (err) {
     job.status = "failed";
     job.error = err instanceof Error ? err.message : "Unknown error";
