@@ -346,43 +346,39 @@ export default function Home() {
   };
 
   const analyzePhoto = (f: File) => {
+    // Only run detection if the browser supports the native FaceDetector API.
+    // If unsupported, show nothing — we cannot confirm a problem, so we don't warn.
+    if (!("FaceDetector" in window)) return;
+
     const img = new Image();
     const url = URL.createObjectURL(f);
 
     img.onload = async () => {
-      // ── Try native FaceDetector API (Chrome/Edge/Android) ──────────────────
-      if ("FaceDetector" in window) {
-        try {
-          const detector = new (window as any).FaceDetector({ fastMode: true, maxDetectedFaces: 3 });
-          const faces: { boundingBox: { width: number; height: number } }[] = await detector.detect(img);
-          URL.revokeObjectURL(url);
+      try {
+        const detector = new (window as any).FaceDetector({ fastMode: true, maxDetectedFaces: 3 });
+        const faces: { boundingBox: { width: number; height: number } }[] = await detector.detect(img);
+        URL.revokeObjectURL(url);
 
-          if (faces.length === 0) {
-            // Confirmed: no face detected → block
-            setFaceWarning("error");
-            return;
-          }
-
-          // Check the largest face covers at least 3% of the image area
-          const imgArea = img.naturalWidth * img.naturalHeight;
-          const largestFaceArea = Math.max(...faces.map(face => face.boundingBox.width * face.boundingBox.height));
-          const faceFraction = largestFaceArea / imgArea;
-
-          // Face confirmed: tip if large enough, warn if too small
-          setFaceWarning(faceFraction < 0.03 ? "warn" : "tip");
+        if (faces.length === 0) {
+          // Confirmed: no face detected at all
+          setFaceWarning("error");
           return;
-        } catch {
-          // FaceDetector threw (unsupported device, cross-origin, etc.)
-          // Fall through — treat as undetectable → warn
         }
-      }
 
-      // ── No reliable detector available: always warn the user ───────────────
-      // We cannot confirm a face is present, so show a warning but don't block.
-      URL.revokeObjectURL(url);
-      setFaceWarning("warn");
+        // Check the largest face covers at least 3% of the image area
+        const imgArea = img.naturalWidth * img.naturalHeight;
+        const largestFaceArea = Math.max(...faces.map(face => face.boundingBox.width * face.boundingBox.height));
+        const faceFraction = largestFaceArea / imgArea;
+
+        // Face too small → warn; face good size → positive tip
+        setFaceWarning(faceFraction < 0.03 ? "warn" : "tip");
+      } catch {
+        // FaceDetector threw — ignore silently, don't penalize the user
+        URL.revokeObjectURL(url);
+      }
     };
 
+    img.onerror = () => URL.revokeObjectURL(url);
     img.src = url;
   };
 
