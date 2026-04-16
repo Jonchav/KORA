@@ -281,7 +281,6 @@ export default function Home() {
   const [showPricing, setShowPricing] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [noCreditsError, setNoCreditsError] = useState(false);
-  const [faceWarning, setFaceWarning] = useState<"none" | "tip" | "warn" | "error">("none");
 
   const { user, logout } = useAuth();
   const transformMutation = useTransformMutation();
@@ -342,50 +341,11 @@ export default function Home() {
   };
 
   const resetTransform = () => {
-    setFile(null); setTransformJobId(null); transformMutation.reset(); setNoCreditsError(false); setFaceWarning("none");
-  };
-
-  const analyzePhoto = (f: File) => {
-    // Only run detection if the browser supports the native FaceDetector API.
-    // If unsupported, show nothing — we cannot confirm a problem, so we don't warn.
-    if (!("FaceDetector" in window)) return;
-
-    const img = new Image();
-    const url = URL.createObjectURL(f);
-
-    img.onload = async () => {
-      try {
-        const detector = new (window as any).FaceDetector({ fastMode: true, maxDetectedFaces: 3 });
-        const faces: { boundingBox: { width: number; height: number } }[] = await detector.detect(img);
-        URL.revokeObjectURL(url);
-
-        if (faces.length === 0) {
-          // Confirmed: no face detected at all
-          setFaceWarning("error");
-          return;
-        }
-
-        // Check the largest face covers at least 3% of the image area
-        const imgArea = img.naturalWidth * img.naturalHeight;
-        const largestFaceArea = Math.max(...faces.map(face => face.boundingBox.width * face.boundingBox.height));
-        const faceFraction = largestFaceArea / imgArea;
-
-        // Face too small → warn; face good size → positive tip
-        setFaceWarning(faceFraction < 0.03 ? "warn" : "tip");
-      } catch {
-        // FaceDetector threw — ignore silently, don't penalize the user
-        URL.revokeObjectURL(url);
-      }
-    };
-
-    img.onerror = () => URL.revokeObjectURL(url);
-    img.src = url;
+    setFile(null); setTransformJobId(null); transformMutation.reset(); setNoCreditsError(false);
   };
 
   const handleFileSelect = (f: File | null) => {
     setFile(f);
-    setFaceWarning("none");
-    if (f) analyzePhoto(f);
   };
 
   const currentStyle = STYLES.find(s => s.id === style)!;
@@ -577,60 +537,6 @@ export default function Home() {
                 </motion.div>
               )}
 
-              {/* ── Face warning ── */}
-              <AnimatePresence>
-                {faceWarning === "error" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-red-500/40 bg-red-500/15"
-                  >
-                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold text-red-300">No detectamos una cara en la foto</p>
-                      <p className="text-xs text-red-400/80 mt-1 leading-relaxed">
-                        Para no gastar tus créditos, bloqueamos la transformación. Sube una selfie o foto donde tu cara sea visible y grande.
-                      </p>
-                      <button
-                        onClick={() => handleFileSelect(null)}
-                        className="mt-2 text-xs text-red-300 underline underline-offset-2 hover:text-red-200"
-                      >
-                        Cambiar foto →
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-                {faceWarning === "warn" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10"
-                  >
-                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold text-amber-300">¿Tu foto tiene un rostro visible?</p>
-                      <p className="text-xs text-amber-400/80 mt-0.5 leading-relaxed">
-                        No detectamos un rostro claro. Para mejores resultados usa una selfie o foto donde tu cara esté centrada y bien iluminada. Puedes continuar, pero se descontará un crédito.
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-                {faceWarning === "tip" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    className="flex items-center gap-3 px-4 py-2.5 rounded-2xl border border-white/[0.06] bg-white/[0.03]"
-                  >
-                    <ImageIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                    <p className="text-xs text-zinc-500">
-                      Mejores resultados con cara frontal, bien iluminada y sin gafas de sol.
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
 
               <motion.div
                 initial={{ opacity: 0, x: -16 }}
@@ -688,10 +594,10 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.9 }}
                   onClick={handleTransform}
-                  disabled={!file || isTransforming || noCreditsError || faceWarning === "error"}
+                  disabled={!file || isTransforming || noCreditsError}
                   className={cn(
                     "w-full py-4 rounded-2xl font-black text-base tracking-wide transition-all duration-300 flex items-center justify-center gap-2.5",
-                    file && !isTransforming && !noCreditsError && faceWarning !== "error"
+                    file && !isTransforming && !noCreditsError
                       ? `bg-gradient-to-r ${currentStyle.gradient} text-white shadow-2xl hover:-translate-y-1 hover:shadow-3xl active:translate-y-0`
                       : "bg-zinc-800/80 text-zinc-500 cursor-not-allowed border border-zinc-700"
                   )}
