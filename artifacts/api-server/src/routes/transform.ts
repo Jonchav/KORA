@@ -600,7 +600,7 @@ router.post("/transform", requireAuth, upload.single("image"), async (req: Reque
   }
 
   const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const watermark = creditResult.tier === "free";
+  const watermark = false;
   jobs.set(jobId, { jobId, userId: req.user!.sub, status: "pending", style, format, mode: "transform", watermark });
   runTransformJob(jobId, req.file.path, style, format);
   res.json({ jobId, status: "pending", style, mode: "transform", creditsRemaining: creditResult.credits });
@@ -626,7 +626,7 @@ router.post("/generate", requireAuth, async (req: Request, res: Response) => {
   }
 
   const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const watermark = creditResult.tier === "free";
+  const watermark = false;
   jobs.set(jobId, { jobId, userId: req.user!.sub, status: "pending", style, format, mode: "generate", watermark });
   runGenerateJob(jobId, style, format);
   res.json({ jobId, status: "pending", style, mode: "generate", creditsRemaining: creditResult.credits });
