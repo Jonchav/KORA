@@ -9,9 +9,10 @@ import type { StyleType, FormatType } from "@/hooks/use-transform";
 import { useAuth } from "@/contexts/auth-context";
 import { useBilling, useInvalidateBilling } from "@/hooks/use-billing";
 import { PricingPage } from "@/pages/pricing";
+import { GalleryPage } from "@/pages/gallery";
 import {
   Loader2, Download, RotateCcw, AlertTriangle,
-  Sparkles, ImageIcon, Zap, Upload, Palette, LogOut, ShoppingBag, Plus,
+  Sparkles, ImageIcon, Zap, Upload, Palette, LogOut, ShoppingBag, Plus, Images,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -248,6 +249,7 @@ export default function Home() {
   const [format, setFormat] = useState<FormatType>("square");
   const [transformJobId, setTransformJobId] = useState<string | null>(null);
   const [showPricing, setShowPricing] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
   const [noCreditsError, setNoCreditsError] = useState(false);
   const [faceWarning, setFaceWarning] = useState<"none" | "tip" | "warn" | "error">("none");
 
@@ -366,6 +368,10 @@ export default function Home() {
     return <PricingPage onBack={() => setShowPricing(false)} />;
   }
 
+  if (showGallery) {
+    return <GalleryPage onBack={() => setShowGallery(false)} />;
+  }
+
   return (
     <div className="min-h-screen overflow-x-hidden">
 
@@ -432,6 +438,13 @@ export default function Home() {
               {user.picture && (
                 <img src={user.picture} alt={user.name} className="w-7 h-7 rounded-full border border-white/10" />
               )}
+              <button
+                onClick={() => setShowGallery(true)}
+                title="Mi galería"
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs text-zinc-600 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+              >
+                <Images className="w-3.5 h-3.5" />
+              </button>
               <button
                 onClick={logout}
                 className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs text-zinc-600 hover:text-zinc-300 hover:bg-white/5 transition-colors"

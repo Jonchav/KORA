@@ -6,10 +6,17 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { requireAuth } from "../middleware/auth.js";
-import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, usersTable, generationsTable } from "@workspace/db";
+import { eq, desc } from "drizzle-orm";
 
 const router: IRouter = Router();
+
+// ── Persistent image storage ─────────────────────────────────────────────────
+// On Render: mount disk at /data. Locally: use os.tmpdir() subfolder.
+const IMAGE_DIR = process.env.IMAGE_STORAGE_PATH || path.join(os.tmpdir(), "kora-images");
+if (!fs.existsSync(IMAGE_DIR)) {
+  fs.mkdirSync(IMAGE_DIR, { recursive: true });
+}
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -41,9 +48,6 @@ const FORMAT_RATIOS: Record<Format, string> = {
   landscape: "16:9",
 };
 
-// face-to-many uses InstantID to preserve the person's identity perfectly
-// style is one of: "3D" | "Emoji" | "Video game" | "Pixels" | "Clay" | "Toy"
-// We use "3D" for smooth cel-shaded cartoon look, "Clay" for painterly styles
 const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string }> = {
   comic: {
     style: "3D",
@@ -107,7 +111,6 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string }> = {
   },
 };
 
-// Seedream 3 — standalone scene generation (no input image needed)
 const SEEDREAM_PROMPTS: Record<Style, string> = {
   comic:
     "Epic comic book splash page, dynamic superhero battle scene above a neon city skyline, bold black ink outlines, halftone dot shading, vibrant primary colors, lightning and energy beams, action debris, dramatic upward angle, Marvel Comics quality, ultra detailed, 4K resolution",
@@ -137,12 +140,15 @@ const SEEDREAM_PROMPTS: Record<Style, string> = {
 
 interface JobRecord {
   jobId: string;
+  userId: string;
   status: "pending" | "processing" | "completed" | "failed";
   imageBuffer?: Buffer;
+  filePath?: string;
   error?: string;
-  style: string;
+  style: Style;
+  format: Format;
   mode: "transform" | "generate";
-  watermark?: boolean;
+  watermark: boolean;
 }
 
 // ── Watermark for free tier ───────────────────────────────────────────────────
@@ -187,26 +193,21 @@ function extractUrl(value: unknown): string {
   return String(value);
 }
 
-// ── Smart content-aware crop ─────────────────────────────────────────────────
-// Scans edge rows/cols to find where the neutral frame ends and content begins
 async function cropToContent(buf: Buffer): Promise<Buffer> {
   const { data, info } = await sharp(buf).raw().ensureAlpha().toBuffer({ resolveWithObject: true });
   const { width: w, height: h } = info;
 
-  // Detect if a pixel matches the neutral peach/cream frame background
   function isFrame(i: number): boolean {
     const r = data[i], g = data[i + 1], b = data[i + 2];
     return r > 200 && g > 170 && b > 140 && r > g && g > b && (r - b) > 25;
   }
 
-  // Count non-frame pixels in a row
   function rowContent(y: number): number {
     let n = 0;
     for (let x = 0; x < w; x++) if (!isFrame((y * w + x) * 4)) n++;
     return n;
   }
 
-  // Count non-frame pixels in a column
   function colContent(x: number): number {
     let n = 0;
     for (let y = 0; y < h; y++) if (!isFrame((y * w + x) * 4)) n++;
@@ -226,9 +227,6 @@ async function cropToContent(buf: Buffer): Promise<Buffer> {
     .jpeg({ quality: 92 }).toBuffer();
 }
 
-// ── IMG2IMG FALLBACK — instruct-pix2pix ──────────────────────────────────────
-// Used when face-to-many can't detect a face. Works on any image type:
-// landscapes, objects, pets, illustrations, back-turned people, etc.
 const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
   comic:       "apply a bold comic book art style to this image, keep the same subject and composition, add thick black ink outlines and vibrant flat colors",
   anime:       "apply Studio Ghibli anime art style to this image, keep the same subject and layout, add cel shading and soft vivid colors",
@@ -257,40 +255,6 @@ function isFaceDetectionError(err: unknown): boolean {
   );
 }
 
-async function runNoFaceFallback(jobId: string, buf: Buffer, style: Style): Promise<Buffer> {
-  console.log(`[${jobId}] ↳ No face detected — running img2img fallback (instruct-pix2pix, style=${style})...`);
-
-  // Resize to max 512px on the longest side to avoid CUDA OOM on the model's GPU
-  const resized = await sharp(buf)
-    .resize(512, 512, { fit: "inside", withoutEnlargement: true })
-    .jpeg({ quality: 90 })
-    .toBuffer();
-  const meta = await sharp(resized).metadata();
-  console.log(`[${jobId}] img2img input resized to ${meta.width}x${meta.height}`);
-  const dataUri = `data:image/jpeg;base64,${resized.toString("base64")}`;
-
-  const output = await replicateRunWithRetry(
-    "timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23f",
-    {
-        image: dataUri,
-        prompt: IMG2IMG_INSTRUCTIONS[style],
-        negative_prompt: "ugly, deformed, noisy, blurry, distorted, watermark, text, signature, logo",
-        num_steps: 20,
-        guidance_scale: 9.0,
-        image_guidance_scale: 2.0,
-    },
-    jobId,
-  );
-
-  const rawUrl = extractUrl(Array.isArray(output) ? output[0] : output);
-  console.log(`[${jobId}] img2img fallback result: ${rawUrl}`);
-  const res = await fetch(rawUrl);
-  if (!res.ok) throw new Error(`img2img fallback fetch failed: ${res.status}`);
-  // Return as-is; the shared finishing pipeline (Lanczos + applyFormat) handles upscaling
-  return Buffer.from(await res.arrayBuffer());
-}
-
-// ── Replicate call with automatic 429 retry ───────────────────────────────
 function isRetriableError(err: unknown): boolean {
   const msg = (err instanceof Error ? err.message : String(err));
   const lower = msg.toLowerCase();
@@ -327,8 +291,37 @@ async function replicateRunWithRetry(
   throw new Error("Max retries exceeded");
 }
 
-// ── PHOTO TRANSFORM — face-to-many with InstantID ───────────────────────────
-// Apply the target aspect ratio by center-cropping
+async function runNoFaceFallback(jobId: string, buf: Buffer, style: Style): Promise<Buffer> {
+  console.log(`[${jobId}] ↳ No face detected — running img2img fallback (instruct-pix2pix, style=${style})...`);
+
+  const resized = await sharp(buf)
+    .resize(512, 512, { fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 90 })
+    .toBuffer();
+  const meta = await sharp(resized).metadata();
+  console.log(`[${jobId}] img2img input resized to ${meta.width}x${meta.height}`);
+  const dataUri = `data:image/jpeg;base64,${resized.toString("base64")}`;
+
+  const output = await replicateRunWithRetry(
+    "timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23f",
+    {
+        image: dataUri,
+        prompt: IMG2IMG_INSTRUCTIONS[style],
+        negative_prompt: "ugly, deformed, noisy, blurry, distorted, watermark, text, signature, logo",
+        num_steps: 20,
+        guidance_scale: 9.0,
+        image_guidance_scale: 2.0,
+    },
+    jobId,
+  );
+
+  const rawUrl = extractUrl(Array.isArray(output) ? output[0] : output);
+  console.log(`[${jobId}] img2img fallback result: ${rawUrl}`);
+  const res = await fetch(rawUrl);
+  if (!res.ok) throw new Error(`img2img fallback fetch failed: ${res.status}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
 async function applyFormat(buf: Buffer, format: Format): Promise<Buffer> {
   const { width: w = 512, height: h = 512 } = await sharp(buf).metadata();
   const ratios: Record<Format, [number, number]> = {
@@ -338,20 +331,28 @@ async function applyFormat(buf: Buffer, format: Format): Promise<Buffer> {
     landscape: [16, 9],
   };
   const [rw, rh] = ratios[format];
-  // Compute target dimensions that fit inside the image preserving ratio
   let targetW: number, targetH: number;
   if (w / h > rw / rh) {
-    // Image is wider than target ratio — constrain by height
     targetH = h;
     targetW = Math.round(h * rw / rh);
   } else {
-    // Image is taller than target ratio — constrain by width
     targetW = w;
     targetH = Math.round(w * rh / rw);
   }
   return sharp(buf)
     .resize(targetW, targetH, { fit: "cover", position: "centre" })
     .jpeg({ quality: 92 }).toBuffer();
+}
+
+// ── Save image to persistent disk ────────────────────────────────────────────
+async function saveImageToDisk(jobId: string, userId: string, buf: Buffer): Promise<string> {
+  const userDir = path.join(IMAGE_DIR, userId);
+  if (!fs.existsSync(userDir)) {
+    fs.mkdirSync(userDir, { recursive: true });
+  }
+  const filePath = path.join(userDir, `${jobId}.jpg`);
+  fs.writeFileSync(filePath, buf);
+  return filePath;
 }
 
 async function runTransformJob(jobId: string, imagePath: string, style: Style, format: Format) {
@@ -370,7 +371,6 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
     let processed: Buffer;
     let usedFacePipeline = true;
 
-    // ── Primary: face-to-many (InstantID — preserves identity) ───────────────
     try {
       const output = await replicateRunWithRetry(
         "fofr/face-to-many:a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf",
@@ -389,7 +389,6 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
       );
 
       const rawUrl = Array.isArray(output) ? output[0] : output;
-      // face-to-many returns null when no face is detected in the image
       if (rawUrl == null || rawUrl === "null") {
         throw new Error("No face detected in the image");
       }
@@ -400,8 +399,6 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
       if (!response.ok) throw new Error(`Failed to fetch result: ${response.status}`);
       const rawBuffer = Buffer.from(await response.arrayBuffer());
 
-      // face-to-many outputs a wide comparison image (original | transformed)
-      // Extract just the right half (the stylized result) and trim the frame border
       const meta = await sharp(rawBuffer).metadata();
       processed = rawBuffer;
       if (meta.width && meta.height && meta.width > meta.height * 1.3) {
@@ -413,7 +410,6 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
         processed = await cropToContent(rightHalf);
       }
 
-      // CodeFormer: AI face restoration + 2x upscale (face pipeline only)
       try {
         await new Promise(r => setTimeout(r, 3000));
         const rawMeta = await sharp(processed).metadata();
@@ -442,10 +438,8 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
       }
 
     } catch (faceErr) {
-      // ── Fallback: img2img for images without detectable faces ─────────────
       if (isFaceDetectionError(faceErr)) {
         usedFacePipeline = false;
-        // Wait for rate-limit burst window to reset before calling fallback model
         console.log(`[${jobId}] Waiting 8s for rate-limit reset before img2img fallback...`);
         await new Promise(r => setTimeout(r, 8000));
         processed = await runNoFaceFallback(jobId, buf, style);
@@ -455,7 +449,6 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
     }
 
     // ── Shared finishing pipeline ─────────────────────────────────────────────
-    // Lanczos 2x upscale (applied to both face and no-face paths)
     const upMeta = await sharp(processed).metadata();
     const srcW = upMeta.width ?? 512;
     const targetW = Math.min(srcW * 2, 2048);
@@ -475,9 +468,27 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
       console.log(`[${jobId}] Watermark applied (free tier).`);
     }
 
+    // ── Save to persistent disk ───────────────────────────────────────────────
+    const filePath = await saveImageToDisk(jobId, job.userId, processed);
+    job.filePath = filePath;
+
+    // ── Record in DB ──────────────────────────────────────────────────────────
+    await db.insert(generationsTable).values({
+      id: jobId,
+      userId: job.userId,
+      style: job.style,
+      format: job.format,
+      mode: job.mode,
+      filePath,
+      watermark: job.watermark ? 1 : 0,
+    }).onConflictDoUpdate({
+      target: generationsTable.id,
+      set: { filePath },
+    });
+
     job.imageBuffer = processed;
     job.status = "completed";
-    console.log(`[${jobId}] ${usedFacePipeline ? "Transform (face pipeline)" : "Transform (img2img fallback)"} complete.`);
+    console.log(`[${jobId}] ${usedFacePipeline ? "Transform (face pipeline)" : "Transform (img2img fallback)"} complete. Saved: ${filePath}`);
   } catch (err) {
     job.status = "failed";
     job.error = err instanceof Error ? err.message : "Unknown error";
@@ -487,7 +498,6 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
   }
 }
 
-// ── AI SCENE GENERATION — Seedream 3 ────────────────────────────────────────
 async function runGenerateJob(jobId: string, style: Style, format: Format) {
   const job = jobs.get(jobId)!;
   job.status = "processing";
@@ -517,9 +527,27 @@ async function runGenerateJob(jobId: string, style: Style, format: Format) {
       console.log(`[${jobId}] Watermark applied (free tier).`);
     }
 
+    // ── Save to persistent disk ───────────────────────────────────────────────
+    const filePath = await saveImageToDisk(jobId, job.userId, generated);
+    job.filePath = filePath;
+
+    // ── Record in DB ──────────────────────────────────────────────────────────
+    await db.insert(generationsTable).values({
+      id: jobId,
+      userId: job.userId,
+      style: job.style,
+      format: job.format,
+      mode: job.mode,
+      filePath,
+      watermark: job.watermark ? 1 : 0,
+    }).onConflictDoUpdate({
+      target: generationsTable.id,
+      set: { filePath },
+    });
+
     job.imageBuffer = generated;
     job.status = "completed";
-    console.log(`[${jobId}] Seedream done.`);
+    console.log(`[${jobId}] Seedream done. Saved: ${filePath}`);
   } catch (err) {
     job.status = "failed";
     job.error = err instanceof Error ? err.message : "Unknown error";
@@ -527,32 +555,21 @@ async function runGenerateJob(jobId: string, style: Style, format: Format) {
   }
 }
 
-// ── Credit check & deduction helper ──────────────────────────────────────────
 async function checkAndDeductCredit(userId: string): Promise<{ ok: boolean; credits?: number; tier?: string; message?: string }> {
   const rows = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   if (!rows.length) return { ok: false, message: "User account not found. Please sign in again." };
   const user = rows[0];
 
-  // Monthly reset for free users
-  const now = new Date();
-  const resetAt = new Date(user.monthlyResetAt);
-  const isNewMonth = now.getFullYear() > resetAt.getFullYear() || now.getMonth() > resetAt.getMonth();
-  let currentCredits = user.credits;
-  if (isNewMonth && user.tier === "free") {
-    currentCredits = 5;
-    await db.update(usersTable).set({ credits: 5, monthlyResetAt: now, updatedAt: now }).where(eq(usersTable.id, userId));
-  }
-
-  if (currentCredits <= 0) {
+  if (user.credits <= 0) {
     return { ok: false, credits: 0, message: "No credits remaining. Purchase a credit pack to continue." };
   }
 
-  // Deduct 1 credit
+  const now = new Date();
   await db.update(usersTable)
-    .set({ credits: currentCredits - 1, updatedAt: now })
+    .set({ credits: user.credits - 1, updatedAt: now })
     .where(eq(usersTable.id, userId));
 
-  return { ok: true, credits: currentCredits - 1, tier: user.tier };
+  return { ok: true, credits: user.credits - 1, tier: user.tier };
 }
 
 // ── ROUTES ────────────────────────────────────────────────────────────────────
@@ -581,7 +598,7 @@ router.post("/transform", requireAuth, upload.single("image"), async (req: Reque
 
   const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const watermark = creditResult.tier === "free";
-  jobs.set(jobId, { jobId, status: "pending", style, mode: "transform", watermark });
+  jobs.set(jobId, { jobId, userId: req.user!.sub, status: "pending", style, format, mode: "transform", watermark });
   runTransformJob(jobId, req.file.path, style, format);
   res.json({ jobId, status: "pending", style, mode: "transform", creditsRemaining: creditResult.credits });
 });
@@ -607,7 +624,7 @@ router.post("/generate", requireAuth, async (req: Request, res: Response) => {
 
   const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const watermark = creditResult.tier === "free";
-  jobs.set(jobId, { jobId, status: "pending", style, mode: "generate", watermark });
+  jobs.set(jobId, { jobId, userId: req.user!.sub, status: "pending", style, format, mode: "generate", watermark });
   runGenerateJob(jobId, style, format);
   res.json({ jobId, status: "pending", style, mode: "generate", creditsRemaining: creditResult.credits });
 });
@@ -623,18 +640,65 @@ router.get("/transform/:jobId/status", (req: Request, res: Response) => {
   });
 });
 
-router.get("/transform/:jobId/download", (req: Request, res: Response) => {
+router.get("/transform/:jobId/download", requireAuth, (req: Request, res: Response) => {
   const jobId = Array.isArray(req.params.jobId) ? req.params.jobId[0] : req.params.jobId;
+  const userId = req.user!.sub;
+
+  // First try in-memory (recent jobs — verify ownership)
   const job = jobs.get(jobId);
-  if (!job) { res.status(404).json({ error: "not_found" }); return; }
-  if (job.status !== "completed" || !job.imageBuffer) {
-    res.status(400).json({ error: "not_ready" }); return;
+  if (job?.status === "completed" && job.imageBuffer) {
+    if (job.userId !== userId) { res.status(403).json({ error: "forbidden" }); return; }
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Content-Disposition", `inline; filename="${job.style}-${job.mode}.jpg"`);
+    res.setHeader("Content-Length", job.imageBuffer.length);
+    res.setHeader("Cache-Control", "no-store");
+    res.end(job.imageBuffer);
+    return;
   }
-  res.setHeader("Content-Type", "image/jpeg");
-  res.setHeader("Content-Disposition", `inline; filename="${job.style}-${job.mode}.jpg"`);
-  res.setHeader("Content-Length", job.imageBuffer.length);
-  res.setHeader("Cache-Control", "no-store");
-  res.end(job.imageBuffer);
+
+  // Fall back to disk (older jobs after server restart)
+  // Ownership is enforced: the file must be under the user's own directory
+  const filePath = path.join(IMAGE_DIR, userId, `${jobId}.jpg`);
+  if (fs.existsSync(filePath)) {
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Content-Disposition", `inline; filename="${jobId}.jpg"`);
+    res.setHeader("Cache-Control", "private, max-age=31536000");
+    res.sendFile(filePath);
+    return;
+  }
+
+  res.status(404).json({ error: "not_found" });
+});
+
+// ── GET /api/gallery — user's generation history ──────────────────────────────
+router.get("/gallery", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 30, 100);
+    const rows = await db
+      .select()
+      .from(generationsTable)
+      .where(eq(generationsTable.userId, req.user!.sub))
+      .orderBy(desc(generationsTable.createdAt))
+      .limit(limit);
+
+    const items = rows.map(r => ({
+      id: r.id,
+      style: r.style,
+      format: r.format,
+      mode: r.mode,
+      watermark: r.watermark === 1,
+      createdAt: r.createdAt,
+      // Only expose download URL if the file still exists on disk
+      downloadUrl: r.filePath && fs.existsSync(r.filePath)
+        ? `/api/transform/${r.id}/download`
+        : null,
+    }));
+
+    res.json({ items });
+  } catch (err) {
+    console.error("gallery error:", err);
+    res.status(500).json({ message: "Failed to load gallery" });
+  }
 });
 
 export default router;
