@@ -2,10 +2,16 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "@/contexts/auth-context";
 import { Zap } from "lucide-react";
 import { useState } from "react";
+import { TermsPage } from "@/pages/terms";
 
 export function LoginPage() {
   const { loginWithGoogle } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [showTerms, setShowTerms] = useState(false);
+
+  if (showTerms) {
+    return <TermsPage onBack={() => setShowTerms(false)} />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4">
@@ -65,8 +71,14 @@ export function LoginPage() {
           )}
 
           <p className="text-[11px] text-zinc-700 text-center leading-relaxed">
-            By continuing you agree to our terms of service.
-            <br />Your data is never stored or sold.
+            Al continuar aceptas nuestros{" "}
+            <button
+              onClick={() => setShowTerms(true)}
+              className="text-zinc-500 underline underline-offset-2 hover:text-zinc-300 transition-colors"
+            >
+              Términos y Condiciones
+            </button>
+            .<br />Tu información nunca se vende ni comparte.
           </p>
         </div>
       </div>
