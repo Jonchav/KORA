@@ -52,7 +52,7 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string }> = {
   comic: {
     style: "3D",
     prompt:
-      "comic book illustration, superhero art style, bold black ink outlines, vibrant colorful painted background with bright cyan hot pink yellow orange paint splashes, cel shaded skin, flat vivid colors, professional comic book art, dynamic and energetic",
+      "comic book illustration, superhero art style, bold black ink outlines, vibrant colorful painted background with bright cyan hot pink yellow orange paint splashes, cel shaded skin, flat vivid colors, professional comic book art, dynamic and energetic, no text, no words, no speech bubbles, no captions",
   },
   anime: {
     style: "3D",
@@ -107,12 +107,12 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string }> = {
   gtasa: {
     style: "Video game",
     prompt:
-      "GTA San Andreas video game character, PS2 era 3D graphics style, early 2000s Rockstar Games aesthetic, low-poly but detailed character model, Grove Street Los Santos gang neighborhood background, warm California golden sunlight, white tank top baggy jeans and Nikes, gang bandana and fitted cap, gritty urban street environment, CJ character style, iconic GTA San Andreas cutscene quality",
+      "GTA San Andreas video game character, PS2 era 3D graphics style, early 2000s Rockstar Games aesthetic, low-poly but detailed character model, Grove Street Los Santos gang neighborhood background, warm California golden sunlight, white tank top baggy jeans and Nikes, gang bandana and fitted cap, gritty urban street environment, CJ character style, iconic GTA San Andreas cutscene quality, no text, no words, no banners, no HUD, no subtitles",
   },
   dccomic: {
     style: "3D",
     prompt:
-      "golden age DC Comics illustration, Batman #103 era 1950s style, bold flat colors with warm amber and golden yellow background, thick black ink outlines, dynamic action pose, classic 4-color printing palette of red blue green and yellow, clean cel-shaded illustration, simple halftone dot shading on clothes, vintage American comic book aesthetic, Dick Sprang Sheldon Moldoff golden age art style, heroic comic book portrait, bright and colorful",
+      "golden age DC Comics illustration, Batman #103 era 1950s style, bold flat colors with warm amber and golden yellow background, thick black ink outlines, dynamic action pose, classic 4-color printing palette of red blue green and yellow, clean cel-shaded illustration, simple halftone dot shading on clothes, vintage American comic book aesthetic, Dick Sprang Sheldon Moldoff golden age art style, heroic comic book portrait, bright and colorful, no text, no words, no speech bubbles, no captions, no banners, no title",
   },
 };
 
@@ -315,7 +315,7 @@ async function runNoFaceFallback(jobId: string, buf: Buffer, style: Style): Prom
     {
         image: dataUri,
         prompt: IMG2IMG_INSTRUCTIONS[style],
-        negative_prompt: "ugly, deformed, noisy, blurry, distorted, watermark, text, signature, logo",
+        negative_prompt: "ugly, deformed, noisy, blurry, distorted, watermark, text, signature, logo, words, letters, typography, caption, subtitle, banner, label, writing, garbled text, random text, nonsense text",
         num_steps: 20,
         guidance_scale: 9.0,
         image_guidance_scale: 2.0,
@@ -429,7 +429,7 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
             style: config.style,
             prompt: config.prompt,
             negative_prompt:
-              "ugly, deformed, noisy, blurry, distorted, disfigured, bad anatomy, extra limbs, six fingers, seven fingers, too many fingers, extra fingers, fused fingers, mutated hands, bad hands, poorly drawn hands, poorly drawn face, cloned hands, missing fingers, watermark, signature, text, logo",
+              "ugly, deformed, noisy, blurry, distorted, disfigured, bad anatomy, extra limbs, six fingers, seven fingers, too many fingers, extra fingers, fused fingers, mutated hands, bad hands, poorly drawn hands, poorly drawn face, cloned hands, missing fingers, watermark, signature, text, logo, words, letters, typography, caption, subtitle, banner, label, writing, font, alphabet, characters, readable text, illegible text, garbled text, random text, nonsense text",
             denoising_strength: 0.6,
             instant_id_strength: 0.9,
             control_depth_strength: 0.8,
