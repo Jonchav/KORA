@@ -424,18 +424,24 @@ async function smartCropForFace(buf: Buffer, jobId: string): Promise<{ buf: Buff
   const w = meta.width ?? 512;
   const h = meta.height ?? 512;
 
-  // If the image is already roughly square and ≤ 900px, no crop needed
   const ratio = w / h;
-  if (ratio >= 0.7 && ratio <= 1.4 && w <= 900) {
+
+  // Portrait images (h > w, ratio < 0.9) are already well-composed vertically.
+  // Cropping them discards important parts of the scene (bodies, backgrounds,
+  // multiple people). Skip entirely — the model handles portrait input well.
+  if (ratio < 0.9) {
     return { buf, cropped: false };
   }
 
-  // Target: a square crop whose side = 85% of the shorter dimension,
-  // placed at horizontal center and starting 5% from the top.
+  // For roughly square and small images, no crop needed either.
+  if (ratio <= 1.4 && w <= 900) {
+    return { buf, cropped: false };
+  }
+
+  // Only reach here for landscape / wide images (selfies with raised arms).
+  // Crop a square from the upper-center where the face usually is.
   const side = Math.round(Math.min(w, h) * 0.85);
   const left = Math.max(0, Math.round((w - side) / 2));
-  // Bias toward top: start at 5% of height (not center) so faces in
-  // portraits and selfies land inside the crop area.
   const top = Math.max(0, Math.round(h * 0.05));
   const clampedSide = Math.min(side, w - left, h - top);
 
