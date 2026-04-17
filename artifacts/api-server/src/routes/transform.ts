@@ -317,7 +317,7 @@ async function runComicCartoonPipeline(jobId: string, buf: Buffer): Promise<Buff
   const dataUri = `data:image/jpeg;base64,${resized.toString("base64")}`;
 
   const prompt =
-    "vintage 1950s DC Comics golden age cartoon caricature portrait, exaggerated big cartoon eyes, simplified bold comic illustration, thick black ink outlines, warm amber and golden yellow background, bright flat cel-animation colors, punchy saturated reds blues yellows, fun and playful caricature, Sheldon Moldoff Dick Sprang golden age American cartoon style, no realism, fully illustrated";
+    "convert this person into a vintage 1950s DC Comics golden age cartoon illustration, keep the same person recognizable, add thick black ink outlines, bold flat cel-animation colors, warm amber and golden yellow background, fun cartoon style, Sheldon Moldoff golden age American comic book art";
 
   const output = await replicateRunWithRetry(
     "timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23f",
@@ -325,10 +325,10 @@ async function runComicCartoonPipeline(jobId: string, buf: Buffer): Promise<Buff
         image: dataUri,
         prompt,
         negative_prompt:
-          "photorealistic, realistic skin, photograph, 3D render, ugly, deformed, blurry, watermark, text, words, letters, banners, captions, signature, logo",
+          "ugly, deformed, blurry, watermark, text, words, letters, banners, captions, signature, logo, extra limbs, bad anatomy",
         num_steps: 30,
-        guidance_scale: 16,
-        image_guidance_scale: 1.1,
+        guidance_scale: 11,
+        image_guidance_scale: 1.8,
     },
     jobId,
   );
