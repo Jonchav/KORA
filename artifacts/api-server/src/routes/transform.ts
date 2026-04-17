@@ -110,7 +110,7 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string }> = {
       "GTA San Andreas video game character, PS2 era 3D graphics style, early 2000s Rockstar Games aesthetic, low-poly but detailed character model, Grove Street Los Santos gang neighborhood background, warm California golden sunlight, white tank top baggy jeans and Nikes, gang bandana and fitted cap, gritty urban street environment, CJ character style, iconic GTA San Andreas cutscene quality",
   },
   dccomic: {
-    style: "Comic book",
+    style: "3D",
     prompt:
       "golden age DC Comics illustration, Batman #103 era 1950s style, bold flat colors with warm amber and golden yellow background, thick black ink outlines, dynamic action pose, classic 4-color printing palette of red blue green and yellow, clean cel-shaded illustration, simple halftone dot shading on clothes, vintage American comic book aesthetic, Dick Sprang Sheldon Moldoff golden age art style, heroic comic book portrait, bright and colorful",
   },
