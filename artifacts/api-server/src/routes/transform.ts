@@ -299,6 +299,47 @@ async function replicateRunWithRetry(
   throw new Error("Max retries exceeded");
 }
 
+/**
+ * Dedicated cartoon-comic pipeline for DC Clásico style.
+ * Bypasses face-to-many (which preserves photorealism via InstantID) and uses
+ * instruct-pix2pix with aggressive style settings to get a true golden-age
+ * cartoon caricature look: flat colors, thick outlines, exaggerated features.
+ */
+async function runComicCartoonPipeline(jobId: string, buf: Buffer): Promise<Buffer> {
+  console.log(`[${jobId}] DC Clásico: running dedicated cartoon-comic pipeline...`);
+
+  // Resize to optimal dimensions for the model
+  const resized = await sharp(buf)
+    .resize(640, 640, { fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 92 })
+    .toBuffer();
+
+  const dataUri = `data:image/jpeg;base64,${resized.toString("base64")}`;
+
+  const prompt =
+    "vintage 1950s DC Comics golden age cartoon caricature portrait, exaggerated big cartoon eyes, simplified bold comic illustration, thick black ink outlines, warm amber and golden yellow background, bright flat cel-animation colors, punchy saturated reds blues yellows, fun and playful caricature, Sheldon Moldoff Dick Sprang golden age American cartoon style, no realism, fully illustrated";
+
+  const output = await replicateRunWithRetry(
+    "timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23f",
+    {
+        image: dataUri,
+        prompt,
+        negative_prompt:
+          "photorealistic, realistic skin, photograph, 3D render, ugly, deformed, blurry, watermark, text, words, letters, banners, captions, signature, logo",
+        num_steps: 30,
+        guidance_scale: 16,
+        image_guidance_scale: 1.1,
+    },
+    jobId,
+  );
+
+  const rawUrl = extractUrl(Array.isArray(output) ? output[0] : output);
+  console.log(`[${jobId}] DC Clásico cartoon result: ${rawUrl}`);
+  const res = await fetch(rawUrl);
+  if (!res.ok) throw new Error(`DC comic cartoon fetch failed: ${res.status}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
 async function runNoFaceFallback(jobId: string, buf: Buffer, style: Style): Promise<Buffer> {
   console.log(`[${jobId}] ↳ No face detected — running img2img fallback (instruct-pix2pix, style=${style})...`);
 
@@ -406,6 +447,27 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
 
   try {
     const rawBuf = fs.readFileSync(imagePath);
+
+    // ── DC Clásico: dedicated cartoon pipeline (bypasses face-to-many) ───────
+    if (style === "dccomic") {
+      let processed = await runComicCartoonPipeline(jobId, rawBuf);
+      processed = await applyFormat(processed, format);
+      processed = await sharp(processed).jpeg({ quality: 92 }).toBuffer();
+      job.imageBuffer = processed;
+      job.status = "completed";
+      try {
+        const filePath = await saveImageToDisk(jobId, job.userId, processed);
+        job.filePath = filePath;
+        await db.insert(generationsTable).values({
+          id: jobId, userId: job.userId, style: job.style, format: job.format,
+          mode: job.mode, filePath, watermark: 0,
+        }).onConflictDoUpdate({ target: generationsTable.id, set: { filePath } });
+      } catch (saveErr) {
+        console.warn(`[${jobId}] Could not save DC comic to gallery (non-fatal):`, saveErr);
+      }
+      try { fs.unlinkSync(imagePath); } catch {}
+      return;
+    }
 
     // Always pre-crop to face region before sending to face-to-many
     const { buf, cropped } = await smartCropForFace(rawBuf, jobId);
