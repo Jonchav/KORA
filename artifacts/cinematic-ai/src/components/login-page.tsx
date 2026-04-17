@@ -4,6 +4,94 @@ import { Zap } from "lucide-react";
 import { useState } from "react";
 import { TermsPage } from "@/pages/terms";
 
+const BG_IMAGES = [
+  "/examples/man-gtasa.jpg",
+  "/examples/selfie-dccomic.jpg",
+  "/examples/anime-v2.jpg",
+  "/examples/cyberpunk-v2.jpg",
+  "/examples/girl-clay.jpg",
+  "/examples/denim-vapor.jpg",
+  "/examples/popart-v2.jpg",
+  "/examples/comic-v2.jpg",
+  "/examples/flower-fantasy.jpg",
+  "/examples/park-anime.jpg",
+  "/examples/red-toy.jpg",
+  "/examples/man-cyber.jpg",
+  "/examples/oilpainting-v2.jpg",
+  "/examples/watercolor-v2.jpg",
+  "/examples/cafe-pixel.jpg",
+  "/examples/mountain-oil.jpg",
+  "/examples/field-anime.jpg",
+  "/examples/fiat-comic.jpg",
+];
+
+function BackgroundGrid() {
+  const cols = 3;
+  const perCol = Math.ceil(BG_IMAGES.length / cols);
+  const columns = Array.from({ length: cols }, (_, i) =>
+    BG_IMAGES.slice(i * perCol, (i + 1) * perCol)
+  );
+
+  const offsets = ["0px", "-80px", "-40px"];
+  const durations = ["28s", "22s", "25s"];
+
+  return (
+    <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+      {/* Grid of images */}
+      <div
+        className="absolute inset-0 flex gap-2 px-2"
+        style={{ transform: "rotate(-4deg) scale(1.12)", transformOrigin: "center center" }}
+      >
+        {columns.map((col, ci) => (
+          <div
+            key={ci}
+            className="flex-1 flex flex-col gap-2"
+            style={{
+              marginTop: offsets[ci],
+              animation: `scrollCol${ci} ${durations[ci]} linear infinite`,
+            }}
+          >
+            {/* Duplicate for seamless loop */}
+            {[...col, ...col].map((src, idx) => (
+              <div
+                key={idx}
+                className="w-full rounded-xl overflow-hidden shrink-0"
+                style={{ aspectRatio: "4/5" }}
+              >
+                <img
+                  src={src}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  draggable={false}
+                />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Overlay layers */}
+      <div className="absolute inset-0 bg-black/60" />
+      <div className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 60% at 50% 50%, transparent 10%, rgba(9,9,11,0.85) 80%, rgb(9,9,11) 100%)",
+        }}
+      />
+      {/* Top / bottom fade */}
+      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-background to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent" />
+
+      <style>{`
+        @keyframes scrollCol0 { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+        @keyframes scrollCol1 { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+        @keyframes scrollCol2 { from { transform: translateY(-20%); } to { transform: translateY(-70%); } }
+      `}</style>
+    </div>
+  );
+}
+
 export function LoginPage() {
   const { loginWithGoogle } = useAuth();
   const [error, setError] = useState<string | null>(null);
@@ -15,14 +103,7 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4">
-      {/* Ambient background */}
-      <div className="fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-60 -left-60 w-[500px] h-[500px] rounded-full opacity-20 blur-[100px]"
-          style={{ background: "radial-gradient(circle, #a855f7, transparent)" }} />
-        <div className="absolute -top-40 right-0 w-[400px] h-[400px] rounded-full opacity-15 blur-[80px]"
-          style={{ background: "radial-gradient(circle, #3b82f6, transparent)" }} />
-        <div className="absolute inset-0 bg-background/85" />
-      </div>
+      <BackgroundGrid />
 
       <div className="relative z-10 w-full max-w-sm">
         {/* Logo */}
@@ -35,7 +116,7 @@ export function LoginPage() {
           <h1 className="text-4xl font-black text-white mb-3 tracking-tight">
             AI Creative<br />Studio
           </h1>
-          <p className="text-zinc-500 text-sm leading-relaxed">
+          <p className="text-zinc-400 text-sm leading-relaxed">
             Transform your photos into stunning AI art.<br />
             Sign in to get started.
           </p>
