@@ -300,44 +300,52 @@ async function replicateRunWithRetry(
 }
 
 /**
- * Dedicated cartoon-comic pipeline for DC Clásico style.
- * Bypasses face-to-many (which preserves photorealism via InstantID) and uses
- * instruct-pix2pix with aggressive style settings to get a true golden-age
- * cartoon caricature look: flat colors, thick outlines, exaggerated features.
+ * Dedicated face-to-many pipeline for DC Clásico style.
+ * Uses "Emoji" style base (more cartoonish/caricatured than "3D") with
+ * lower instant_id_strength and higher denoising to push further from
+ * photorealism toward golden-age DC comic illustration.
  */
-async function runComicCartoonPipeline(jobId: string, buf: Buffer): Promise<Buffer> {
-  console.log(`[${jobId}] DC Clásico: running dedicated cartoon-comic pipeline...`);
-
-  // Resize to optimal dimensions for the model
-  const resized = await sharp(buf)
-    .resize(640, 640, { fit: "inside", withoutEnlargement: true })
-    .jpeg({ quality: 92 })
-    .toBuffer();
-
-  const dataUri = `data:image/jpeg;base64,${resized.toString("base64")}`;
+async function runComicCartoonPipeline(jobId: string, buf: Buffer, dataUri: string): Promise<Buffer> {
+  console.log(`[${jobId}] DC Clásico: running face-to-many (Emoji base, cartoon tuning)...`);
 
   const prompt =
-    "convert this person into a vintage 1950s DC Comics golden age cartoon illustration, keep the same person recognizable, add thick black ink outlines, bold flat cel-animation colors, warm amber and golden yellow background, fun cartoon style, Sheldon Moldoff golden age American comic book art";
+    "vintage 1950s DC Comics golden age cartoon caricature, fun and playful illustration, big expressive cartoon eyes, thick black ink outlines, bold flat colors, warm amber golden yellow background, punchy reds blues greens, Sheldon Moldoff golden age comic book art style, bright and colorful, no text, no words, no captions, no banners";
 
   const output = await replicateRunWithRetry(
-    "timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23f",
+    "fofr/face-to-many:a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf",
     {
         image: dataUri,
+        style: "Emoji",
         prompt,
         negative_prompt:
-          "ugly, deformed, blurry, watermark, text, words, letters, banners, captions, signature, logo, extra limbs, bad anatomy",
-        num_steps: 30,
-        guidance_scale: 11,
-        image_guidance_scale: 1.8,
+          "photorealistic, realistic skin, photograph, ugly, deformed, noisy, blurry, distorted, disfigured, bad anatomy, extra limbs, watermark, signature, text, logo, words, letters, typography, caption, banner",
+        denoising_strength: 0.78,
+        instant_id_strength: 0.55,
+        control_depth_strength: 0.65,
+        prompt_strength: 6.5,
     },
     jobId,
   );
 
-  const rawUrl = extractUrl(Array.isArray(output) ? output[0] : output);
-  console.log(`[${jobId}] DC Clásico cartoon result: ${rawUrl}`);
-  const res = await fetch(rawUrl);
-  if (!res.ok) throw new Error(`DC comic cartoon fetch failed: ${res.status}`);
-  return Buffer.from(await res.arrayBuffer());
+  const rawUrl = Array.isArray(output) ? output[0] : output;
+  if (rawUrl == null || rawUrl === "null") throw new Error("No face detected in the image");
+  const resultUrl = extractUrl(rawUrl);
+  console.log(`[${jobId}] DC Clásico cartoon result: ${resultUrl}`);
+
+  const response = await fetch(resultUrl);
+  if (!response.ok) throw new Error(`DC comic fetch failed: ${response.status}`);
+  const rawBuffer = Buffer.from(await response.arrayBuffer());
+
+  // Handle side-by-side comparison output (crop right half)
+  const meta = await sharp(rawBuffer).metadata();
+  if (meta.width && meta.height && meta.width > meta.height * 1.3) {
+    const halfW = Math.floor(meta.width / 2);
+    const rightHalf = await sharp(rawBuffer)
+      .extract({ left: halfW, top: 0, width: halfW, height: meta.height })
+      .png().toBuffer();
+    return cropToContent(rightHalf);
+  }
+  return rawBuffer;
 }
 
 async function runNoFaceFallback(jobId: string, buf: Buffer, style: Style): Promise<Buffer> {
@@ -448,9 +456,14 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
   try {
     const rawBuf = fs.readFileSync(imagePath);
 
-    // ── DC Clásico: dedicated cartoon pipeline (bypasses face-to-many) ───────
+    // ── DC Clásico: dedicated face-to-many cartoon pipeline ──────────────────
     if (style === "dccomic") {
-      let processed = await runComicCartoonPipeline(jobId, rawBuf);
+      const { buf: dcBuf, cropped: dcCropped } = await smartCropForFace(rawBuf, jobId);
+      if (dcCropped) console.log(`[${jobId}] DC Clásico: applied smart face-crop`);
+      const dcExt = path.extname(imagePath).replace(".", "") || "jpeg";
+      const dcContentType = dcCropped ? "image/jpeg" : (dcExt === "png" ? "image/png" : "image/jpeg");
+      const dcDataUri = `data:${dcContentType};base64,${dcBuf.toString("base64")}`;
+      let processed = await runComicCartoonPipeline(jobId, dcBuf, dcDataUri);
       processed = await applyFormat(processed, format);
       processed = await sharp(processed).jpeg({ quality: 92 }).toBuffer();
       job.imageBuffer = processed;
