@@ -110,9 +110,9 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string }> = {
       "GTA San Andreas video game character, PS2 era 3D graphics style, early 2000s Rockstar Games aesthetic, low-poly but detailed character model, Grove Street Los Santos gang neighborhood background, warm California golden sunlight, white tank top baggy jeans and Nikes, gang bandana and fitted cap, gritty urban street environment, CJ character style, iconic GTA San Andreas cutscene quality, no text, no words, no banners, no HUD, no subtitles",
   },
   dccomic: {
-    style: "3D",
+    style: "Emoji",
     prompt:
-      "golden age DC Comics illustration, Batman #103 era 1950s style, bold flat colors with warm amber and golden yellow background, thick black ink outlines, dynamic action pose, classic 4-color printing palette of red blue green and yellow, clean cel-shaded illustration, simple halftone dot shading on clothes, vintage American comic book aesthetic, Dick Sprang Sheldon Moldoff golden age art style, heroic comic book portrait, bright and colorful, no text, no words, no speech bubbles, no captions, no banners, no title",
+      "vintage 1950s DC Comics golden age cartoon caricature, exaggerated comic book character with big expressive eyes and bold simplified features, thick black ink outlines, bright flat cel-animation colors, warm amber yellow and red background, classic American cartoon illustration style, fun and playful caricature like Sheldon Moldoff Dick Sprang, simplified cartoon proportions, punchy saturated primary colors, retro comic charm, no text, no words, no speech bubbles, no captions, no banners",
   },
 };
 
@@ -247,7 +247,7 @@ const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
   vaporwave:   "apply vaporwave aesthetic to this image, keep the same subject and composition, add dreamy pastel purple and pink tones with 80s nostalgia",
   fantasy:     "apply dark fantasy RPG illustration style to this image, keep the same subject and composition, add dramatic magical lighting and painterly detail",
   gtasa:       "apply GTA San Andreas PS2 video game graphics style to this image, keep the same subject and composition with early 2000s Rockstar Games look",
-  dccomic:     "transform this image into a golden age DC Comics illustration like a 1950s Batman comic book cover, keep the same subject, add thick black ink outlines, bold flat cel-shaded colors, warm amber and golden yellow background tones, simple halftone dot shading, bright classic 4-color printing palette, Dick Sprang golden age DC style",
+  dccomic:     "transform this image into a vintage 1950s DC Comics cartoon caricature, keep the same subject but make it fun and exaggerated, add thick black ink outlines, bright flat cel-animation colors, warm amber and yellow background, punchy saturated primary colors, playful caricature proportions, golden age American comic book cartoon style",
 };
 
 function isFaceDetectionError(err: unknown): boolean {
