@@ -12,6 +12,22 @@ export interface StyleConfig {
 
 export const STYLES: StyleConfig[] = [
   {
+    id: "gtasa",
+    label: "San Andrés",
+    description: "GTA SA — CJ, Grove Street, Los Santos",
+    emoji: "🎮",
+    gradient: "from-green-700 to-green-900",
+    glow: "rgba(21,128,61,0.5)",
+  },
+  {
+    id: "dccomic",
+    label: "DC Clásico",
+    description: "Golden age Batman, colores planos, tinta gruesa",
+    emoji: "🦇",
+    gradient: "from-yellow-400 to-amber-600",
+    glow: "rgba(251,191,36,0.45)",
+  },
+  {
     id: "comic",
     label: "Comic Book",
     description: "Bold outlines, halftone dots, hero action",
@@ -98,22 +114,6 @@ export const STYLES: StyleConfig[] = [
     emoji: "⚔️",
     gradient: "from-slate-600 to-purple-800",
     glow: "rgba(126,34,206,0.4)",
-  },
-  {
-    id: "dccomic",
-    label: "DC Clásico",
-    description: "Golden age Batman, colores planos, tinta gruesa",
-    emoji: "🦇",
-    gradient: "from-yellow-400 to-amber-600",
-    glow: "rgba(251,191,36,0.45)",
-  },
-  {
-    id: "gtasa",
-    label: "San Andrés",
-    description: "GTA SA — CJ, Grove Street, Los Santos",
-    emoji: "🎮",
-    gradient: "from-green-700 to-green-900",
-    glow: "rgba(21,128,61,0.5)",
   },
 ];
 
