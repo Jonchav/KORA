@@ -363,14 +363,56 @@ async function saveImageToDisk(jobId: string, userId: string, buf: Buffer): Prom
   return filePath;
 }
 
+/**
+ * Smart face-crop: cuts a portrait-oriented region from the image centered
+ * horizontally and biased toward the upper area where faces appear in photos.
+ * This prevents the face-to-many model from focusing on arms, phones or other
+ * foreground objects when the composition is awkward (e.g. selfies with a
+ * raised arm).
+ */
+async function smartCropForFace(buf: Buffer, jobId: string): Promise<{ buf: Buffer; cropped: boolean }> {
+  const meta = await sharp(buf).metadata();
+  const w = meta.width ?? 512;
+  const h = meta.height ?? 512;
+
+  // If the image is already roughly square and ≤ 900px, no crop needed
+  const ratio = w / h;
+  if (ratio >= 0.7 && ratio <= 1.4 && w <= 900) {
+    return { buf, cropped: false };
+  }
+
+  // Target: a square crop whose side = 85% of the shorter dimension,
+  // placed at horizontal center and starting 5% from the top.
+  const side = Math.round(Math.min(w, h) * 0.85);
+  const left = Math.max(0, Math.round((w - side) / 2));
+  // Bias toward top: start at 5% of height (not center) so faces in
+  // portraits and selfies land inside the crop area.
+  const top = Math.max(0, Math.round(h * 0.05));
+  const clampedSide = Math.min(side, w - left, h - top);
+
+  console.log(`[${jobId}] smartCrop ${w}x${h} → ${clampedSide}x${clampedSide} at (${left},${top})`);
+
+  const cropped = await sharp(buf)
+    .extract({ left, top, width: clampedSide, height: clampedSide })
+    .jpeg({ quality: 92 })
+    .toBuffer();
+
+  return { buf: cropped, cropped: true };
+}
+
 async function runTransformJob(jobId: string, imagePath: string, style: Style, format: Format) {
   const job = jobs.get(jobId)!;
   job.status = "processing";
 
   try {
-    const buf = fs.readFileSync(imagePath);
+    const rawBuf = fs.readFileSync(imagePath);
+
+    // Always pre-crop to face region before sending to face-to-many
+    const { buf, cropped } = await smartCropForFace(rawBuf, jobId);
+    if (cropped) console.log(`[${jobId}] Applied smart face-crop before face-to-many`);
+
     const ext = path.extname(imagePath).replace(".", "") || "jpeg";
-    const contentType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+    const contentType = cropped ? "image/jpeg" : (ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg");
     const dataUri = `data:${contentType};base64,${buf.toString("base64")}`;
 
     const config = FACE_TO_MANY_CONFIG[style];
@@ -450,7 +492,8 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
         usedFacePipeline = false;
         console.log(`[${jobId}] Waiting 8s for rate-limit reset before img2img fallback...`);
         await new Promise(r => setTimeout(r, 8000));
-        processed = await runNoFaceFallback(jobId, buf, style);
+        // Use rawBuf (original full image) for img2img — it handles any composition
+        processed = await runNoFaceFallback(jobId, rawBuf, style);
       } else {
         throw faceErr;
       }
