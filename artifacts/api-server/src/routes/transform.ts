@@ -388,17 +388,40 @@ async function applyFormat(buf: Buffer, format: Format): Promise<Buffer> {
     landscape: [16, 9],
   };
   const [rw, rh] = ratios[format];
-  let targetW: number, targetH: number;
-  if (w / h > rw / rh) {
-    targetH = h;
-    targetW = Math.round(h * rw / rh);
+
+  // Compute canvas size: use the largest dimension that fits without upscaling,
+  // then build the canvas at the target aspect ratio.
+  const inputRatio = w / h;
+  const targetRatio = rw / rh;
+  let canvasW: number, canvasH: number;
+  if (inputRatio > targetRatio) {
+    // Image is wider than target → match width, letterbox top/bottom
+    canvasW = w;
+    canvasH = Math.round(w * rh / rw);
   } else {
-    targetW = w;
-    targetH = Math.round(w * rh / rw);
+    // Image is taller than target → match height, pillarbox left/right
+    canvasH = h;
+    canvasW = Math.round(h * rw / rh);
   }
-  return sharp(buf)
-    .resize(targetW, targetH, { fit: "cover", position: "centre" })
-    .jpeg({ quality: 92 }).toBuffer();
+
+  // Fit the image inside the canvas (no crop, no upscale) and composite
+  // it centered on a black background.
+  return sharp({
+    create: {
+      width: canvasW,
+      height: canvasH,
+      channels: 3,
+      background: { r: 0, g: 0, b: 0 },
+    },
+  })
+    .composite([{
+      input: await sharp(buf)
+        .resize(canvasW, canvasH, { fit: "inside", withoutEnlargement: true })
+        .toBuffer(),
+      gravity: "centre",
+    }])
+    .jpeg({ quality: 92 })
+    .toBuffer();
 }
 
 // ── Save image to persistent disk ────────────────────────────────────────────
