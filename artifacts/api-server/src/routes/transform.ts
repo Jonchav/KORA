@@ -419,40 +419,9 @@ async function saveImageToDisk(jobId: string, userId: string, buf: Buffer): Prom
  * foreground objects when the composition is awkward (e.g. selfies with a
  * raised arm).
  */
-async function smartCropForFace(buf: Buffer, jobId: string): Promise<{ buf: Buffer; cropped: boolean }> {
-  const meta = await sharp(buf).metadata();
-  const w = meta.width ?? 512;
-  const h = meta.height ?? 512;
-
-  const ratio = w / h;
-
-  // Portrait images (h > w, ratio < 0.9) are already well-composed vertically.
-  // Cropping them discards important parts of the scene (bodies, backgrounds,
-  // multiple people). Skip entirely — the model handles portrait input well.
-  if (ratio < 0.9) {
-    return { buf, cropped: false };
-  }
-
-  // For roughly square and small images, no crop needed either.
-  if (ratio <= 1.4 && w <= 900) {
-    return { buf, cropped: false };
-  }
-
-  // Only reach here for landscape / wide images (selfies with raised arms).
-  // Crop a square from the upper-center where the face usually is.
-  const side = Math.round(Math.min(w, h) * 0.85);
-  const left = Math.max(0, Math.round((w - side) / 2));
-  const top = Math.max(0, Math.round(h * 0.05));
-  const clampedSide = Math.min(side, w - left, h - top);
-
-  console.log(`[${jobId}] smartCrop ${w}x${h} → ${clampedSide}x${clampedSide} at (${left},${top})`);
-
-  const cropped = await sharp(buf)
-    .extract({ left, top, width: clampedSide, height: clampedSide })
-    .jpeg({ quality: 92 })
-    .toBuffer();
-
-  return { buf: cropped, cropped: true };
+async function smartCropForFace(buf: Buffer, _jobId: string): Promise<{ buf: Buffer; cropped: boolean }> {
+  // Smart-crop disabled: always pass the original image to preserve composition.
+  return { buf, cropped: false };
 }
 
 async function runTransformJob(jobId: string, imagePath: string, style: Style, format: Format) {
