@@ -110,9 +110,9 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string }> = {
       "GTA San Andreas video game character, PS2 era 3D graphics style, early 2000s Rockstar Games aesthetic, low-poly but detailed character model, Grove Street Los Santos gang neighborhood background, warm California golden sunlight, white tank top baggy jeans and Nikes, gang bandana and fitted cap, gritty urban street environment, CJ character style, iconic GTA San Andreas cutscene quality",
   },
   dccomic: {
-    style: "3D",
+    style: "Comic book",
     prompt:
-      "retro DC Comics noir comic book illustration, Batman detective era 1940s-1970s style, heavy black ink cross-hatching and bold outlines, dramatic chiaroscuro noir shadows, classic 4-color CMYK halftone dot printing, aged newsprint texture, high contrast black and deep shadow areas, limited vintage color palette of flat reds blues and yellows, Jack Kirby Neal Adams Jim Aparo golden age comic art style, gritty heroic portrait",
+      "golden age DC Comics illustration, Batman #103 era 1950s style, bold flat colors with warm amber and golden yellow background, thick black ink outlines, dynamic action pose, classic 4-color printing palette of red blue green and yellow, clean cel-shaded illustration, simple halftone dot shading on clothes, vintage American comic book aesthetic, Dick Sprang Sheldon Moldoff golden age art style, heroic comic book portrait, bright and colorful",
   },
 };
 
@@ -142,7 +142,7 @@ const SEEDREAM_PROMPTS: Record<Style, string> = {
   gtasa:
     "GTA San Andreas game world panorama, aerial view of Los Santos city circa 2004, Grove Street neighborhood with low-rider cars and palm trees, warm smoggy California sunset, PS2 era 3D graphics aesthetic, Rockstar Games style urban sprawl, iconic green-and-purple gang territory, early 2000s hip-hop culture street scene, cinematic wide shot",
   dccomic:
-    "Retro DC Comics noir city rooftop scene, Batman-era 1950s Gotham at night, dramatic gargoyle silhouettes against a full moon, rain-slicked rooftops, heavy black ink cross-hatching shadows, golden age comic book halftone dots, vintage 4-color print palette, a caped detective figure in the foreground, dramatic upward angle, Jack Kirby golden age quality, aged newsprint texture, cinematic noir masterpiece",
+    "Golden age DC Comics action scene, Batman and Robin in dynamic battle, warm amber and golden yellow background like Batman #103 cover, bold flat colors, thick black ink outlines, classic 4-color printing palette, cel-shaded illustration, vintage American comic book aesthetic, Dick Sprang golden age art style, heroic action composition, bright and colorful, 1950s DC Comics quality",
 };
 
 interface JobRecord {
@@ -247,7 +247,7 @@ const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
   vaporwave:   "apply vaporwave aesthetic to this image, keep the same subject and composition, add dreamy pastel purple and pink tones with 80s nostalgia",
   fantasy:     "apply dark fantasy RPG illustration style to this image, keep the same subject and composition, add dramatic magical lighting and painterly detail",
   gtasa:       "apply GTA San Andreas PS2 video game graphics style to this image, keep the same subject and composition with early 2000s Rockstar Games look",
-  dccomic:     "apply retro DC Comics golden age noir style to this image, keep the same subject, add heavy black ink cross-hatching, dramatic noir shadows, halftone dot shading, and a vintage 4-color limited palette like 1950s Batman comics",
+  dccomic:     "transform this image into a golden age DC Comics illustration like a 1950s Batman comic book cover, keep the same subject, add thick black ink outlines, bold flat cel-shaded colors, warm amber and golden yellow background tones, simple halftone dot shading, bright classic 4-color printing palette, Dick Sprang golden age DC style",
 };
 
 function isFaceDetectionError(err: unknown): boolean {

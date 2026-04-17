@@ -60,7 +60,7 @@ const CARD_PATTERNS: Record<StyleType, string> = {
   vaporwave:  "repeating-linear-gradient(0deg, rgba(255,0,255,0.05) 0px, rgba(255,0,255,0.05) 1px, transparent 1px, transparent 12px), repeating-linear-gradient(90deg, rgba(0,255,255,0.04) 0px, rgba(0,255,255,0.04) 1px, transparent 1px, transparent 24px)",
   fantasy:    "radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.2) 0%, transparent 60%)",
   gtasa:      "repeating-linear-gradient(45deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 2px, transparent 2px, transparent 12px)",
-  dccomic:    "repeating-radial-gradient(circle at 2px 2px, rgba(0,0,0,0.18) 1.5px, transparent 0) 0 0 / 8px 8px",
+  dccomic:    "repeating-radial-gradient(circle at 2px 2px, rgba(0,0,0,0.15) 1.5px, transparent 0) 0 0 / 8px 8px, linear-gradient(180deg, rgba(251,191,36,0.08) 0%, transparent 60%)",
 };
 
 const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
@@ -154,10 +154,10 @@ const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
   ),
   dccomic: (
     <>
-      <div className="absolute top-2 left-2 text-[9px] font-black text-amber-300/50 tracking-widest uppercase">GOTHAM</div>
-      <div className="absolute bottom-2 right-2 text-white/25 text-base">🦇</div>
-      <div className="absolute top-3 right-3 text-[8px] font-black text-amber-200/30 tracking-widest">NOIR</div>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border-2 border-amber-500/15" />
+      <div className="absolute top-2 left-2 text-[9px] font-black text-yellow-900/60 tracking-widest uppercase">DC Comics</div>
+      <div className="absolute bottom-2 right-2 text-yellow-900/30 text-base">🦇</div>
+      <div className="absolute top-3 right-3 text-[8px] font-black text-yellow-900/30 tracking-widest">1950s</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border-2 border-yellow-700/20" />
     </>
   ),
 };

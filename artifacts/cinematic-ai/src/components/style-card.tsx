@@ -101,11 +101,11 @@ export const STYLES: StyleConfig[] = [
   },
   {
     id: "dccomic",
-    label: "DC Noir",
-    description: "Batman era, tinta retro, sombras noir",
+    label: "DC Clásico",
+    description: "Golden age Batman, colores planos, tinta gruesa",
     emoji: "🦇",
-    gradient: "from-amber-600 to-stone-800",
-    glow: "rgba(217,119,6,0.35)",
+    gradient: "from-yellow-400 to-amber-600",
+    glow: "rgba(251,191,36,0.45)",
   },
   {
     id: "gtasa",
