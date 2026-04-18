@@ -285,6 +285,78 @@ const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
   dccomic:     "transform this image into a vintage 1950s DC Comics cartoon caricature, keep the same subject but make it fun and exaggerated, add thick black ink outlines, bright flat cel-animation colors, warm amber and yellow background, punchy saturated primary colors, playful caricature proportions, golden age American comic book cartoon style",
 };
 
+/**
+ * Styles that use FLUX Dev img2img instead of face-to-many.
+ * These are "realistic portrait" styles where composition/framing
+ * must be preserved — face-to-many regenerates the scene from scratch
+ * causing tight crops and hallucinated elements.
+ */
+const FLUX_IMG2IMG_STYLES: Set<Style> = new Set(["luxury", "hollywood", "timetraveler"]);
+
+const FLUX_IMG2IMG_PROMPTS: Partial<Record<Style, string>> = {
+  luxury:
+    "transform this photo into a luxury lifestyle editorial portrait. Keep the exact same person, framing, composition and pose. Replace the background with an upscale setting: superyacht deck or Monaco Grand Prix paddock. Dress the person in a bespoke designer suit with silk pocket square. Add a Patek Philippe watch. Dramatic GQ magazine lighting. Cinematic and sophisticated. High-end fashion editorial quality.",
+  hollywood:
+    "transform this photo into a Hollywood A-list celebrity portrait. Keep the exact same person, framing, composition and pose. Replace the background with a glamorous movie premiere: red carpet with camera flashes and spotlights. Apply polished editorial makeup and wardrobe. Dramatic chiaroscuro studio lighting. Vanity Fair quality. Iconic and timeless.",
+  timetraveler:
+    "transform this photo into a steampunk time traveler portrait. Keep the exact same person, framing, composition and pose. Replace the background with a Victorian clockwork laboratory: brass gears, copper pipes, glowing blue-gold time vortex. Add leather aviator goggles and vintage pocket watch chain. Dramatic atmospheric moody lighting. H.G. Wells cinematic style.",
+};
+
+async function runFluxImg2ImgPipeline(jobId: string, buf: Buffer, style: Style): Promise<Buffer> {
+  const prompt = FLUX_IMG2IMG_PROMPTS[style];
+  if (!prompt) throw new Error(`No FLUX prompt for style: ${style}`);
+
+  const meta = await sharp(buf).metadata();
+  const srcW = meta.width ?? 1024;
+  const srcH = meta.height ?? 1024;
+  // FLUX works best with dimensions that are multiples of 16, capped at 1280px
+  const maxDim = 1280;
+  const scale = Math.min(1, maxDim / Math.max(srcW, srcH));
+  const targetW = Math.round((srcW * scale) / 16) * 16;
+  const targetH = Math.round((srcH * scale) / 16) * 16;
+
+  const resized = await sharp(buf)
+    .resize(targetW, targetH, { fit: "fill" })
+    .jpeg({ quality: 92 })
+    .toBuffer();
+
+  const dataUri = `data:image/jpeg;base64,${resized.toString("base64")}`;
+  console.log(`[${jobId}] FLUX img2img (style=${style}, size=${targetW}x${targetH})...`);
+
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= 2; attempt++) {
+    try {
+      const output = await replicate.run(
+        "black-forest-labs/flux-dev" as `${string}/${string}`,
+        {
+          input: {
+            image: dataUri,
+            prompt,
+            prompt_strength: 0.70,
+            num_inference_steps: 30,
+            guidance: 3.5,
+            output_format: "jpeg",
+            output_quality: 92,
+          },
+        }
+      );
+      const rawUrl = extractUrl(Array.isArray(output) ? output[0] : output);
+      console.log(`[${jobId}] FLUX img2img result: ${rawUrl}`);
+      const res = await fetch(rawUrl);
+      if (!res.ok) throw new Error(`FLUX img2img fetch failed: ${res.status}`);
+      return Buffer.from(await res.arrayBuffer());
+    } catch (err) {
+      lastErr = err;
+      if (isRetriableError(err) && attempt < 2) {
+        const wait = (attempt + 1) * 12;
+        console.log(`[${jobId}] FLUX rate limit — waiting ${wait}s...`);
+        await new Promise(r => setTimeout(r, wait * 1000));
+      } else break;
+    }
+  }
+  throw lastErr;
+}
+
 function isFaceDetectionError(err: unknown): boolean {
   const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
   return (
@@ -535,15 +607,45 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
       return;
     }
 
-    const { buf: rawCropBuf, cropped } = await smartCropForFace(rawBuf, jobId);
+    // ── FLUX img2img: realistic styles that need composition preserved ────────
+    if (FLUX_IMG2IMG_STYLES.has(style)) {
+      console.log(`[${jobId}] Routing ${style} → FLUX Dev img2img (composition-preserving pipeline)`);
+      let processed = await runFluxImg2ImgPipeline(jobId, rawBuf, style);
+
+      // Upscale + sharpen
+      const upMeta = await sharp(processed).metadata();
+      const srcW = upMeta.width ?? 512;
+      const targetW = Math.min(srcW * 2, 2048);
+      processed = await sharp(processed)
+        .resize(targetW, null, { kernel: "lanczos3", fastShrinkOnLoad: false })
+        .sharpen({ sigma: 0.6, m1: 1.5, m2: 2.5 })
+        .jpeg({ quality: 92 }).toBuffer();
+
+      processed = await applyFormat(processed, format);
+      processed = await sharp(processed).jpeg({ quality: 92 }).toBuffer();
+
+      job.imageBuffer = processed;
+      job.status = "completed";
+      try {
+        const filePath = await saveImageToDisk(jobId, job.userId, processed);
+        job.filePath = filePath;
+        await db.insert(generationsTable).values({
+          id: jobId, userId: job.userId, style: job.style, format: job.format,
+          mode: job.mode, filePath, watermark: 0,
+        }).onConflictDoUpdate({ target: generationsTable.id, set: { filePath } });
+      } catch (saveErr) {
+        console.warn(`[${jobId}] Could not save FLUX result to gallery (non-fatal):`, saveErr);
+      }
+      try { fs.unlinkSync(imagePath); } catch {}
+      return;
+    }
+
+    const { buf, cropped } = await smartCropForFace(rawBuf, jobId);
     if (cropped) console.log(`[${jobId}] Applied smart face-crop before face-to-many`);
 
-    // Pad the image so face-to-many sees the subject smaller in frame,
-    // preventing overly tight/zoomed output crops.
-    const buf = await padImageForFacePipeline(rawCropBuf);
-    console.log(`[${jobId}] Padded input image for face-to-many (wider framing)`);
-
-    const dataUri = `data:image/jpeg;base64,${buf.toString("base64")}`;
+    const ext = path.extname(imagePath).replace(".", "") || "jpeg";
+    const contentType = cropped ? "image/jpeg" : (ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg");
+    const dataUri = `data:${contentType};base64,${buf.toString("base64")}`;
 
     const config = FACE_TO_MANY_CONFIG[style];
     console.log(`[${jobId}] Running face-to-many (style=${style}, render="${config.style}")...`);
