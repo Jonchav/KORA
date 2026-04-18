@@ -482,6 +482,26 @@ async function smartCropForFace(buf: Buffer, _jobId: string): Promise<{ buf: Buf
   return { buf, cropped: false };
 }
 
+/**
+ * Pad the image with a neutral dark border (20% each side) before sending to
+ * face-to-many.  This makes the subject appear smaller in the model's field of
+ * view, producing a less zoomed-in / tighter-cropped output.
+ */
+async function padImageForFacePipeline(buf: Buffer): Promise<Buffer> {
+  const meta = await sharp(buf).metadata();
+  const w = meta.width ?? 512;
+  const h = meta.height ?? 512;
+  const padX = Math.round(w * 0.20);
+  const padY = Math.round(h * 0.20);
+  const newW = w + padX * 2;
+  const newH = h + padY * 2;
+  return sharp(buf)
+    .extend({ top: padY, bottom: padY, left: padX, right: padX, background: { r: 20, g: 20, b: 20, alpha: 1 } })
+    .resize(newW, newH, { fit: "fill" })
+    .jpeg({ quality: 92 })
+    .toBuffer();
+}
+
 async function runTransformJob(jobId: string, imagePath: string, style: Style, format: Format) {
   const job = jobs.get(jobId)!;
   job.status = "processing";
@@ -515,12 +535,15 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
       return;
     }
 
-    const { buf, cropped } = await smartCropForFace(rawBuf, jobId);
+    const { buf: rawCropBuf, cropped } = await smartCropForFace(rawBuf, jobId);
     if (cropped) console.log(`[${jobId}] Applied smart face-crop before face-to-many`);
 
-    const ext = path.extname(imagePath).replace(".", "") || "jpeg";
-    const contentType = cropped ? "image/jpeg" : (ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg");
-    const dataUri = `data:${contentType};base64,${buf.toString("base64")}`;
+    // Pad the image so face-to-many sees the subject smaller in frame,
+    // preventing overly tight/zoomed output crops.
+    const buf = await padImageForFacePipeline(rawCropBuf);
+    console.log(`[${jobId}] Padded input image for face-to-many (wider framing)`);
+
+    const dataUri = `data:image/jpeg;base64,${buf.toString("base64")}`;
 
     const config = FACE_TO_MANY_CONFIG[style];
     console.log(`[${jobId}] Running face-to-many (style=${style}, render="${config.style}")...`);
