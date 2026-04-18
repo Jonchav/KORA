@@ -114,6 +114,31 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string }> = {
     prompt:
       "vintage 1950s DC Comics golden age cartoon caricature, exaggerated comic book character with big expressive eyes and bold simplified features, thick black ink outlines, bright flat cel-animation colors, warm amber yellow and red background, classic American cartoon illustration style, fun and playful caricature like Sheldon Moldoff Dick Sprang, simplified cartoon proportions, punchy saturated primary colors, retro comic charm, no text, no words, no speech bubbles, no captions, no banners",
   },
+  fortnite: {
+    style: "Video game",
+    prompt:
+      "Fortnite Battle Royale character skin, Epic Games Unreal Engine 5 art style, vibrant stylized 3D game character with bold colors and exaggerated proportions, dynamic action pose, glowing holographic backbling and weapon, Island map environment background with storm clouds, collector skin quality, ultra detailed game render",
+  },
+  luxury: {
+    style: "3D",
+    prompt:
+      "ultra-luxury lifestyle portrait, bespoke Tom Ford or Brioni designer suit with silk pocket square, Patek Philippe or Audemars Piguet watch, Monaco Grand Prix paddock or private superyacht background, dramatic editorial GQ magazine lighting, aspirational high-fashion photography, cinematic and sophisticated",
+  },
+  hollywood: {
+    style: "3D",
+    prompt:
+      "Hollywood A-list movie star portrait, golden era glamour photography, dramatic chiaroscuro studio lighting, red carpet premiere with camera flashes and spotlights in the background, Vanity Fair magazine editorial quality, cinematic film look, iconic and timeless celebrity aesthetic",
+  },
+  sims: {
+    style: "3D",
+    prompt:
+      "The Sims 4 video game character, Maxis EA Games 3D art style, cheerful cartoon character with signature Plumbob green diamond floating above head, bright colorful suburb neighborhood house in background, quirky and fun game aesthetic, smooth stylized 3D render, expressive and playful",
+  },
+  timetraveler: {
+    style: "3D",
+    prompt:
+      "steampunk time traveler portrait, Victorian brass clockwork and copper gear aesthetic, leather aviator goggles pushed up on forehead, ornate vintage pocket watch chain, swirling blue-gold time vortex portal with floating clock faces in the background, H.G. Wells meets Doctor Who cinematic style, dramatic atmospheric lighting",
+  },
 };
 
 const SEEDREAM_PROMPTS: Record<Style, string> = {
@@ -143,6 +168,16 @@ const SEEDREAM_PROMPTS: Record<Style, string> = {
     "GTA San Andreas game world panorama, aerial view of Los Santos city circa 2004, Grove Street neighborhood with low-rider cars and palm trees, warm smoggy California sunset, PS2 era 3D graphics aesthetic, Rockstar Games style urban sprawl, iconic green-and-purple gang territory, early 2000s hip-hop culture street scene, cinematic wide shot",
   dccomic:
     "Golden age DC Comics action scene, Batman and Robin in dynamic battle, warm amber and golden yellow background like Batman #103 cover, bold flat colors, thick black ink outlines, classic 4-color printing palette, cel-shaded illustration, vintage American comic book aesthetic, Dick Sprang golden age art style, heroic action composition, bright and colorful, 1950s DC Comics quality",
+  fortnite:
+    "Fortnite Island panoramic scene, aerial view of the iconic Battle Royale map, storm circle closing over lush biomes, players skydiving with colorful gliders, vibrant cartoon-stylized environment, Unreal Engine 5 quality render, dynamic action energy, Epic Games art style, ultra detailed game world",
+  luxury:
+    "Opulent luxury lifestyle scene, superyacht anchored in Monaco harbor at golden hour, champagne on deck, designer fashion editorial, Patek Philippe watch gleaming, distant Côte d'Azur coastline, warm cinematic light, aspirational and sophisticated, GQ magazine cover quality",
+  hollywood:
+    "Hollywood Boulevard at night, iconic Walk of Fame stars, grand movie premiere with searchlights and red carpet, cameras flashing, glamorous cinematic scene, film reel and clapperboard motifs, golden age of cinema atmosphere, cinematic wide shot, Vanity Fair quality",
+  sims:
+    "The Sims 4 neighborhood bird's-eye view, colorful suburban houses with manicured lawns and swimming pools, cheerful Plumbob diamonds floating above rooftops, Sim families going about daily life, bright sunny day, Maxis game world aesthetic, ultra detailed and charming",
+  timetraveler:
+    "Steampunk time machine laboratory scene, Victorian brass clockwork gears and steam pipes, multiple clocks showing different times on the walls, glowing blue-gold time vortex portal tearing through the center, scattered antique maps and blueprints, dramatic moody lighting, H.G. Wells aesthetic, ultra detailed concept art",
 };
 
 interface JobRecord {

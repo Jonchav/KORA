@@ -60,7 +60,12 @@ const CARD_PATTERNS: Record<StyleType, string> = {
   vaporwave:  "repeating-linear-gradient(0deg, rgba(255,0,255,0.05) 0px, rgba(255,0,255,0.05) 1px, transparent 1px, transparent 12px), repeating-linear-gradient(90deg, rgba(0,255,255,0.04) 0px, rgba(0,255,255,0.04) 1px, transparent 1px, transparent 24px)",
   fantasy:    "radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.2) 0%, transparent 60%)",
   gtasa:      "repeating-linear-gradient(45deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 2px, transparent 2px, transparent 12px)",
-  dccomic:    "repeating-radial-gradient(circle at 2px 2px, rgba(0,0,0,0.15) 1.5px, transparent 0) 0 0 / 8px 8px, linear-gradient(180deg, rgba(251,191,36,0.08) 0%, transparent 60%)",
+  dccomic:     "repeating-radial-gradient(circle at 2px 2px, rgba(0,0,0,0.15) 1.5px, transparent 0) 0 0 / 8px 8px, linear-gradient(180deg, rgba(251,191,36,0.08) 0%, transparent 60%)",
+  fortnite:    "repeating-linear-gradient(60deg, rgba(99,102,241,0.08) 0px, rgba(99,102,241,0.08) 1px, transparent 1px, transparent 14px)",
+  luxury:      "radial-gradient(ellipse at 50% 20%, rgba(202,138,4,0.12) 0%, transparent 60%)",
+  hollywood:   "repeating-linear-gradient(45deg, rgba(245,158,11,0.06) 0px, rgba(245,158,11,0.06) 1px, transparent 1px, transparent 10px)",
+  sims:        "repeating-linear-gradient(0deg, rgba(52,211,153,0.06) 0px, rgba(52,211,153,0.06) 1px, transparent 1px, transparent 8px), repeating-linear-gradient(90deg, rgba(52,211,153,0.04) 0px, rgba(52,211,153,0.04) 1px, transparent 1px, transparent 8px)",
+  timetraveler:"radial-gradient(ellipse at 30% 70%, rgba(180,83,9,0.15) 0%, transparent 50%), radial-gradient(ellipse at 70% 30%, rgba(120,113,108,0.1) 0%, transparent 40%)",
 };
 
 const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
@@ -158,6 +163,44 @@ const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
       <div className="absolute bottom-2 right-2 text-yellow-900/30 text-base">🦇</div>
       <div className="absolute top-3 right-3 text-[8px] font-black text-yellow-900/30 tracking-widest">1950s</div>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border-2 border-yellow-700/20" />
+    </>
+  ),
+  fortnite: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono font-bold text-indigo-300/60 tracking-widest">BATTLE ROYALE</div>
+      <div className="absolute bottom-2 right-2 text-base text-indigo-300/30">🎯</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-indigo-400/20 shadow-[0_0_20px_rgba(99,102,241,0.15)]" />
+    </>
+  ),
+  luxury: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-yellow-600/50 tracking-widest uppercase">VIP</div>
+      <div className="absolute bottom-2 right-2 text-base text-yellow-600/30">💎</div>
+      <div className="absolute top-3 right-3 text-[8px] font-mono text-yellow-600/30">EXCLUSIVE</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-yellow-600/15" />
+    </>
+  ),
+  hollywood: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-black text-amber-400/50 tracking-widest">★ STAR ★</div>
+      <div className="absolute bottom-2 right-2 text-base text-amber-400/30">🎬</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-amber-400/15 shadow-[0_0_20px_rgba(251,191,36,0.1)]" />
+    </>
+  ),
+  sims: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-bold text-green-300/60 tracking-widest uppercase">THE SIMS</div>
+      <div className="absolute bottom-2 right-2 text-base text-green-300/30">🏠</div>
+      <div className="absolute top-3 right-3 text-green-300/40 text-xs">◆</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-green-400/20" />
+    </>
+  ),
+  timetraveler: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-amber-700/60 tracking-widest">1888 → ∞</div>
+      <div className="absolute bottom-2 right-2 text-base text-amber-700/30">⏱️</div>
+      <div className="absolute top-3 right-3 text-[8px] font-mono text-amber-700/40">⚙</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-amber-700/20" />
     </>
   ),
 };

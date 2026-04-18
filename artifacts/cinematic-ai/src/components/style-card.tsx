@@ -115,6 +115,46 @@ export const STYLES: StyleConfig[] = [
     gradient: "from-slate-600 to-purple-800",
     glow: "rgba(126,34,206,0.4)",
   },
+  {
+    id: "fortnite",
+    label: "Fortnite",
+    description: "Battle Royale skin, Unreal Engine style",
+    emoji: "🎯",
+    gradient: "from-blue-500 to-indigo-700",
+    glow: "rgba(99,102,241,0.5)",
+  },
+  {
+    id: "luxury",
+    label: "Luxury",
+    description: "Designer suits, Rolex, Monaco lifestyle",
+    emoji: "💎",
+    gradient: "from-yellow-600 to-zinc-800",
+    glow: "rgba(202,138,4,0.45)",
+  },
+  {
+    id: "hollywood",
+    label: "Hollywood",
+    description: "Golden age glamour, red carpet, spotlight",
+    emoji: "🎬",
+    gradient: "from-amber-500 to-red-800",
+    glow: "rgba(245,158,11,0.45)",
+  },
+  {
+    id: "sims",
+    label: "The Sims",
+    description: "Maxis 3D character, Plumbob, suburb life",
+    emoji: "🏠",
+    gradient: "from-green-400 to-teal-600",
+    glow: "rgba(52,211,153,0.5)",
+  },
+  {
+    id: "timetraveler",
+    label: "Time Traveler",
+    description: "Steampunk, brass gears, time vortex portal",
+    emoji: "⏱️",
+    gradient: "from-amber-700 to-stone-800",
+    glow: "rgba(180,83,9,0.45)",
+  },
 ];
 
 interface StyleCardProps {
