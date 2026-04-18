@@ -487,33 +487,6 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
     const contentType = cropped ? "image/jpeg" : (ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg");
     const dataUri = `data:${contentType};base64,${buf.toString("base64")}`;
 
-    // Landscape images (w > h) are almost always group photos or wide shots.
-    // face-to-many only transforms the most prominent face it detects, so
-    // people on the sides or in the background get skipped. Route these
-    // directly to the img2img pipeline which processes the whole image.
-    const inputMeta = await sharp(rawBuf).metadata();
-    const isLandscape = (inputMeta.width ?? 0) > (inputMeta.height ?? 0);
-    if (isLandscape) {
-      console.log(`[${jobId}] Landscape image detected → routing to img2img to preserve all faces`);
-      let processed = await runNoFaceFallback(jobId, rawBuf, style);
-      processed = await applyFormat(processed, format);
-      processed = await sharp(processed).jpeg({ quality: 92 }).toBuffer();
-      job.imageBuffer = processed;
-      job.status = "completed";
-      try {
-        const filePath = await saveImageToDisk(jobId, job.userId, processed);
-        job.filePath = filePath;
-        await db.insert(generationsTable).values({
-          id: jobId, userId: job.userId, style: job.style, format: job.format,
-          mode: job.mode, filePath, watermark: 0,
-        }).onConflictDoUpdate({ target: generationsTable.id, set: { filePath } });
-      } catch (saveErr) {
-        console.warn(`[${jobId}] Could not save landscape result to gallery (non-fatal):`, saveErr);
-      }
-      try { fs.unlinkSync(imagePath); } catch {}
-      return;
-    }
-
     const config = FACE_TO_MANY_CONFIG[style];
     console.log(`[${jobId}] Running face-to-many (style=${style}, render="${config.style}")...`);
 
