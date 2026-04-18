@@ -19,6 +19,11 @@ const STYLE_LABELS: Record<string, string> = {
   fantasy: "Fantasy RPG",
   gtasa: "GTA San Andreas",
   dccomic: "DC Clásico",
+  fortnite: "Fortnite",
+  luxury: "Luxury",
+  hollywood: "Hollywood",
+  sims: "The Sims",
+  timetraveler: "Time Traveler",
 };
 
 const FORMAT_LABELS: Record<string, string> = {
