@@ -17,9 +17,8 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "https://koraframe.com";
 // ── Credit pack definitions (one-time purchases) ────────────────────────────
 export const CREDIT_PACKS = [
   { id: "pack_10",  label: "10 Generaciones",  credits: 10,  priceCents: 100,  priceLabel: "$1" },
-  { id: "pack_30",  label: "20 Generaciones",  credits: 20,  priceCents: 300,  priceLabel: "$3" },
-  { id: "pack_60",  label: "55 Generaciones",  credits: 55,  priceCents: 500,  priceLabel: "$5" },
-  { id: "pack_120", label: "105 Generaciones", credits: 105, priceCents: 1000, priceLabel: "$10" },
+  { id: "pack_30",  label: "60 Generaciones",  credits: 60,  priceCents: 499,  priceLabel: "$4.99" },
+  { id: "pack_120", label: "150 Generaciones", credits: 150, priceCents: 999,  priceLabel: "$9.99" },
 ];
 
 // ── GET /api/billing/me — user credits ───────────────────────────────────────
