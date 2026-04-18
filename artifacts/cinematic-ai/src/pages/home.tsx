@@ -560,14 +560,11 @@ export default function Home() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-blue-500/30 bg-blue-500/10">
-                        <AlertTriangle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-semibold text-blue-300">Mejor con 1 sola persona</p>
-                          <p className="text-xs text-blue-400/80 mt-0.5 leading-relaxed">
-                            La IA funciona mejor con fotos individuales. Las fotos grupales pueden generar resultados inconsistentes.
-                          </p>
-                        </div>
+                      <div className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-zinc-700/50 bg-zinc-800/40">
+                        <span className="text-base shrink-0 mt-0.5">💡</span>
+                        <p className="text-xs text-zinc-400 leading-relaxed">
+                          Funciona mejor con una sola persona en la foto.
+                        </p>
                       </div>
                     </div>
                   )}
