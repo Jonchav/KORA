@@ -502,9 +502,9 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
             prompt: config.prompt,
             negative_prompt:
               "ugly, deformed, noisy, blurry, distorted, disfigured, bad anatomy, extra limbs, six fingers, seven fingers, too many fingers, extra fingers, fused fingers, mutated hands, bad hands, poorly drawn hands, poorly drawn face, cloned hands, missing fingers, watermark, signature, text, logo, words, letters, typography, caption, subtitle, banner, label, writing, font, alphabet, characters, readable text, illegible text, garbled text, random text, nonsense text",
-            denoising_strength: 0.6,
-            instant_id_strength: 0.9,
-            control_depth_strength: 0.8,
+            denoising_strength: 0.65,
+            instant_id_strength: 0.65,
+            control_depth_strength: 0.65,
             prompt_strength: 5.5,
         },
         jobId,
