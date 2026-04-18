@@ -306,23 +306,23 @@ async function replicateRunWithRetry(
  * photorealism toward golden-age DC comic illustration.
  */
 async function runComicCartoonPipeline(jobId: string, buf: Buffer, dataUri: string): Promise<Buffer> {
-  console.log(`[${jobId}] DC Clásico: running face-to-many (Emoji base, cartoon tuning)...`);
+  console.log(`[${jobId}] DC Clásico: running face-to-many (3D base, comic tuning)...`);
 
   const prompt =
-    "vintage 1950s DC Comics golden age cartoon caricature, fun and playful illustration, big expressive cartoon eyes, thick black ink outlines, bold flat colors, warm amber golden yellow background, punchy reds blues greens, Sheldon Moldoff golden age comic book art style, bright and colorful, no text, no words, no captions, no banners";
+    "vintage 1950s DC Comics golden age illustration, one person, bold graphic novel art style, thick black ink outlines, flat bold colors, dynamic superhero pose, bright primary colors red blue yellow green, classic comic book shading, strong identity preserved, no text, no speech bubbles, no captions";
 
   const output = await replicateRunWithRetry(
     "fofr/face-to-many:a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf",
     {
         image: dataUri,
-        style: "Emoji",
+        style: "3D",
         prompt,
         negative_prompt:
-          "photorealistic, realistic skin, photograph, ugly, deformed, noisy, blurry, distorted, disfigured, bad anatomy, extra limbs, watermark, signature, text, logo, words, letters, typography, caption, banner",
-        denoising_strength: 0.78,
-        instant_id_strength: 0.55,
-        control_depth_strength: 0.65,
-        prompt_strength: 6.5,
+          "multiple characters, floating figures, random characters, photorealistic, ugly, deformed, noisy, blurry, distorted, bad anatomy, extra people, extra figures, watermark, signature, text, logo, words, letters, typography, caption, banner, speech bubble",
+        denoising_strength: 0.62,
+        instant_id_strength: 0.75,
+        control_depth_strength: 0.75,
+        prompt_strength: 5.0,
     },
     jobId,
   );
