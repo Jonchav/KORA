@@ -548,15 +548,26 @@ export default function Home() {
                   </h3>
                   <UploadZone onFileSelect={handleFileSelect} selectedFile={file} disabled={isTransforming} />
 
-                  {/* ── Photo tip ── */}
+                  {/* ── Photo tips ── */}
                   {file && (
-                    <div className="flex items-start gap-3 mt-3 px-4 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10">
-                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-semibold text-amber-300">¿Tu foto tiene un rostro visible?</p>
-                        <p className="text-xs text-amber-400/80 mt-0.5 leading-relaxed">
-                          Para mejores resultados usa una selfie o foto donde tu cara esté centrada y bien iluminada.
-                        </p>
+                    <div className="flex flex-col gap-2 mt-3">
+                      <div className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-semibold text-amber-300">¿Tu foto tiene un rostro visible?</p>
+                          <p className="text-xs text-amber-400/80 mt-0.5 leading-relaxed">
+                            Para mejores resultados usa una selfie o foto donde tu cara esté centrada y bien iluminada.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-blue-500/30 bg-blue-500/10">
+                        <AlertTriangle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-semibold text-blue-300">Mejor con 1 sola persona</p>
+                          <p className="text-xs text-blue-400/80 mt-0.5 leading-relaxed">
+                            La IA funciona mejor con fotos individuales. Las fotos grupales pueden generar resultados inconsistentes.
+                          </p>
+                        </div>
                       </div>
                     </div>
                   )}
