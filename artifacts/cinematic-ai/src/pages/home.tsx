@@ -285,60 +285,68 @@ const CAROUSEL_ITEMS: GalleryItem[] = [
 const CAROUSEL = [...CAROUSEL_ITEMS, ...CAROUSEL_ITEMS];
 
 function GalleryStrip() {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const posRef   = useRef(0);
-  const rafRef   = useRef<number>(0);
-  const dragging = useRef(false);
-  const lastX    = useRef(0);
-  const SPEED    = 0.5; // px per frame
+  const trackRef  = useRef<HTMLDivElement>(null);
+  const [paused, setPaused] = useState(false);
+  const CARD_W = 192 + 16; // w-48 (192px) + gap-4 (16px)
 
-  useEffect(() => {
-    const tick = () => {
-      if (!dragging.current && trackRef.current) {
-        posRef.current -= SPEED;
-        const halfW = trackRef.current.scrollWidth / 2;
-        if (posRef.current <= -halfW) posRef.current = 0;
-        trackRef.current.style.transform = `translateX(${posRef.current}px)`;
+  const nudge = (dir: -1 | 1) => {
+    const el = trackRef.current;
+    if (!el) return;
+    // Pause CSS animation, read current rendered translateX, shift by 3 cards
+    const style = window.getComputedStyle(el);
+    const matrix = new DOMMatrix(style.transform);
+    const currentX = matrix.m41;
+    const halfW = el.scrollWidth / 2;
+    let nextX = currentX + dir * CARD_W * 3;
+    // Wrap bounds
+    if (nextX > 0) nextX = -halfW + nextX;
+    if (nextX <= -halfW) nextX = 0;
+    // Apply with smooth transition, then hand back to CSS animation
+    el.style.transition = "transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94)";
+    el.style.animation = "none";
+    el.style.transform = `translateX(${nextX}px)`;
+    setPaused(true);
+    setTimeout(() => {
+      if (el) {
+        el.style.transition = "";
+        el.style.animation  = "";
+        // Restart CSS animation from the nudged offset using animation-delay trick
+        el.style.animationPlayState = "running";
       }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, []);
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    dragging.current = true;
-    lastX.current = e.clientX;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      setPaused(false);
+    }, 450);
   };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!dragging.current || !trackRef.current) return;
-    const dx = e.clientX - lastX.current;
-    lastX.current = e.clientX;
-    posRef.current += dx;
-    const halfW = trackRef.current.scrollWidth / 2;
-    if (posRef.current > 0) posRef.current -= halfW;
-    if (posRef.current <= -halfW) posRef.current = 0;
-    trackRef.current.style.transform = `translateX(${posRef.current}px)`;
-  };
-
-  const onPointerUp = () => { dragging.current = false; };
 
   return (
-    <div
-      className="relative w-full overflow-hidden py-4 select-none cursor-grab active:cursor-grabbing"
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerLeave={onPointerUp}
-    >
-      <div ref={trackRef} className="flex gap-4" style={{ width: "max-content" }}>
+    <div className="relative w-full overflow-hidden py-4 select-none">
+      {/* Auto-scroll track */}
+      <div
+        ref={trackRef}
+        className="flex gap-4 animate-marquee-left"
+        style={{ width: "max-content", animationPlayState: paused ? "paused" : "running" }}
+      >
         {CAROUSEL.map((item, i) => <PreviewCard key={`c-${i}`} s={item} index={i} imgSrc={item.imgSrc} />)}
       </div>
+
       {/* Edge fade masks */}
-      <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
-      <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+      <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+      <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+
+      {/* Arrow buttons */}
+      <button
+        onClick={() => nudge(1)}
+        className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/60 border border-white/10 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white hover:bg-black/80 transition-all"
+        aria-label="Previous"
+      >
+        ‹
+      </button>
+      <button
+        onClick={() => nudge(-1)}
+        className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/60 border border-white/10 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white hover:bg-black/80 transition-all"
+        aria-label="Next"
+      >
+        ›
+      </button>
     </div>
   );
 }
