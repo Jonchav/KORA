@@ -255,6 +255,7 @@ const s = (id: StyleType) => STYLES.find(st => st.id === id)!;
 
 const CAROUSEL_ITEMS: GalleryItem[] = [
   { ...s("gtasa"),       imgSrc: "/examples/man-gtasa.jpg" },
+  { ...s("sims"),        imgSrc: "/examples/man-sims.jpg" },
   { ...s("dccomic"),     imgSrc: "/examples/selfie-dccomic.jpg" },
   { ...s("anime"),       imgSrc: "/examples/anime-v2.jpg" },
   { ...s("clay"),        imgSrc: "/examples/girl-clay.jpg" },
