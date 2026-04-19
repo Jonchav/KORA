@@ -601,7 +601,7 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
           mode: job.mode, filePath, watermark: 0,
         }).onConflictDoUpdate({ target: generationsTable.id, set: { filePath } });
       } catch (saveErr) {
-        console.warn(`[${jobId}] Could not save DC comic to gallery (non-fatal):`, saveErr);
+        console.error(`[${jobId}] GALLERY SAVE FAILED (DC comic):`, saveErr);
       }
       try { fs.unlinkSync(imagePath); } catch {}
       return;
@@ -634,7 +634,7 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
           mode: job.mode, filePath, watermark: 0,
         }).onConflictDoUpdate({ target: generationsTable.id, set: { filePath } });
       } catch (saveErr) {
-        console.warn(`[${jobId}] Could not save FLUX result to gallery (non-fatal):`, saveErr);
+        console.error(`[${jobId}] GALLERY SAVE FAILED (FLUX):`, saveErr);
       }
       try { fs.unlinkSync(imagePath); } catch {}
       return;
@@ -773,7 +773,7 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
       });
       console.log(`[${jobId}] Saved to disk and DB: ${filePath}`);
     } catch (saveErr) {
-      console.warn(`[${jobId}] Could not save to gallery (non-fatal):`, saveErr);
+      console.error(`[${jobId}] GALLERY SAVE FAILED:`, saveErr);
     }
   } catch (err) {
     job.status = "failed";
