@@ -284,25 +284,28 @@ const CAROUSEL_ITEMS: GalleryItem[] = [
 // Duplicate for seamless infinite scroll
 const CAROUSEL = [...CAROUSEL_ITEMS, ...CAROUSEL_ITEMS];
 
-const CARD_W = 192 + 16; // w-48 + gap-4
+const CARD_W    = 192 + 16; // w-48 + gap-4
+const SPEED     = 0.55;     // px per frame
+const NUDGE_PX  = CARD_W * 3;
 
 function GalleryStrip() {
-  const trackRef  = useRef<HTMLDivElement>(null);
-  const posRef    = useRef(0);
-  const halfWRef  = useRef(0);
-  const rafRef    = useRef<number>(0);
-  const SPEED     = 0.55;
+  const trackRef   = useRef<HTMLDivElement>(null);
+  const posRef     = useRef(0);
+  const halfWRef   = useRef(0);
+  const rafRef     = useRef<number>(0);
+  const nudgingRef = useRef(false);
 
   useEffect(() => {
     const el = trackRef.current;
     if (!el) return;
-    // Measure once after mount
     halfWRef.current = el.scrollWidth / 2;
 
     const tick = () => {
-      posRef.current -= SPEED;
-      if (posRef.current <= -halfWRef.current) posRef.current += halfWRef.current;
-      el.style.transform = `translateX(${posRef.current}px)`;
+      if (!nudgingRef.current) {
+        posRef.current -= SPEED;
+        if (posRef.current <= -halfWRef.current) posRef.current += halfWRef.current;
+        el.style.transform = `translateX(${posRef.current}px)`;
+      }
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -310,12 +313,28 @@ function GalleryStrip() {
   }, []);
 
   const nudge = (dir: -1 | 1) => {
-    const hw = halfWRef.current;
-    if (!hw) return;
-    posRef.current += dir * CARD_W * 3;
-    // Clamp to [-hw, 0)
-    while (posRef.current > 0)   posRef.current -= hw;
-    while (posRef.current < -hw) posRef.current += hw;
+    if (nudgingRef.current) return; // ignore while animating
+    const hw  = halfWRef.current;
+    const el  = trackRef.current;
+    if (!hw || !el) return;
+
+    nudgingRef.current = true;
+
+    let next = posRef.current + dir * NUDGE_PX;
+    while (next > 0)    next -= hw;
+    while (next <= -hw) next += hw;
+    posRef.current = next;
+
+    // Animate the jump with CSS transition; rAF is paused during this
+    el.style.transition = "transform 0.38s cubic-bezier(0.4,0,0.2,1)";
+    el.style.transform  = `translateX(${next}px)`;
+
+    setTimeout(() => {
+      if (trackRef.current) {
+        trackRef.current.style.transition = "none";
+      }
+      nudgingRef.current = false;
+    }, 420);
   };
 
   return (
