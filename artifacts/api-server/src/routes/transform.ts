@@ -295,11 +295,11 @@ const FLUX_IMG2IMG_STYLES: Set<Style> = new Set(["luxury", "hollywood", "timetra
 
 const FLUX_IMG2IMG_PROMPTS: Partial<Record<Style, string>> = {
   luxury:
-    "the same person in this photo, same face, same gender, same skin tone, same body — transformed into a luxury lifestyle editorial portrait. Same framing and composition. Replace the background with an upscale setting: superyacht deck or Monaco Grand Prix paddock. Dress them in a bespoke designer suit or gown matching their gender. Add a Patek Philippe watch. Dramatic GQ magazine lighting. Cinematic and sophisticated. High-end fashion editorial quality.",
+    "photo of the exact same person: same face, same age, same gender, same skin tone, same hair, same hairstyle, same head shape — only the background and clothing change. Luxury lifestyle editorial portrait. Background: superyacht deck or Monaco Grand Prix paddock. Clothing: bespoke designer suit or outfit that matches their gender and age. Patek Philippe watch on wrist. Dramatic GQ magazine lighting. Cinematic, sophisticated, high-end fashion editorial. Do not change the face, age, hair, or identity.",
   hollywood:
-    "the same person in this photo, same face, same gender, same skin tone, same body — transformed into a Hollywood A-list celebrity portrait. Same framing and composition. Replace the background with a glamorous movie premiere: red carpet with camera flashes and spotlights. Polished editorial wardrobe matching their gender. Dramatic chiaroscuro studio lighting. Vanity Fair quality. Iconic and timeless.",
+    "photo of the exact same person: same face, same age, same gender, same skin tone, same hair, same hairstyle — only the background and clothing change. Hollywood A-list celebrity portrait. Background: movie premiere red carpet with camera flashes and spotlights. Clothing: polished editorial wardrobe matching their gender and age. Dramatic chiaroscuro studio lighting. Vanity Fair editorial quality. Do not change the face, age, hair, or identity.",
   timetraveler:
-    "the same person in this photo, same face, same gender, same skin tone, same body — transformed into a steampunk time traveler portrait. Same framing and composition. Replace the background with a Victorian clockwork laboratory: brass gears, copper pipes, glowing blue-gold time vortex. Add leather aviator goggles and a vintage pocket watch chain. Dramatic atmospheric moody lighting. H.G. Wells cinematic style.",
+    "photo of the exact same person: same face, same age, same gender, same skin tone, same hair, same hairstyle — only the background and clothing change. Steampunk time traveler portrait. Background: Victorian clockwork laboratory with brass gears, copper pipes, glowing blue-gold time vortex. Add leather aviator goggles pushed up on forehead and vintage pocket watch chain. Dramatic atmospheric moody lighting. H.G. Wells cinematic style. Do not change the face, age, hair, or identity.",
 };
 
 async function runFluxImg2ImgPipeline(jobId: string, buf: Buffer, style: Style): Promise<Buffer> {
@@ -332,7 +332,7 @@ async function runFluxImg2ImgPipeline(jobId: string, buf: Buffer, style: Style):
           input: {
             image: dataUri,
             prompt,
-            prompt_strength: 0.60,
+            prompt_strength: 0.55,
             num_inference_steps: 30,
             guidance: 3.5,
             output_format: "jpg",
