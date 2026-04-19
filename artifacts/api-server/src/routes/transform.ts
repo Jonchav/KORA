@@ -335,7 +335,7 @@ async function runFluxImg2ImgPipeline(jobId: string, buf: Buffer, style: Style):
             prompt_strength: 0.70,
             num_inference_steps: 30,
             guidance: 3.5,
-            output_format: "jpeg",
+            output_format: "jpg",
             output_quality: 92,
           },
         }
