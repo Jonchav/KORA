@@ -122,20 +122,20 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string; denois
   luxury: {
     style: "3D",
     prompt:
-      "ultra-luxury lifestyle editorial portrait, full upper body visible, wide medium shot, bespoke Tom Ford or Brioni designer suit with silk pocket square, Patek Philippe or Audemars Piguet watch, Monaco Grand Prix paddock or private superyacht background clearly visible, dramatic editorial GQ magazine lighting, aspirational high-fashion photography, cinematic and sophisticated, show background environment",
-    denoising: 0.60,
-    instantId: 0.72,
-    depthStrength: 0.82,
-    promptStrength: 5.0,
+      "GQ magazine cover, wearing elegant Tom Ford three-piece suit jacket shirt and tie, luxury Patek Philippe watch on wrist, upscale hotel rooftop or Monaco superyacht marina in background, professional editorial fashion photography, aspirational high-end lifestyle, sophisticated and polished look",
+    denoising: 0.68,
+    instantId: 0.70,
+    depthStrength: 0.68,
+    promptStrength: 6.0,
   },
   hollywood: {
     style: "3D",
     prompt:
-      "Hollywood A-list movie star, full upper body visible, wide medium shot, golden era glamour photography, dramatic chiaroscuro studio lighting, red carpet premiere with camera flashes and spotlights clearly visible in the background, Vanity Fair magazine editorial quality, cinematic film look, iconic and timeless celebrity aesthetic, show background environment",
-    denoising: 0.60,
-    instantId: 0.72,
-    depthStrength: 0.82,
-    promptStrength: 5.0,
+      "Hollywood movie premiere, wearing tailored black tuxedo with bow tie, red carpet with paparazzi camera flashes in the background, dramatic spotlight lighting, Vanity Fair Oscar night editorial quality, A-list celebrity look, cinematic film noir glamour",
+    denoising: 0.68,
+    instantId: 0.70,
+    depthStrength: 0.68,
+    promptStrength: 6.0,
   },
   sims: {
     style: "3D",
@@ -145,11 +145,11 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string; denois
   timetraveler: {
     style: "3D",
     prompt:
-      "steampunk time traveler, full upper body visible, wide medium shot, Victorian brass clockwork and copper gear aesthetic, leather aviator goggles pushed up on forehead, ornate vintage pocket watch chain, swirling blue-gold time vortex portal with floating clock faces clearly visible in the background, H.G. Wells meets Doctor Who cinematic style, dramatic atmospheric lighting, show background environment",
-    denoising: 0.60,
-    instantId: 0.72,
-    depthStrength: 0.82,
-    promptStrength: 5.0,
+      "steampunk time traveler costume, wearing Victorian leather coat with brass gears and cogs, leather aviator goggles, ornate pocket watch on chain, swirling luminous blue-gold time vortex portal with floating clock faces behind them, cinematic atmospheric lighting, H.G. Wells meets Doctor Who",
+    denoising: 0.68,
+    instantId: 0.70,
+    depthStrength: 0.68,
+    promptStrength: 6.0,
   },
 };
 
