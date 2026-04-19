@@ -295,11 +295,11 @@ const FLUX_IMG2IMG_STYLES: Set<Style> = new Set(["luxury", "hollywood", "timetra
 
 const FLUX_IMG2IMG_PROMPTS: Partial<Record<Style, string>> = {
   luxury:
-    "transform this photo into a luxury lifestyle editorial portrait. Keep the exact same person, framing, composition and pose. Replace the background with an upscale setting: superyacht deck or Monaco Grand Prix paddock. Dress the person in a bespoke designer suit with silk pocket square. Add a Patek Philippe watch. Dramatic GQ magazine lighting. Cinematic and sophisticated. High-end fashion editorial quality.",
+    "the same person in this photo, same face, same gender, same skin tone, same body — transformed into a luxury lifestyle editorial portrait. Same framing and composition. Replace the background with an upscale setting: superyacht deck or Monaco Grand Prix paddock. Dress them in a bespoke designer suit or gown matching their gender. Add a Patek Philippe watch. Dramatic GQ magazine lighting. Cinematic and sophisticated. High-end fashion editorial quality.",
   hollywood:
-    "transform this photo into a Hollywood A-list celebrity portrait. Keep the exact same person, framing, composition and pose. Replace the background with a glamorous movie premiere: red carpet with camera flashes and spotlights. Apply polished editorial makeup and wardrobe. Dramatic chiaroscuro studio lighting. Vanity Fair quality. Iconic and timeless.",
+    "the same person in this photo, same face, same gender, same skin tone, same body — transformed into a Hollywood A-list celebrity portrait. Same framing and composition. Replace the background with a glamorous movie premiere: red carpet with camera flashes and spotlights. Polished editorial wardrobe matching their gender. Dramatic chiaroscuro studio lighting. Vanity Fair quality. Iconic and timeless.",
   timetraveler:
-    "transform this photo into a steampunk time traveler portrait. Keep the exact same person, framing, composition and pose. Replace the background with a Victorian clockwork laboratory: brass gears, copper pipes, glowing blue-gold time vortex. Add leather aviator goggles and vintage pocket watch chain. Dramatic atmospheric moody lighting. H.G. Wells cinematic style.",
+    "the same person in this photo, same face, same gender, same skin tone, same body — transformed into a steampunk time traveler portrait. Same framing and composition. Replace the background with a Victorian clockwork laboratory: brass gears, copper pipes, glowing blue-gold time vortex. Add leather aviator goggles and a vintage pocket watch chain. Dramatic atmospheric moody lighting. H.G. Wells cinematic style.",
 };
 
 async function runFluxImg2ImgPipeline(jobId: string, buf: Buffer, style: Style): Promise<Buffer> {
@@ -332,7 +332,7 @@ async function runFluxImg2ImgPipeline(jobId: string, buf: Buffer, style: Style):
           input: {
             image: dataUri,
             prompt,
-            prompt_strength: 0.70,
+            prompt_strength: 0.60,
             num_inference_steps: 30,
             guidance: 3.5,
             output_format: "jpg",
