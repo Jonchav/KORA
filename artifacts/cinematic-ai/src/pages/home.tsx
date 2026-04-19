@@ -571,7 +571,35 @@ export default function Home() {
         </div>
 
         {/* ── Hero ── */}
-        <div className="max-w-4xl mx-auto px-4 pt-8 sm:pt-12 text-center">
+        <div className="relative overflow-hidden">
+
+          {/* Background showcase images */}
+          <div className="absolute inset-0 pointer-events-none select-none flex justify-between items-start px-0" aria-hidden="true">
+            {/* Left — GTA */}
+            <img
+              src="/examples/man-gtasa.jpg"
+              className="w-[22vw] max-w-[240px] h-[110%] object-cover object-top opacity-[0.13] rounded-tr-3xl rounded-br-3xl"
+              draggable={false}
+            />
+            {/* Center — Sims */}
+            <img
+              src="/examples/man-sims.jpg"
+              className="absolute left-1/2 -translate-x-1/2 top-0 w-[18vw] max-w-[200px] h-full object-cover object-top opacity-[0.07]"
+              draggable={false}
+            />
+            {/* Right — Fortnite */}
+            <img
+              src="/examples/girl-fortnite.jpg"
+              className="w-[22vw] max-w-[240px] h-[110%] object-cover object-top opacity-[0.13] rounded-tl-3xl rounded-bl-3xl"
+              draggable={false}
+            />
+          </div>
+
+          {/* Top + bottom fade to blend edges */}
+          <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-background to-transparent pointer-events-none z-10" />
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
+
+        <div className="max-w-4xl mx-auto px-4 pt-8 sm:pt-12 text-center relative z-20">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -621,6 +649,7 @@ export default function Home() {
             ))}
           </motion.div>
         </div>
+        </div>{/* end hero wrapper */}
 
         {/* ── Scrolling gallery ── */}
         <motion.div
