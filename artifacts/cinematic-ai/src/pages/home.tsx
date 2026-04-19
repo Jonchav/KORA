@@ -259,6 +259,7 @@ const CAROUSEL_ITEMS: GalleryItem[] = [
   { ...s("luxury"),      imgSrc: "/examples/man-luxury.jpg" },
   { ...s("fortnite"),      imgSrc: "/examples/girl-fortnite.jpg" },
   { ...s("timetraveler"), imgSrc: "/examples/man-timetraveler.jpg" },
+  { ...s("hollywood"),    imgSrc: "/examples/man-hollywood.jpg" },
   { ...s("dccomic"),      imgSrc: "/examples/selfie-dccomic.jpg" },
   { ...s("anime"),       imgSrc: "/examples/anime-v2.jpg" },
   { ...s("clay"),        imgSrc: "/examples/girl-clay.jpg" },
