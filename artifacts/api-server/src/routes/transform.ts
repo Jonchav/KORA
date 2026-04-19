@@ -48,7 +48,7 @@ const FORMAT_RATIOS: Record<Format, string> = {
   landscape: "16:9",
 };
 
-const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string }> = {
+const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string; denoising?: number; instantId?: number; depthStrength?: number; promptStrength?: number }> = {
   comic: {
     style: "3D",
     prompt:
@@ -122,12 +122,20 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string }> = {
   luxury: {
     style: "3D",
     prompt:
-      "ultra-luxury lifestyle portrait, bespoke Tom Ford or Brioni designer suit with silk pocket square, Patek Philippe or Audemars Piguet watch, Monaco Grand Prix paddock or private superyacht background, dramatic editorial GQ magazine lighting, aspirational high-fashion photography, cinematic and sophisticated",
+      "ultra-luxury lifestyle editorial portrait, full upper body visible, wide medium shot, bespoke Tom Ford or Brioni designer suit with silk pocket square, Patek Philippe or Audemars Piguet watch, Monaco Grand Prix paddock or private superyacht background clearly visible, dramatic editorial GQ magazine lighting, aspirational high-fashion photography, cinematic and sophisticated, show background environment",
+    denoising: 0.60,
+    instantId: 0.72,
+    depthStrength: 0.82,
+    promptStrength: 5.0,
   },
   hollywood: {
     style: "3D",
     prompt:
-      "Hollywood A-list movie star portrait, golden era glamour photography, dramatic chiaroscuro studio lighting, red carpet premiere with camera flashes and spotlights in the background, Vanity Fair magazine editorial quality, cinematic film look, iconic and timeless celebrity aesthetic",
+      "Hollywood A-list movie star, full upper body visible, wide medium shot, golden era glamour photography, dramatic chiaroscuro studio lighting, red carpet premiere with camera flashes and spotlights clearly visible in the background, Vanity Fair magazine editorial quality, cinematic film look, iconic and timeless celebrity aesthetic, show background environment",
+    denoising: 0.60,
+    instantId: 0.72,
+    depthStrength: 0.82,
+    promptStrength: 5.0,
   },
   sims: {
     style: "3D",
@@ -137,7 +145,11 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string }> = {
   timetraveler: {
     style: "3D",
     prompt:
-      "steampunk time traveler portrait, Victorian brass clockwork and copper gear aesthetic, leather aviator goggles pushed up on forehead, ornate vintage pocket watch chain, swirling blue-gold time vortex portal with floating clock faces in the background, H.G. Wells meets Doctor Who cinematic style, dramatic atmospheric lighting",
+      "steampunk time traveler, full upper body visible, wide medium shot, Victorian brass clockwork and copper gear aesthetic, leather aviator goggles pushed up on forehead, ornate vintage pocket watch chain, swirling blue-gold time vortex portal with floating clock faces clearly visible in the background, H.G. Wells meets Doctor Who cinematic style, dramatic atmospheric lighting, show background environment",
+    denoising: 0.60,
+    instantId: 0.72,
+    depthStrength: 0.82,
+    promptStrength: 5.0,
   },
 };
 
@@ -607,39 +619,6 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
       return;
     }
 
-    // ── FLUX img2img: realistic styles that need composition preserved ────────
-    if (FLUX_IMG2IMG_STYLES.has(style)) {
-      console.log(`[${jobId}] Routing ${style} → FLUX Dev img2img (composition-preserving pipeline)`);
-      let processed = await runFluxImg2ImgPipeline(jobId, rawBuf, style);
-
-      // Upscale + sharpen
-      const upMeta = await sharp(processed).metadata();
-      const srcW = upMeta.width ?? 512;
-      const targetW = Math.min(srcW * 2, 2048);
-      processed = await sharp(processed)
-        .resize(targetW, null, { kernel: "lanczos3", fastShrinkOnLoad: false })
-        .sharpen({ sigma: 0.6, m1: 1.5, m2: 2.5 })
-        .jpeg({ quality: 92 }).toBuffer();
-
-      processed = await applyFormat(processed, format);
-      processed = await sharp(processed).jpeg({ quality: 92 }).toBuffer();
-
-      job.imageBuffer = processed;
-      job.status = "completed";
-      try {
-        const filePath = await saveImageToDisk(jobId, job.userId, processed);
-        job.filePath = filePath;
-        await db.insert(generationsTable).values({
-          id: jobId, userId: job.userId, style: job.style, format: job.format,
-          mode: job.mode, filePath, watermark: 0,
-        }).onConflictDoUpdate({ target: generationsTable.id, set: { filePath } });
-      } catch (saveErr) {
-        console.error(`[${jobId}] GALLERY SAVE FAILED (FLUX):`, saveErr);
-      }
-      try { fs.unlinkSync(imagePath); } catch {}
-      return;
-    }
-
     const { buf, cropped } = await smartCropForFace(rawBuf, jobId);
     if (cropped) console.log(`[${jobId}] Applied smart face-crop before face-to-many`);
 
@@ -662,10 +641,10 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
             prompt: config.prompt,
             negative_prompt:
               "ugly, deformed, noisy, blurry, distorted, disfigured, bad anatomy, extra limbs, six fingers, seven fingers, too many fingers, extra fingers, fused fingers, mutated hands, bad hands, poorly drawn hands, poorly drawn face, cloned hands, missing fingers, watermark, signature, text, logo, words, letters, typography, caption, subtitle, banner, label, writing, font, alphabet, characters, readable text, illegible text, garbled text, random text, nonsense text",
-            denoising_strength: 0.65,
-            instant_id_strength: 0.65,
-            control_depth_strength: 0.65,
-            prompt_strength: 5.5,
+            denoising_strength: config.denoising ?? 0.65,
+            instant_id_strength: config.instantId ?? 0.65,
+            control_depth_strength: config.depthStrength ?? 0.65,
+            prompt_strength: config.promptStrength ?? 5.5,
         },
         jobId,
       );
