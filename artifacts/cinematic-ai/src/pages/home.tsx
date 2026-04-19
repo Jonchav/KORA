@@ -284,46 +284,46 @@ const CAROUSEL_ITEMS: GalleryItem[] = [
 // Duplicate for seamless infinite scroll
 const CAROUSEL = [...CAROUSEL_ITEMS, ...CAROUSEL_ITEMS];
 
+const CARD_W = 192 + 16; // w-48 + gap-4
+
 function GalleryStrip() {
   const trackRef  = useRef<HTMLDivElement>(null);
-  const [paused, setPaused] = useState(false);
-  const CARD_W = 192 + 16; // w-48 (192px) + gap-4 (16px)
+  const posRef    = useRef(0);
+  const halfWRef  = useRef(0);
+  const rafRef    = useRef<number>(0);
+  const SPEED     = 0.55;
 
-  const nudge = (dir: -1 | 1) => {
+  useEffect(() => {
     const el = trackRef.current;
     if (!el) return;
-    // Pause CSS animation, read current rendered translateX, shift by 3 cards
-    const style = window.getComputedStyle(el);
-    const matrix = new DOMMatrix(style.transform);
-    const currentX = matrix.m41;
-    const halfW = el.scrollWidth / 2;
-    let nextX = currentX + dir * CARD_W * 3;
-    // Wrap bounds
-    if (nextX > 0) nextX = -halfW + nextX;
-    if (nextX <= -halfW) nextX = 0;
-    // Apply with smooth transition, then hand back to CSS animation
-    el.style.transition = "transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94)";
-    el.style.animation = "none";
-    el.style.transform = `translateX(${nextX}px)`;
-    setPaused(true);
-    setTimeout(() => {
-      if (el) {
-        el.style.transition = "";
-        el.style.animation  = "";
-        // Restart CSS animation from the nudged offset using animation-delay trick
-        el.style.animationPlayState = "running";
-      }
-      setPaused(false);
-    }, 450);
+    // Measure once after mount
+    halfWRef.current = el.scrollWidth / 2;
+
+    const tick = () => {
+      posRef.current -= SPEED;
+      if (posRef.current <= -halfWRef.current) posRef.current += halfWRef.current;
+      el.style.transform = `translateX(${posRef.current}px)`;
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  const nudge = (dir: -1 | 1) => {
+    const hw = halfWRef.current;
+    if (!hw) return;
+    posRef.current += dir * CARD_W * 3;
+    // Clamp to [-hw, 0)
+    while (posRef.current > 0)   posRef.current -= hw;
+    while (posRef.current < -hw) posRef.current += hw;
   };
 
   return (
     <div className="relative w-full overflow-hidden py-4 select-none">
-      {/* Auto-scroll track */}
       <div
         ref={trackRef}
-        className="flex gap-4 animate-marquee-left"
-        style={{ width: "max-content", animationPlayState: paused ? "paused" : "running" }}
+        className="flex gap-4"
+        style={{ width: "max-content", willChange: "transform" }}
       >
         {CAROUSEL.map((item, i) => <PreviewCard key={`c-${i}`} s={item} index={i} imgSrc={item.imgSrc} />)}
       </div>
@@ -335,18 +335,14 @@ function GalleryStrip() {
       {/* Arrow buttons */}
       <button
         onClick={() => nudge(1)}
-        className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/60 border border-white/10 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white hover:bg-black/80 transition-all"
+        className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/60 border border-white/10 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white hover:bg-black/80 transition-all text-lg leading-none"
         aria-label="Previous"
-      >
-        ‹
-      </button>
+      >‹</button>
       <button
         onClick={() => nudge(-1)}
-        className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/60 border border-white/10 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white hover:bg-black/80 transition-all"
+        className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/60 border border-white/10 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white hover:bg-black/80 transition-all text-lg leading-none"
         aria-label="Next"
-      >
-        ›
-      </button>
+      >›</button>
     </div>
   );
 }
