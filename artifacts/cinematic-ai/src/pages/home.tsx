@@ -504,12 +504,12 @@ export default function Home() {
       <div className="relative z-10">
 
         {/* ── Top bar ── */}
-        <div className="max-w-4xl mx-auto px-4 pt-4 flex justify-between items-center">
+        <div className="max-w-4xl mx-auto px-1 pt-2 flex justify-between items-center">
           {/* Left: brand mark */}
           <img
             src="/kora-logo.png"
             alt="KORA"
-            className="h-12 w-12 object-contain"
+            className="h-16 w-16 object-contain"
             style={{ filter: 'drop-shadow(0 0 10px #6699ff88)' }}
           />
 
