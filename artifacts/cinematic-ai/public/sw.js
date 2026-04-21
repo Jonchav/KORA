@@ -1,6 +1,5 @@
-const CACHE_NAME = 'kora-v1';
+const CACHE_NAME = 'kora-v2';
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
@@ -26,7 +25,7 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Network-first for API calls and external resources
+  // Always network-first for API calls and external resources
   if (
     url.pathname.startsWith('/api/') ||
     url.hostname !== self.location.hostname
@@ -35,7 +34,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for static assets
+  // Network-first for HTML (navigation requests) — always get fresh app shell
+  if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(
+      fetch(request).catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Cache-first for static assets (images, fonts, icons)
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
