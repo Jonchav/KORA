@@ -506,7 +506,12 @@ export default function Home() {
         {/* ── Top bar ── */}
         <div className="max-w-4xl mx-auto px-4 pt-4 flex justify-between items-center">
           {/* Left: brand mark */}
-          <span className="text-[10px] font-mono tracking-[0.25em] text-zinc-700 uppercase">KORA</span>
+          <img
+            src="/kora-logo.png"
+            alt="KORA"
+            className="h-10 w-10 object-contain"
+            style={{ mixBlendMode: 'screen' }}
+          />
 
           {/* Right: PRO button + credits + user */}
           {user && (

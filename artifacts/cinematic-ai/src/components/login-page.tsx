@@ -108,6 +108,14 @@ export function LoginPage() {
       <div className="relative z-10 w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-10">
+          <div className="flex justify-center mb-2">
+            <img
+              src="/kora-logo.png"
+              alt="KORA"
+              className="h-20 w-20 object-contain"
+              style={{ mixBlendMode: 'screen' }}
+            />
+          </div>
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6">
             <Zap className="w-3.5 h-3.5 text-primary animate-pulse" />
             <span className="text-xs font-semibold text-primary tracking-widest uppercase">KORA</span>
