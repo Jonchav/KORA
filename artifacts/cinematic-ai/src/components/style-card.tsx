@@ -8,6 +8,7 @@ export interface StyleConfig {
   emoji: string;
   gradient: string;
   glow: string;
+  imgSrc: string;
 }
 
 export const STYLES: StyleConfig[] = [
@@ -18,6 +19,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🎮",
     gradient: "from-green-700 to-green-900",
     glow: "rgba(21,128,61,0.5)",
+    imgSrc: "/examples/man-gtasa.jpg",
   },
   {
     id: "dccomic",
@@ -26,6 +28,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🦇",
     gradient: "from-yellow-400 to-amber-600",
     glow: "rgba(251,191,36,0.45)",
+    imgSrc: "/examples/selfie-dccomic.jpg",
   },
   {
     id: "comic",
@@ -34,6 +37,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "💥",
     gradient: "from-yellow-400 to-orange-500",
     glow: "rgba(251,191,36,0.4)",
+    imgSrc: "/examples/comic-v2.jpg",
   },
   {
     id: "anime",
@@ -42,6 +46,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "✨",
     gradient: "from-pink-400 to-purple-500",
     glow: "rgba(236,72,153,0.4)",
+    imgSrc: "/examples/anime-v2.jpg",
   },
   {
     id: "popart",
@@ -50,6 +55,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🎨",
     gradient: "from-red-400 to-pink-500",
     glow: "rgba(239,68,68,0.4)",
+    imgSrc: "/examples/popart-v2.jpg",
   },
   {
     id: "watercolor",
@@ -58,6 +64,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🎭",
     gradient: "from-cyan-400 to-blue-500",
     glow: "rgba(34,211,238,0.4)",
+    imgSrc: "/examples/watercolor-v2.jpg",
   },
   {
     id: "oilpainting",
@@ -66,6 +73,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🖌️",
     gradient: "from-amber-500 to-yellow-600",
     glow: "rgba(245,158,11,0.4)",
+    imgSrc: "/examples/oilpainting-v2.jpg",
   },
   {
     id: "cyberpunk",
@@ -74,6 +82,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "⚡",
     gradient: "from-violet-500 to-cyan-500",
     glow: "rgba(139,92,246,0.4)",
+    imgSrc: "/examples/cyberpunk-v2.jpg",
   },
   {
     id: "pixel",
@@ -82,6 +91,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "👾",
     gradient: "from-green-400 to-emerald-600",
     glow: "rgba(52,211,153,0.4)",
+    imgSrc: "/examples/cafe-pixel.jpg",
   },
   {
     id: "clay",
@@ -90,6 +100,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🧸",
     gradient: "from-orange-300 to-rose-400",
     glow: "rgba(251,146,60,0.4)",
+    imgSrc: "/examples/girl-clay.jpg",
   },
   {
     id: "toy",
@@ -98,6 +109,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🪆",
     gradient: "from-sky-400 to-indigo-500",
     glow: "rgba(56,189,248,0.4)",
+    imgSrc: "/examples/red-toy.jpg",
   },
   {
     id: "vaporwave",
@@ -106,6 +118,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🌊",
     gradient: "from-fuchsia-400 to-violet-600",
     glow: "rgba(232,121,249,0.4)",
+    imgSrc: "/examples/denim-vapor.jpg",
   },
   {
     id: "fantasy",
@@ -114,6 +127,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "⚔️",
     gradient: "from-slate-600 to-purple-800",
     glow: "rgba(126,34,206,0.4)",
+    imgSrc: "/examples/flower-fantasy.jpg",
   },
   {
     id: "fortnite",
@@ -122,6 +136,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🎯",
     gradient: "from-blue-500 to-indigo-700",
     glow: "rgba(99,102,241,0.5)",
+    imgSrc: "/examples/girl-fortnite.jpg",
   },
   {
     id: "luxury",
@@ -130,6 +145,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "💎",
     gradient: "from-yellow-600 to-zinc-800",
     glow: "rgba(202,138,4,0.45)",
+    imgSrc: "/examples/man-luxury.jpg",
   },
   {
     id: "hollywood",
@@ -138,6 +154,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🎬",
     gradient: "from-amber-500 to-red-800",
     glow: "rgba(245,158,11,0.45)",
+    imgSrc: "/examples/man-hollywood.jpg",
   },
   {
     id: "sims",
@@ -146,6 +163,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🏠",
     gradient: "from-green-400 to-teal-600",
     glow: "rgba(52,211,153,0.5)",
+    imgSrc: "/examples/man-sims.jpg",
   },
   {
     id: "timetraveler",
@@ -154,6 +172,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "⏱️",
     gradient: "from-amber-700 to-stone-800",
     glow: "rgba(180,83,9,0.45)",
+    imgSrc: "/examples/man-timetraveler.jpg",
   },
 ];
 
@@ -165,42 +184,55 @@ interface StyleCardProps {
   index?: number;
 }
 
-export function StyleCard({ config, selected, onClick, disabled, index = 0 }: StyleCardProps) {
+export function StyleCard({ config, selected, onClick, disabled }: StyleCardProps) {
   return (
     <button
       onClick={() => !disabled && onClick(config.id)}
       disabled={disabled}
       className={cn(
-        "w-full text-left px-4 py-3 rounded-lg border transition-all duration-150 flex items-center gap-4 group",
+        "relative w-full overflow-hidden rounded-xl transition-all duration-200 group",
+        "aspect-[3/4]",
         selected
-          ? "border-white/20 bg-white/[0.06]"
-          : "border-white/[0.06] bg-transparent hover:bg-white/[0.03] hover:border-white/12",
+          ? "ring-2 ring-white/70 ring-offset-1 ring-offset-black scale-[0.98]"
+          : "ring-1 ring-white/10 hover:ring-white/30",
         disabled && "opacity-40 cursor-not-allowed"
       )}
+      style={selected ? { boxShadow: `0 0 20px ${config.glow}` } : {}}
     >
-      <span className="text-[10px] font-mono text-zinc-700 w-4 shrink-0 select-none">
-        {String(index + 1).padStart(2, "0")}
+      {/* Thumbnail image */}
+      <img
+        src={config.imgSrc}
+        alt={config.label}
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        draggable={false}
+      />
+
+      {/* Gradient overlay at bottom */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+
+      {/* Emoji top-right */}
+      <span className="absolute top-2 right-2 text-base drop-shadow-lg select-none">
+        {config.emoji}
       </span>
-      <div className="flex-1 min-w-0">
+
+      {/* Selected checkmark */}
+      {selected && (
+        <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-white flex items-center justify-center">
+          <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 12 12">
+            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+      )}
+
+      {/* Label */}
+      <div className="absolute bottom-0 left-0 right-0 px-2.5 pb-2.5 pt-6">
         <p className={cn(
-          "font-medium text-sm tracking-wide transition-colors",
-          selected ? "text-white" : "text-zinc-400 group-hover:text-zinc-200"
+          "font-semibold text-xs tracking-wide leading-tight",
+          selected ? "text-white" : "text-zinc-200"
         )}>
           {config.label}
         </p>
-        <p className={cn(
-          "text-[11px] mt-0.5 leading-snug truncate transition-colors",
-          selected ? "text-zinc-500" : "text-zinc-700 group-hover:text-zinc-600"
-        )}>
-          {config.description}
-        </p>
       </div>
-      <div className={cn(
-        "w-3.5 h-3.5 rounded-full border shrink-0 transition-all duration-150",
-        selected
-          ? "border-white bg-white scale-110"
-          : "border-zinc-700 group-hover:border-zinc-500"
-      )} />
     </button>
   );
 }

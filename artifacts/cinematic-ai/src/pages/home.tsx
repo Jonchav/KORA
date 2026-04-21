@@ -715,7 +715,7 @@ export default function Home() {
                   <span className="flex-1 h-px bg-white/[0.05]" />
                   Choose Your Style
                 </h3>
-                <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
                   {STYLES.map((s, i) => (
                     <StyleCard key={s.id} config={s} selected={style === s.id} onClick={setStyle} disabled={isTransforming} index={i} />
                   ))}
