@@ -635,24 +635,6 @@ export default function Home() {
             Upload a photo with your face. Pick a style. Get a <span className="text-white font-semibold">studio-quality</span> AI portrait in seconds — your face, perfectly preserved.
           </motion.p>
 
-          {/* Style tags */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.35 }}
-            className="flex flex-wrap items-center justify-center gap-x-0 gap-y-2 mt-4"
-          >
-            {STYLES.map((s, i) => (
-              <span key={s.id} className="flex items-center">
-                <span className="px-3 py-1 text-[11px] font-medium tracking-widest uppercase text-zinc-600 hover:text-zinc-300 transition-colors cursor-default">
-                  {s.label}
-                </span>
-                {i < STYLES.length - 1 && (
-                  <span className="text-zinc-800 text-xs select-none">/</span>
-                )}
-              </span>
-            ))}
-          </motion.div>
         </div>
         </div>{/* end hero wrapper */}
 
