@@ -112,8 +112,8 @@ export function LoginPage() {
             <img
               src="/kora-logo.png"
               alt="KORA"
-              className="h-20 w-20 object-contain"
-              style={{ mixBlendMode: 'screen' }}
+              className="h-28 w-28 object-contain"
+              style={{ filter: 'drop-shadow(0 0 18px #6699ff) drop-shadow(0 0 40px #4466ff44)' }}
             />
           </div>
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6">

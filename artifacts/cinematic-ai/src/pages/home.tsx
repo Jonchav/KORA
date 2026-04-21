@@ -509,8 +509,8 @@ export default function Home() {
           <img
             src="/kora-logo.png"
             alt="KORA"
-            className="h-10 w-10 object-contain"
-            style={{ mixBlendMode: 'screen' }}
+            className="h-12 w-12 object-contain"
+            style={{ filter: 'drop-shadow(0 0 10px #6699ff88)' }}
           />
 
           {/* Right: PRO button + credits + user */}
