@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 import type { StyleType } from "@/hooks/use-transform";
 
 export interface StyleConfig {
@@ -9,6 +10,7 @@ export interface StyleConfig {
   gradient: string;
   glow: string;
   imgSrc: string;
+  isMovie?: boolean;
 }
 
 export const STYLES: StyleConfig[] = [
@@ -174,6 +176,67 @@ export const STYLES: StyleConfig[] = [
     glow: "rgba(180,83,9,0.45)",
     imgSrc: "/examples/man-timetraveler.jpg",
   },
+  // ── Movie Scenes ──────────────────────────────────────────
+  {
+    id: "matrix",
+    label: "The Matrix",
+    description: "Trench coat negro, código verde, hacker",
+    emoji: "🟩",
+    gradient: "from-green-900 to-black",
+    glow: "rgba(0,255,65,0.5)",
+    imgSrc: "/examples/matrix-placeholder.jpg",
+    isMovie: true,
+  },
+  {
+    id: "titanic",
+    label: "Titanic",
+    description: "Traje de época 1912, cubierta del Titanic",
+    emoji: "🚢",
+    gradient: "from-blue-900 to-slate-900",
+    glow: "rgba(30,77,123,0.6)",
+    imgSrc: "/examples/titanic-placeholder.jpg",
+    isMovie: true,
+  },
+  {
+    id: "starwars",
+    label: "Star Wars",
+    description: "Robes Jedi o Sith, sable de luz, galaxia",
+    emoji: "⚡",
+    gradient: "from-indigo-950 to-purple-950",
+    glow: "rgba(99,60,180,0.6)",
+    imgSrc: "/examples/starwars-placeholder.jpg",
+    isMovie: true,
+  },
+  {
+    id: "godfather",
+    label: "El Padrino",
+    description: "Don mafioso, traje italiano, Coppola",
+    emoji: "🌹",
+    gradient: "from-red-950 to-zinc-900",
+    glow: "rgba(92,26,26,0.7)",
+    imgSrc: "/examples/godfather-placeholder.jpg",
+    isMovie: true,
+  },
+  {
+    id: "madmax",
+    label: "Mad Max",
+    description: "Armadura post-apocalíptica, desierto Fury Road",
+    emoji: "🔥",
+    gradient: "from-orange-900 to-stone-900",
+    glow: "rgba(139,69,0,0.6)",
+    imgSrc: "/examples/madmax-placeholder.jpg",
+    isMovie: true,
+  },
+  {
+    id: "interstellar",
+    label: "Interstellar",
+    description: "Traje NASA, agujero negro Gargantua",
+    emoji: "🚀",
+    gradient: "from-slate-950 to-blue-950",
+    glow: "rgba(26,42,90,0.7)",
+    imgSrc: "/examples/interstellar-placeholder.jpg",
+    isMovie: true,
+  },
 ];
 
 interface StyleCardProps {
@@ -185,6 +248,8 @@ interface StyleCardProps {
 }
 
 export function StyleCard({ config, selected, onClick, disabled }: StyleCardProps) {
+  const [imgError, setImgError] = useState(false);
+
   return (
     <button
       onClick={() => !disabled && onClick(config.id)}
@@ -199,16 +264,29 @@ export function StyleCard({ config, selected, onClick, disabled }: StyleCardProp
       )}
       style={selected ? { boxShadow: `0 0 20px ${config.glow}` } : {}}
     >
+      {/* Gradient background (always present, shows through if image fails) */}
+      <div className={cn("absolute inset-0 bg-gradient-to-b", config.gradient)} />
+
       {/* Thumbnail image */}
-      <img
-        src={config.imgSrc}
-        alt={config.label}
-        className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-        draggable={false}
-      />
+      {!imgError && (
+        <img
+          src={config.imgSrc}
+          alt={config.label}
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          draggable={false}
+          onError={() => setImgError(true)}
+        />
+      )}
 
       {/* Gradient overlay at bottom */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+
+      {/* Movie badge */}
+      {config.isMovie && (
+        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-black/60 border border-white/10">
+          <span className="text-[8px] font-bold tracking-widest uppercase text-white/70">Cine</span>
+        </div>
+      )}
 
       {/* Emoji top-right */}
       <span className="absolute top-2 right-2 text-base drop-shadow-lg select-none">

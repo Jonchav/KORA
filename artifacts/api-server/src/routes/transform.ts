@@ -38,7 +38,7 @@ const upload = multer({
 
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 
-export type Style = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa" | "dccomic" | "fortnite" | "luxury" | "hollywood" | "sims" | "timetraveler";
+export type Style = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa" | "dccomic" | "fortnite" | "luxury" | "hollywood" | "sims" | "timetraveler" | "matrix" | "titanic" | "starwars" | "godfather" | "madmax" | "interstellar";
 export type Format = "square" | "portrait" | "story" | "landscape";
 
 const FORMAT_RATIOS: Record<Format, string> = {
@@ -151,6 +151,60 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string; denois
     depthStrength: 0.68,
     promptStrength: 6.0,
   },
+  matrix: {
+    style: "3D",
+    prompt:
+      "wearing long black leather trench coat, black sunglasses, inside The Matrix digital world, cascading green glowing code rain falling in background, dark server room corridor with green neon light, cyberpunk hacker aesthetic, Wachowski cinematic style, cool and enigmatic expression, dramatic side lighting",
+    denoising: 0.70,
+    instantId: 0.72,
+    depthStrength: 0.68,
+    promptStrength: 6.5,
+  },
+  titanic: {
+    style: "Clay",
+    prompt:
+      "wearing elegant 1912 Edwardian period costume, on the deck of the RMS Titanic ocean liner, dramatic North Atlantic ocean at sunset in background, golden amber cinematic light, James Cameron film aesthetic, romantic and dramatic atmosphere, detailed period-accurate clothing with lace and fine fabric",
+    denoising: 0.68,
+    instantId: 0.70,
+    depthStrength: 0.68,
+    promptStrength: 6.0,
+  },
+  starwars: {
+    style: "Video game",
+    prompt:
+      "wearing flowing Jedi robes and tunic or Sith black robes, holding an ignited glowing lightsaber, dramatic Star Wars galaxy backdrop with twin suns or Death Star, John Williams epic cinematic mood, George Lucas film aesthetic, detailed fabric texture with leather belts and utility pouches, Force-user heroic pose",
+    denoising: 0.70,
+    instantId: 0.72,
+    depthStrength: 0.70,
+    promptStrength: 6.5,
+  },
+  godfather: {
+    style: "3D",
+    prompt:
+      "wearing a sharp Italian tailored dark suit with white dress shirt, sitting in a leather chair like a mafia don, dramatic Coppola chiaroscuro lighting with deep shadows, Corleone family estate in background, rose in lapel, powerful and commanding expression, Francis Ford Coppola film noir aesthetic, timeless cinematic quality",
+    denoising: 0.68,
+    instantId: 0.70,
+    depthStrength: 0.68,
+    promptStrength: 6.0,
+  },
+  madmax: {
+    style: "3D",
+    prompt:
+      "wearing torn post-apocalyptic leather armor with metal studs and war paint, in the Fury Road desert wasteland, burning war rigs and explosions in background, scorching orange sky with dust clouds, chrome and rust aesthetic, George Miller Mad Max film style, fierce and battle-hardened expression, dramatic desert light",
+    denoising: 0.70,
+    instantId: 0.72,
+    depthStrength: 0.70,
+    promptStrength: 6.5,
+  },
+  interstellar: {
+    style: "3D",
+    prompt:
+      "wearing a NASA space suit with helmet visor reflecting stars, floating beside the Gargantua black hole with its accretion disc of golden light, deep space nebula background, Christopher Nolan Interstellar cinematic quality, Hans Zimmer atmospheric mood, awe-inspiring cosmic scale, ultra realistic space environment",
+    denoising: 0.68,
+    instantId: 0.70,
+    depthStrength: 0.68,
+    promptStrength: 6.0,
+  },
 };
 
 const SEEDREAM_PROMPTS: Record<Style, string> = {
@@ -190,6 +244,18 @@ const SEEDREAM_PROMPTS: Record<Style, string> = {
     "The Sims 4 neighborhood bird's-eye view, colorful suburban houses with manicured lawns and swimming pools, cheerful Plumbob diamonds floating above rooftops, Sim families going about daily life, bright sunny day, Maxis game world aesthetic, ultra detailed and charming",
   timetraveler:
     "Steampunk time machine laboratory scene, Victorian brass clockwork gears and steam pipes, multiple clocks showing different times on the walls, glowing blue-gold time vortex portal tearing through the center, scattered antique maps and blueprints, dramatic moody lighting, H.G. Wells aesthetic, ultra detailed concept art",
+  matrix:
+    "The Matrix digital world panorama, cascading green glowing code rain filling a dark server city skyline, holographic green numbers and symbols everywhere, black leather figures moving through frozen bullet-time, neon green ambient light, Wachowski brothers cinematic quality, ultra detailed cyberpunk scene",
+  titanic:
+    "RMS Titanic at sea, 1912 ocean liner at golden sunset, Edwardian passengers in period costume on the grand promenade deck, dramatic North Atlantic ocean waves, James Cameron cinematic quality, warm amber and blue color palette, epic romantic atmosphere, ultra detailed historical scene",
+  starwars:
+    "Epic Star Wars galaxy battle, Jedi and Sith clash with glowing lightsabers above a planet, X-Wings and TIE Fighters in deep space dogfight, twin suns of Tatooine or Death Star in background, John Williams orchestral energy, George Lucas cinematic scope, ultra detailed sci-fi fantasy scene",
+  godfather:
+    "The Godfather Corleone estate scene, candlelit study with rich wood paneling, leather armchair with man of power, rose petals and family portrait, Francis Ford Coppola chiaroscuro cinematography, deep amber and shadow tones, 1970s film grain quality, Nino Rota atmosphere, timeless cinematic masterpiece",
+  madmax:
+    "Mad Max Fury Road desert wasteland panorama, massive war rig convoy racing across cracked salt flats under blood-orange sky, flaming guitar player on massive speaker truck, chrome-painted War Boys, dust tornado and explosions, George Miller post-apocalyptic epic, ultra detailed action scene",
+  interstellar:
+    "Gargantua black hole from Interstellar, massive swirling accretion disc of golden and white light warping spacetime, tiny spacecraft approaching the singularity, deep space with thousand stars and nebula, Christopher Nolan cinematic quality, scientifically accurate gravitational lensing, awe-inspiring cosmic scale",
 };
 
 interface JobRecord {

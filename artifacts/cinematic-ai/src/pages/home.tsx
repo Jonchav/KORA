@@ -715,10 +715,24 @@ export default function Home() {
                   <span className="flex-1 h-px bg-white/[0.05]" />
                   Choose Your Style
                 </h3>
+                {/* AI Styles */}
                 <div className="grid grid-cols-2 gap-2">
-                  {STYLES.map((s, i) => (
+                  {STYLES.filter(s => !s.isMovie).map((s, i) => (
                     <StyleCard key={s.id} config={s} selected={style === s.id} onClick={setStyle} disabled={isTransforming} index={i} />
                   ))}
+                </div>
+
+                {/* Movie Scenes */}
+                <div className="mt-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-[10px] font-mono tracking-widest uppercase text-zinc-600">🎬 Escenas de Película</span>
+                    <span className="flex-1 h-px bg-white/[0.05]" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {STYLES.filter(s => s.isMovie).map((s, i) => (
+                      <StyleCard key={s.id} config={s} selected={style === s.id} onClick={setStyle} disabled={isTransforming} index={i} />
+                    ))}
+                  </div>
                 </div>
               </motion.div>
 
