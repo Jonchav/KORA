@@ -469,9 +469,9 @@ async function runFluxImg2ImgPipeline(jobId: string, buf: Buffer, style: Style):
           input: {
             image: dataUri,
             prompt,
-            prompt_strength: MOVIE_SCENE_STYLES.has(style) ? 0.72 : 0.55,
-            num_inference_steps: 35,
-            guidance: 3.5,
+            prompt_strength: MOVIE_SCENE_STYLES.has(style) ? 0.92 : 0.60,
+            num_inference_steps: MOVIE_SCENE_STYLES.has(style) ? 40 : 35,
+            guidance: MOVIE_SCENE_STYLES.has(style) ? 7.5 : 3.5,
             output_format: "jpg",
             output_quality: 92,
           },
