@@ -404,7 +404,10 @@ const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
  * must be preserved — face-to-many regenerates the scene from scratch
  * causing tight crops and hallucinated elements.
  */
-const FLUX_IMG2IMG_STYLES: Set<Style> = new Set(["luxury", "hollywood", "timetraveler"]);
+const FLUX_IMG2IMG_STYLES: Set<Style> = new Set([
+  "luxury", "hollywood", "timetraveler",
+  "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar", "gatsby", "wonderwoman",
+]);
 
 const FLUX_IMG2IMG_PROMPTS: Partial<Record<Style, string>> = {
   luxury:
@@ -413,7 +416,28 @@ const FLUX_IMG2IMG_PROMPTS: Partial<Record<Style, string>> = {
     "photo of the exact same person: same face, same age, same gender, same skin tone, same hair, same hairstyle — only the background and clothing change. Hollywood A-list celebrity portrait. Background: movie premiere red carpet with camera flashes and spotlights. Clothing: polished editorial wardrobe matching their gender and age. Dramatic chiaroscuro studio lighting. Vanity Fair editorial quality. Do not change the face, age, hair, or identity.",
   timetraveler:
     "photo of the exact same person: same face, same age, same gender, same skin tone, same hair, same hairstyle — only the background and clothing change. Steampunk time traveler portrait. Background: Victorian clockwork laboratory with brass gears, copper pipes, glowing blue-gold time vortex. Add leather aviator goggles pushed up on forehead and vintage pocket watch chain. Dramatic atmospheric moody lighting. H.G. Wells cinematic style. Do not change the face, age, hair, or identity.",
+  // ── Movie Scenes — all use FLUX for photorealistic cinematic quality ──────────
+  matrix:
+    "photo of the exact same person: same face, same age, same gender, same skin tone, same hair — this is a movie still from The Matrix. Clothing: long black leather trench coat with upturned collar, dark sunglasses. Setting: dark underground server corridor with cascading green glowing code rain frozen in mid-air, green neon ambient light, dramatic shadows. Pose: confident bullet-time hero stance. Ultra realistic cinematic photography, Wachowski brothers film quality. Do not change the face or identity.",
+  titanic:
+    "photo of the exact same person: same face, same age, same gender, same skin tone, same hair — this is a movie still from Titanic. Clothing: 1912 formal evening wear — fitted dark suit with white shirt and suspenders, or Edwardian evening gown if female. Setting: the bow of the RMS Titanic at golden hour sunset, vast North Atlantic ocean stretching to the horizon, warm amber and blue sky. Arms outstretched, hair blowing in wind. Ultra realistic James Cameron cinematic photography. Do not change the face or identity.",
+  starwars:
+    "photo of the exact same person: same face, same age, same gender, same skin tone, same hair — this is a movie still from Star Wars. Clothing: flowing brown and beige Jedi tunic and robes with leather utility belt, or black Sith robes if darker features. Holding an ignited glowing blue lightsaber. Setting: rocky desert landscape of Tatooine at sunset with two suns visible on the horizon, dramatic Star Wars sky. Ultra realistic George Lucas cinematic photography. Do not change the face or identity.",
+  godfather:
+    "photo of the exact same person: same face, same age, same gender, same skin tone, same hair — this is a movie still from The Godfather. Clothing: sharp Italian tailored tuxedo with black bow tie and white pocket square, rose in lapel. Seated in a large leather wingback chair. Setting: dark wood-paneled Corleone family office, single shaft of dramatic side light cutting through shadow, deep Rembrandt chiaroscuro. Stroking a white cat. Ultra realistic Francis Ford Coppola 1972 cinematic photography. Do not change the face or identity.",
+  madmax:
+    "photo of the exact same person: same face, same age, same gender, same skin tone, same hair — this is a movie still from Mad Max Fury Road. Clothing: torn post-apocalyptic black leather jacket with metal shoulder armor plates, chrome rivets, worn leather pants. Setting: Namibian salt desert wasteland with burning war vehicles, dust tornado, blood-orange apocalyptic sky at dusk. Fierce battle-hardened expression. Ultra realistic George Miller cinematic photography. Do not change the face or identity.",
+  interstellar:
+    "photo of the exact same person: same face, same age, same gender, same skin tone, same hair — this is a movie still from Interstellar. Clothing: white NASA space suit with mission patches, oxygen hose connections, reflective helmet visor. Setting: zero gravity environment beside the Gargantua black hole, its enormous glowing golden accretion disc warping spacetime, deep star-filled cosmos. Awe expression through visor. Ultra realistic Christopher Nolan cinematic photography. Do not change the face or identity.",
+  gatsby:
+    "photo of the exact same person: same face, same age, same gender, same skin tone, same hair — this is a movie still from The Great Gatsby. Clothing: pristine white or cream tuxedo with black bow tie and white pocket square, or pearl-embroidered flapper gown if female. Holding a crystal champagne coupe glass. Charismatic confident smile. Setting: opulent 1920s Art Deco mansion ballroom with massive crystal chandeliers, gold and emerald decor, hundreds of glamorous Jazz Age partygoers, golden confetti raining down. Ultra realistic Baz Luhrmann cinematic photography. Do not change the face or identity.",
+  wonderwoman:
+    "photo of the exact same person: same face, same age, same gender, same skin tone, same hair — this is a movie still from Wonder Woman. Clothing: iconic Amazonian warrior armor with golden eagle breastplate, red and gold articulated bracers, gold tiara, dark leather battle skirt and boots. Holding a golden lasso and round shield. Setting: WWI Belgian battlefield with trenches, smoke, debris, dramatic grey and golden light breaking through storm clouds. Fierce powerful warrior expression. Ultra realistic Patty Jenkins cinematic photography. Do not change the face or identity.",
 };
+
+const MOVIE_SCENE_STYLES: Set<Style> = new Set([
+  "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar", "gatsby", "wonderwoman",
+]);
 
 async function runFluxImg2ImgPipeline(jobId: string, buf: Buffer, style: Style): Promise<Buffer> {
   const prompt = FLUX_IMG2IMG_PROMPTS[style];
@@ -445,8 +469,8 @@ async function runFluxImg2ImgPipeline(jobId: string, buf: Buffer, style: Style):
           input: {
             image: dataUri,
             prompt,
-            prompt_strength: 0.55,
-            num_inference_steps: 30,
+            prompt_strength: MOVIE_SCENE_STYLES.has(style) ? 0.72 : 0.55,
+            num_inference_steps: 35,
             guidance: 3.5,
             output_format: "jpg",
             output_quality: 92,
