@@ -744,6 +744,33 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
       return;
     }
 
+    // ── FLUX img2img: photorealistic styles (movie scenes + luxury/hollywood/timetraveler) ─
+    if (FLUX_IMG2IMG_STYLES.has(style)) {
+      console.log(`[${jobId}] FLUX img2img path (style=${style})...`);
+      let processed = await runFluxImg2ImgPipeline(jobId, rawBuf, style);
+      processed = await applyFormat(processed, format);
+      if (job.watermark) {
+        processed = await applyWatermark(processed);
+        console.log(`[${jobId}] Watermark applied.`);
+      }
+      job.imageBuffer = processed;
+      job.status = "completed";
+      console.log(`[${jobId}] FLUX transform complete.`);
+      try {
+        const filePath = await saveImageToDisk(jobId, job.userId, processed);
+        job.filePath = filePath;
+        await db.insert(generationsTable).values({
+          id: jobId, userId: job.userId, style: job.style, format: job.format,
+          mode: job.mode, filePath, watermark: job.watermark ? 1 : 0,
+        }).onConflictDoUpdate({ target: generationsTable.id, set: { filePath } });
+        console.log(`[${jobId}] FLUX result saved to disk and DB: ${filePath}`);
+      } catch (saveErr) {
+        console.error(`[${jobId}] GALLERY SAVE FAILED (FLUX):`, saveErr);
+      }
+      try { fs.unlinkSync(imagePath); } catch {}
+      return;
+    }
+
     const { buf, cropped } = await smartCropForFace(rawBuf, jobId);
     if (cropped) console.log(`[${jobId}] Applied smart face-crop before face-to-many`);
 
