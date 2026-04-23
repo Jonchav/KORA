@@ -7,6 +7,7 @@ export const styleEnum = pgEnum("style", [
   "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic",
   "fortnite", "luxury", "hollywood", "sims", "timetraveler",
   "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar",
+  "gatsby", "wonderwoman",
 ]);
 
 export const formatEnum = pgEnum("format", ["square", "portrait", "story", "landscape"]);

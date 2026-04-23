@@ -38,7 +38,7 @@ const upload = multer({
 
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 
-export type Style = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa" | "dccomic" | "fortnite" | "luxury" | "hollywood" | "sims" | "timetraveler" | "matrix" | "titanic" | "starwars" | "godfather" | "madmax" | "interstellar";
+export type Style = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa" | "dccomic" | "fortnite" | "luxury" | "hollywood" | "sims" | "timetraveler" | "matrix" | "titanic" | "starwars" | "godfather" | "madmax" | "interstellar" | "gatsby" | "wonderwoman";
 export type Format = "square" | "portrait" | "story" | "landscape";
 
 const FORMAT_RATIOS: Record<Format, string> = {
@@ -154,56 +154,74 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string; denois
   matrix: {
     style: "3D",
     prompt:
-      "wearing long black leather trench coat, black sunglasses, inside The Matrix digital world, cascading green glowing code rain falling in background, dark server room corridor with green neon light, cyberpunk hacker aesthetic, Wachowski cinematic style, cool and enigmatic expression, dramatic side lighting",
-    denoising: 0.70,
-    instantId: 0.72,
+      "as Neo from The Matrix, wearing a long black leather trench coat and dark sunglasses, standing in bullet-time pose, surrounded by frozen green glowing code rain in mid-air, dark underground server corridor, green neon light casting dramatic shadows, ultra realistic movie still, Wachowski brothers cinematic quality",
+    denoising: 0.72,
+    instantId: 0.75,
     depthStrength: 0.68,
-    promptStrength: 6.5,
+    promptStrength: 7.0,
   },
   titanic: {
-    style: "Clay",
+    style: "3D",
     prompt:
-      "wearing elegant 1912 Edwardian period costume, on the deck of the RMS Titanic ocean liner, dramatic North Atlantic ocean at sunset in background, golden amber cinematic light, James Cameron film aesthetic, romantic and dramatic atmosphere, detailed period-accurate clothing with lace and fine fabric",
-    denoising: 0.68,
-    instantId: 0.70,
+      "as Jack from Titanic, wearing a fitted 1912 tuxedo suit, standing at the bow of the RMS Titanic with arms wide open, golden sunset over the vast North Atlantic ocean, wind in hair, romantic cinematic moment, James Cameron film quality, ultra realistic movie still, warm amber and blue cinematography",
+    denoising: 0.70,
+    instantId: 0.73,
     depthStrength: 0.68,
-    promptStrength: 6.0,
+    promptStrength: 7.0,
   },
   starwars: {
-    style: "Video game",
+    style: "3D",
     prompt:
-      "wearing flowing Jedi robes and tunic or Sith black robes, holding an ignited glowing lightsaber, dramatic Star Wars galaxy backdrop with twin suns or Death Star, John Williams epic cinematic mood, George Lucas film aesthetic, detailed fabric texture with leather belts and utility pouches, Force-user heroic pose",
-    denoising: 0.70,
-    instantId: 0.72,
+      "as a Jedi Knight in Star Wars, wearing flowing brown and beige Jedi robes and tunic, holding an ignited glowing blue lightsaber in ready stance, dramatic desert planet landscape of Tatooine with twin suns setting, Star Wars cinematic quality, George Lucas film aesthetic, heroic pose, ultra realistic movie still",
+    denoising: 0.72,
+    instantId: 0.75,
     depthStrength: 0.70,
-    promptStrength: 6.5,
+    promptStrength: 7.0,
   },
   godfather: {
     style: "3D",
     prompt:
-      "wearing a sharp Italian tailored dark suit with white dress shirt, sitting in a leather chair like a mafia don, dramatic Coppola chiaroscuro lighting with deep shadows, Corleone family estate in background, rose in lapel, powerful and commanding expression, Francis Ford Coppola film noir aesthetic, timeless cinematic quality",
-    denoising: 0.68,
-    instantId: 0.70,
+      "as Don Corleone from The Godfather, wearing a sharp Italian tailored black tuxedo with white shirt and bow tie, sitting in a leather wingback chair in a dark wood-paneled office, stroking a cat, rose in lapel, deep chiaroscuro shadows, Francis Ford Coppola film noir lighting, 1970s cinematic quality, ultra realistic movie still",
+    denoising: 0.70,
+    instantId: 0.73,
     depthStrength: 0.68,
-    promptStrength: 6.0,
+    promptStrength: 7.0,
   },
   madmax: {
     style: "3D",
     prompt:
-      "wearing torn post-apocalyptic leather armor with metal studs and war paint, in the Fury Road desert wasteland, burning war rigs and explosions in background, scorching orange sky with dust clouds, chrome and rust aesthetic, George Miller Mad Max film style, fierce and battle-hardened expression, dramatic desert light",
-    denoising: 0.70,
-    instantId: 0.72,
+      "as Mad Max in Fury Road, wearing torn post-apocalyptic black leather jacket with metal shoulder armor and chrome details, standing on top of a war rig in the Namibian salt flats desert, burning vehicles and dust tornado in background, blood-orange apocalyptic sky, fierce warrior expression, George Miller cinematic quality, ultra realistic movie still",
+    denoising: 0.72,
+    instantId: 0.75,
     depthStrength: 0.70,
-    promptStrength: 6.5,
+    promptStrength: 7.0,
   },
   interstellar: {
     style: "3D",
     prompt:
-      "wearing a NASA space suit with helmet visor reflecting stars, floating beside the Gargantua black hole with its accretion disc of golden light, deep space nebula background, Christopher Nolan Interstellar cinematic quality, Hans Zimmer atmospheric mood, awe-inspiring cosmic scale, ultra realistic space environment",
-    denoising: 0.68,
-    instantId: 0.70,
+      "as Cooper from Interstellar, wearing a white NASA space suit with mission patches and tethering cables, floating in zero gravity beside the massive Gargantua black hole with its brilliant golden accretion disc warping spacetime, deep star-filled space, Christopher Nolan cinematic quality, Hans Zimmer atmosphere, ultra realistic movie still",
+    denoising: 0.70,
+    instantId: 0.73,
     depthStrength: 0.68,
-    promptStrength: 6.0,
+    promptStrength: 7.0,
+  },
+  gatsby: {
+    style: "3D",
+    prompt:
+      "as Jay Gatsby from The Great Gatsby, wearing a pristine white tuxedo with black bow tie, holding a champagne coupe glass with a confident charismatic smile, opulent 1920s Art Deco mansion ballroom in background with crystal chandeliers and hundreds of party guests, golden warm light, Baz Luhrmann cinematic quality, ultra realistic movie still",
+    denoising: 0.70,
+    instantId: 0.73,
+    depthStrength: 0.68,
+    promptStrength: 7.0,
+  },
+  wonderwoman: {
+    style: "3D",
+    prompt:
+      "as Wonder Woman, wearing the iconic Amazonian warrior armor with golden eagle breastplate, red and gold bracers, tiara, and dark leather skirt, holding a golden lasso and shield, dramatic WWI battlefield with smoke and debris, fierce and powerful warrior expression, Patty Jenkins cinematic quality, ultra realistic movie still",
+    denoising: 0.72,
+    instantId: 0.75,
+    depthStrength: 0.70,
+    promptStrength: 7.0,
   },
 };
 
@@ -256,6 +274,10 @@ const SEEDREAM_PROMPTS: Record<Style, string> = {
     "Mad Max Fury Road desert wasteland panorama, massive war rig convoy racing across cracked salt flats under blood-orange sky, flaming guitar player on massive speaker truck, chrome-painted War Boys, dust tornado and explosions, George Miller post-apocalyptic epic, ultra detailed action scene",
   interstellar:
     "Gargantua black hole from Interstellar, massive swirling accretion disc of golden and white light warping spacetime, tiny spacecraft approaching the singularity, deep space with thousand stars and nebula, Christopher Nolan cinematic quality, scientifically accurate gravitational lensing, awe-inspiring cosmic scale",
+  gatsby:
+    "The Great Gatsby 1920s opulent mansion ballroom panorama, Art Deco crystal chandeliers and golden confetti raining down, hundreds of glamorous Jazz Age party guests in tuxedos and flapper dresses, Jay Gatsby raising a champagne glass, warm amber and gold cinematography, Baz Luhrmann cinematic excess, ultra detailed luxury scene",
+  wonderwoman:
+    "Wonder Woman Themyscira Amazon island training grounds, powerful warrior goddess in full Amazonian armor standing on ancient stone ruins, lasso of truth glowing golden, shield and sword at ready, dramatic storm clouds and lightning breaking over the Aegean sea, Patty Jenkins cinematic quality, epic superhero movie still",
 };
 
 interface JobRecord {
@@ -372,6 +394,8 @@ const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
   godfather:    "apply The Godfather Coppola film noir aesthetic to this image, keep the same subject in an Italian tailored suit with dramatic chiaroscuro shadow lighting",
   madmax:       "apply Mad Max Fury Road post-apocalyptic aesthetic to this image, keep the same subject in torn leather armor against a scorched desert wasteland backdrop",
   interstellar: "apply Interstellar NASA space aesthetic to this image, keep the same subject in a space suit beside the Gargantua black hole with its golden accretion disc",
+  gatsby:       "transform this image into a Great Gatsby 1920s movie still, keep the same subject wearing a white tuxedo holding a champagne glass, opulent Art Deco mansion ballroom with crystal chandeliers behind them, Baz Luhrmann warm golden cinematography",
+  wonderwoman:  "transform this image into a Wonder Woman movie still, keep the same subject wearing Amazonian warrior armor with golden eagle breastplate and tiara, dramatic battlefield with smoke and debris, Patty Jenkins cinematic heroic lighting",
 };
 
 /**
@@ -921,7 +945,7 @@ router.post("/transform", requireAuth, upload.single("image"), async (req: Reque
   }
   const style = req.body.style as Style;
   const format = (req.body.format as Format) ?? "square";
-  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic", "fortnite", "luxury", "hollywood", "sims", "timetraveler", "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar"];
+  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic", "fortnite", "luxury", "hollywood", "sims", "timetraveler", "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar", "gatsby", "wonderwoman"];
   const validFormats: Format[] = ["square", "portrait", "story", "landscape"];
 
   if (!style || !validStyles.includes(style)) {
@@ -948,7 +972,7 @@ router.post("/transform", requireAuth, upload.single("image"), async (req: Reque
 router.post("/generate", requireAuth, async (req: Request, res: Response) => {
   const style = req.body.style as Style;
   const format = (req.body.format as Format) ?? "landscape";
-  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic", "fortnite", "luxury", "hollywood", "sims", "timetraveler", "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar"];
+  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic", "fortnite", "luxury", "hollywood", "sims", "timetraveler", "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar", "gatsby", "wonderwoman"];
   const validFormats: Format[] = ["square", "portrait", "story", "landscape"];
 
   if (!style || !validStyles.includes(style)) {

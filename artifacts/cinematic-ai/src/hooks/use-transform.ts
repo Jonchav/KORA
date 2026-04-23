@@ -9,7 +9,7 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export type StyleType = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa" | "dccomic" | "fortnite" | "luxury" | "hollywood" | "sims" | "timetraveler" | "matrix" | "titanic" | "starwars" | "godfather" | "madmax" | "interstellar";
+export type StyleType = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa" | "dccomic" | "fortnite" | "luxury" | "hollywood" | "sims" | "timetraveler" | "matrix" | "titanic" | "starwars" | "godfather" | "madmax" | "interstellar" | "gatsby" | "wonderwoman";
 export type FormatType = "square" | "portrait" | "story" | "landscape";
 
 export interface JobResult {

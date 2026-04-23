@@ -237,6 +237,26 @@ export const STYLES: StyleConfig[] = [
     imgSrc: "/examples/interstellar-placeholder.jpg",
     isMovie: true,
   },
+  {
+    id: "gatsby",
+    label: "El Gran Gatsby",
+    description: "Esmoquin blanco, champán, fiesta Art Deco",
+    emoji: "🥂",
+    gradient: "from-yellow-900 to-amber-950",
+    glow: "rgba(202,138,4,0.6)",
+    imgSrc: "/examples/gatsby-placeholder.jpg",
+    isMovie: true,
+  },
+  {
+    id: "wonderwoman",
+    label: "Wonder Woman",
+    description: "Armadura amazónica, lazo dorado, guerrera",
+    emoji: "⚔️",
+    gradient: "from-red-900 to-yellow-900",
+    glow: "rgba(161,61,0,0.65)",
+    imgSrc: "/examples/wonderwoman-placeholder.jpg",
+    isMovie: true,
+  },
 ];
 
 interface StyleCardProps {
