@@ -36,7 +36,11 @@ export function useTransformMutation() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to start transformation");
+        const code = err.error || "";
+        if (code === "no_credits") throw new Error("Sin créditos — recarga tokens para continuar");
+        if (code === "invalid_style") throw new Error("Estilo no válido. Actualiza la app e intenta de nuevo");
+        if (code === "missing_file") throw new Error("No se recibió la imagen. Intenta de nuevo");
+        throw new Error(err.message || `Error ${res.status}: no se pudo iniciar la transformación`);
       }
       return res.json() as Promise<JobResult>;
     },
@@ -53,7 +57,10 @@ export function useGenerateMutation() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to start generation");
+        const code = err.error || "";
+        if (code === "no_credits") throw new Error("Sin créditos — recarga tokens para continuar");
+        if (code === "invalid_style") throw new Error("Estilo no válido. Actualiza la app e intenta de nuevo");
+        throw new Error(err.message || `Error ${res.status}: no se pudo iniciar la generación`);
       }
       return res.json() as Promise<JobResult>;
     },
