@@ -910,7 +910,7 @@ router.post("/transform", requireAuth, upload.single("image"), async (req: Reque
   }
   const style = req.body.style as Style;
   const format = (req.body.format as Format) ?? "square";
-  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic", "fortnite", "luxury", "hollywood", "sims", "timetraveler"];
+  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic", "fortnite", "luxury", "hollywood", "sims", "timetraveler", "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar"];
   const validFormats: Format[] = ["square", "portrait", "story", "landscape"];
 
   if (!style || !validStyles.includes(style)) {
@@ -937,7 +937,7 @@ router.post("/transform", requireAuth, upload.single("image"), async (req: Reque
 router.post("/generate", requireAuth, async (req: Request, res: Response) => {
   const style = req.body.style as Style;
   const format = (req.body.format as Format) ?? "landscape";
-  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic", "fortnite", "luxury", "hollywood", "sims", "timetraveler"];
+  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic", "fortnite", "luxury", "hollywood", "sims", "timetraveler", "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar"];
   const validFormats: Format[] = ["square", "portrait", "story", "landscape"];
 
   if (!style || !validStyles.includes(style)) {
