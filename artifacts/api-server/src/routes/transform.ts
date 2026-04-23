@@ -348,19 +348,30 @@ async function cropToContent(buf: Buffer): Promise<Buffer> {
 }
 
 const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
-  comic:       "apply a bold comic book art style to this image, keep the same subject and composition, add thick black ink outlines and vibrant flat colors",
-  anime:       "apply Studio Ghibli anime art style to this image, keep the same subject and layout, add cel shading and soft vivid colors",
-  popart:      "apply Andy Warhol pop art style to this image, keep the same subject, use bold flat graphic colors and high contrast",
-  watercolor:  "apply watercolor painting style to this image, keep the same subject and composition, soft wet paint washes and delicate brushstrokes",
-  oilpainting: "apply classical oil painting style to this image, keep the same subject and composition, rich amber tones and dramatic Rembrandt lighting",
-  cyberpunk:   "apply cyberpunk neon art style to this image, keep the same subject, add glowing cyan and magenta neon lights and rain-soaked atmosphere",
-  pixel:       "apply retro 16-bit pixel art style to this image, keep the same subject and composition in classic SNES video game aesthetic",
-  clay:        "apply Aardman claymation style to this image, keep the same subject, add smooth clay texture and rounded cheerful shapes",
-  toy:         "apply Funko Pop vinyl toy style to this image, keep the same subject with oversized head and glossy plastic finish",
-  vaporwave:   "apply vaporwave aesthetic to this image, keep the same subject and composition, add dreamy pastel purple and pink tones with 80s nostalgia",
-  fantasy:     "apply dark fantasy RPG illustration style to this image, keep the same subject and composition, add dramatic magical lighting and painterly detail",
-  gtasa:       "apply GTA San Andreas PS2 video game graphics style to this image, keep the same subject and composition with early 2000s Rockstar Games look",
-  dccomic:     "transform this image into a vintage 1950s DC Comics cartoon caricature, keep the same subject but make it fun and exaggerated, add thick black ink outlines, bright flat cel-animation colors, warm amber and yellow background, punchy saturated primary colors, playful caricature proportions, golden age American comic book cartoon style",
+  comic:        "apply a bold comic book art style to this image, keep the same subject and composition, add thick black ink outlines and vibrant flat colors",
+  anime:        "apply Studio Ghibli anime art style to this image, keep the same subject and layout, add cel shading and soft vivid colors",
+  popart:       "apply Andy Warhol pop art style to this image, keep the same subject, use bold flat graphic colors and high contrast",
+  watercolor:   "apply watercolor painting style to this image, keep the same subject and composition, soft wet paint washes and delicate brushstrokes",
+  oilpainting:  "apply classical oil painting style to this image, keep the same subject and composition, rich amber tones and dramatic Rembrandt lighting",
+  cyberpunk:    "apply cyberpunk neon art style to this image, keep the same subject, add glowing cyan and magenta neon lights and rain-soaked atmosphere",
+  pixel:        "apply retro 16-bit pixel art style to this image, keep the same subject and composition in classic SNES video game aesthetic",
+  clay:         "apply Aardman claymation style to this image, keep the same subject, add smooth clay texture and rounded cheerful shapes",
+  toy:          "apply Funko Pop vinyl toy style to this image, keep the same subject with oversized head and glossy plastic finish",
+  vaporwave:    "apply vaporwave aesthetic to this image, keep the same subject and composition, add dreamy pastel purple and pink tones with 80s nostalgia",
+  fantasy:      "apply dark fantasy RPG illustration style to this image, keep the same subject and composition, add dramatic magical lighting and painterly detail",
+  gtasa:        "apply GTA San Andreas PS2 video game graphics style to this image, keep the same subject and composition with early 2000s Rockstar Games look",
+  dccomic:      "transform this image into a vintage 1950s DC Comics cartoon caricature, keep the same subject but make it fun and exaggerated, add thick black ink outlines, bright flat cel-animation colors, warm amber and yellow background, punchy saturated primary colors, playful caricature proportions, golden age American comic book cartoon style",
+  fortnite:     "apply Fortnite Battle Royale game art style to this image, keep the same subject and composition, add bold cartoon shading and vibrant Unreal Engine game aesthetic",
+  luxury:       "apply ultra-luxury fashion editorial style to this image, keep the same subject and composition, add cinematic lighting and high-end magazine aesthetic",
+  hollywood:    "apply Hollywood glamour cinematic style to this image, keep the same subject and composition, add warm golden light and movie premiere atmosphere",
+  sims:         "apply The Sims 4 game art style to this image, keep the same subject and composition, add cheerful Maxis game aesthetic with bright colors",
+  timetraveler: "apply steampunk time traveler aesthetic to this image, keep the same subject and composition, add Victorian brass gears and golden clockwork details",
+  matrix:       "apply The Matrix digital world aesthetic to this image, keep the same subject in a dark server environment with cascading green code rain and neon glow",
+  titanic:      "apply 1912 Edwardian period style to this image, keep the same subject dressed in elegant period costume aboard the RMS Titanic with dramatic ocean light",
+  starwars:     "apply Star Wars universe aesthetic to this image, keep the same subject in Jedi or Sith robes with a glowing lightsaber and galaxy backdrop",
+  godfather:    "apply The Godfather Coppola film noir aesthetic to this image, keep the same subject in an Italian tailored suit with dramatic chiaroscuro shadow lighting",
+  madmax:       "apply Mad Max Fury Road post-apocalyptic aesthetic to this image, keep the same subject in torn leather armor against a scorched desert wasteland backdrop",
+  interstellar: "apply Interstellar NASA space aesthetic to this image, keep the same subject in a space suit beside the Gargantua black hole with its golden accretion disc",
 };
 
 /**
@@ -851,7 +862,7 @@ async function runGenerateJob(jobId: string, style: Style, format: Format) {
     const resultUrl = extractUrl(rawUrl);
     const response = await fetch(resultUrl);
     if (!response.ok) throw new Error(`Failed to fetch result: ${response.status}`);
-    let generated = Buffer.from(await response.arrayBuffer());
+    let generated = Buffer.from(await response.arrayBuffer()) as Buffer;
 
     if (job.watermark) {
       generated = await applyWatermark(generated);
