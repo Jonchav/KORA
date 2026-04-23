@@ -406,7 +406,6 @@ const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
  */
 const FLUX_IMG2IMG_STYLES: Set<Style> = new Set([
   "luxury", "hollywood", "timetraveler",
-  "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar", "gatsby", "wonderwoman",
 ]);
 
 const FLUX_IMG2IMG_PROMPTS: Partial<Record<Style, string>> = {
