@@ -5,8 +5,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { LoginPage } from "@/components/login-page";
+import { WelcomeSplash } from "@/components/welcome-splash";
 import Home from "@/pages/home";
 import PublicPricingPage from "@/pages/public-pricing";
+import { useState } from "react";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string || "";
 
@@ -30,6 +32,18 @@ function Router() {
 
 function AuthGate() {
   const { user, isLoading } = useAuth();
+  const [splashDone, setSplashDone] = useState(
+    () => !!sessionStorage.getItem("kora-welcome-seen")
+  );
+
+  const dismissSplash = () => {
+    sessionStorage.setItem("kora-welcome-seen", "1");
+    setSplashDone(true);
+  };
+
+  if (!splashDone) {
+    return <WelcomeSplash onDismiss={dismissSplash} />;
+  }
 
   if (isLoading) {
     return (
