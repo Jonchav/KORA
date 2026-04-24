@@ -154,72 +154,72 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string; denois
   matrix: {
     style: "3D",
     prompt:
-      "as Neo from The Matrix, wearing a long black leather trench coat and dark sunglasses, standing in bullet-time pose, surrounded by frozen green glowing code rain in mid-air, dark underground server corridor, green neon light casting dramatic shadows, ultra realistic movie still, Wachowski brothers cinematic quality",
+      "as Neo from The Matrix, wearing a long black leather trench coat and dark sunglasses, standing in bullet-time pose, surrounded by frozen green glowing code rain in mid-air, dark underground server corridor, green neon light casting dramatic shadows, sharp natural eyes, clear focused gaze, ultra realistic movie still, Wachowski brothers cinematic quality",
     denoising: 0.72,
-    instantId: 0.75,
+    instantId: 0.62,
     depthStrength: 0.68,
     promptStrength: 7.0,
   },
   titanic: {
     style: "3D",
     prompt:
-      "as Jack from Titanic, wearing a fitted 1912 tuxedo suit, standing at the bow of the RMS Titanic with arms wide open, golden sunset over the vast North Atlantic ocean, wind in hair, romantic cinematic moment, James Cameron film quality, ultra realistic movie still, warm amber and blue cinematography",
+      "as Jack from Titanic, wearing a fitted 1912 tuxedo suit, standing at the bow of the RMS Titanic with arms wide open, golden sunset over the vast North Atlantic ocean, wind in hair, romantic cinematic moment, sharp natural eyes, clear focused gaze, James Cameron film quality, ultra realistic movie still, warm amber and blue cinematography",
     denoising: 0.70,
-    instantId: 0.73,
+    instantId: 0.60,
     depthStrength: 0.68,
     promptStrength: 7.0,
   },
   starwars: {
     style: "3D",
     prompt:
-      "as a Jedi Knight in Star Wars, wearing flowing brown and beige Jedi robes and tunic, holding an ignited glowing blue lightsaber in ready stance, dramatic desert planet landscape of Tatooine with twin suns setting, Star Wars cinematic quality, George Lucas film aesthetic, heroic pose, ultra realistic movie still",
+      "as a Jedi Knight in Star Wars, wearing flowing brown and beige Jedi robes and tunic, holding an ignited glowing blue lightsaber in ready stance, dramatic desert planet landscape of Tatooine with twin suns setting, sharp natural eyes, clear focused gaze, Star Wars cinematic quality, George Lucas film aesthetic, heroic pose, ultra realistic movie still",
     denoising: 0.72,
-    instantId: 0.75,
+    instantId: 0.62,
     depthStrength: 0.70,
     promptStrength: 7.0,
   },
   godfather: {
     style: "3D",
     prompt:
-      "as Don Corleone from The Godfather, wearing a sharp Italian tailored black tuxedo with white shirt and bow tie, sitting in a leather wingback chair in a dark wood-paneled office, stroking a cat, rose in lapel, deep chiaroscuro shadows, Francis Ford Coppola film noir lighting, 1970s cinematic quality, ultra realistic movie still",
+      "as Don Corleone from The Godfather, wearing a sharp Italian tailored black tuxedo with white shirt and bow tie, sitting in a leather wingback chair in a dark wood-paneled office, stroking a cat, rose in lapel, deep chiaroscuro shadows, sharp natural eyes, intense focused gaze, Francis Ford Coppola film noir lighting, 1970s cinematic quality, ultra realistic movie still",
     denoising: 0.70,
-    instantId: 0.73,
+    instantId: 0.60,
     depthStrength: 0.68,
     promptStrength: 7.0,
   },
   madmax: {
     style: "3D",
     prompt:
-      "as Mad Max in Fury Road, wearing torn post-apocalyptic black leather jacket with metal shoulder armor and chrome details, standing on top of a war rig in the Namibian salt flats desert, burning vehicles and dust tornado in background, blood-orange apocalyptic sky, fierce warrior expression, George Miller cinematic quality, ultra realistic movie still",
+      "as Mad Max in Fury Road, wearing torn post-apocalyptic black leather jacket with metal shoulder armor and chrome details, standing on top of a war rig in the Namibian salt flats desert, burning vehicles and dust tornado in background, blood-orange apocalyptic sky, sharp natural eyes, fierce focused gaze, George Miller cinematic quality, ultra realistic movie still",
     denoising: 0.72,
-    instantId: 0.75,
+    instantId: 0.62,
     depthStrength: 0.70,
     promptStrength: 7.0,
   },
   interstellar: {
     style: "3D",
     prompt:
-      "as Cooper from Interstellar, wearing a white NASA space suit with mission patches and tethering cables, floating in zero gravity beside the massive Gargantua black hole with its brilliant golden accretion disc warping spacetime, deep star-filled space, Christopher Nolan cinematic quality, Hans Zimmer atmosphere, ultra realistic movie still",
+      "as Cooper from Interstellar, wearing a white NASA space suit with mission patches and tethering cables, floating in zero gravity beside the massive Gargantua black hole with its brilliant golden accretion disc warping spacetime, deep star-filled space, sharp natural eyes, awe-filled focused gaze, Christopher Nolan cinematic quality, ultra realistic movie still",
     denoising: 0.70,
-    instantId: 0.73,
+    instantId: 0.60,
     depthStrength: 0.68,
     promptStrength: 7.0,
   },
   gatsby: {
     style: "3D",
     prompt:
-      "as Jay Gatsby from The Great Gatsby, wearing a pristine white tuxedo with black bow tie, holding a champagne coupe glass with a confident charismatic smile, opulent 1920s Art Deco mansion ballroom in background with crystal chandeliers and hundreds of party guests, golden warm light, Baz Luhrmann cinematic quality, ultra realistic movie still",
+      "as Jay Gatsby from The Great Gatsby, wearing a pristine white tuxedo with black bow tie, holding a champagne coupe glass with a confident charismatic smile, opulent 1920s Art Deco mansion ballroom in background with crystal chandeliers and hundreds of party guests, golden warm light, sharp natural eyes, bright clear gaze, Baz Luhrmann cinematic quality, ultra realistic movie still",
     denoising: 0.70,
-    instantId: 0.73,
+    instantId: 0.60,
     depthStrength: 0.68,
     promptStrength: 7.0,
   },
   wonderwoman: {
     style: "3D",
     prompt:
-      "as Wonder Woman, wearing the iconic Amazonian warrior armor with golden eagle breastplate, red and gold bracers, tiara, and dark leather skirt, holding a golden lasso and shield, dramatic WWI battlefield with smoke and debris, fierce and powerful warrior expression, Patty Jenkins cinematic quality, ultra realistic movie still",
+      "as Wonder Woman, wearing the iconic Amazonian warrior armor with golden eagle breastplate, red and gold bracers, tiara, and dark leather skirt, holding a golden lasso and shield, dramatic WWI battlefield with smoke and debris, fierce and powerful warrior expression, sharp natural eyes, intense clear gaze, Patty Jenkins cinematic quality, ultra realistic movie still",
     denoising: 0.72,
-    instantId: 0.75,
+    instantId: 0.62,
     depthStrength: 0.70,
     promptStrength: 7.0,
   },
@@ -791,7 +791,7 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
             style: config.style,
             prompt: config.prompt,
             negative_prompt:
-              "ugly, deformed, noisy, blurry, distorted, disfigured, bad anatomy, extra limbs, six fingers, seven fingers, too many fingers, extra fingers, fused fingers, mutated hands, bad hands, poorly drawn hands, poorly drawn face, cloned hands, missing fingers, watermark, signature, text, logo, words, letters, typography, caption, subtitle, banner, label, writing, font, alphabet, characters, readable text, illegible text, garbled text, random text, nonsense text",
+              "ugly, deformed, noisy, blurry, distorted, disfigured, bad anatomy, extra limbs, six fingers, seven fingers, too many fingers, extra fingers, fused fingers, mutated hands, bad hands, poorly drawn hands, poorly drawn face, cloned hands, missing fingers, dead eyes, glazed eyes, lifeless eyes, dull eyes, unfocused eyes, cross-eyed, asymmetrical eyes, closed eyes, half-closed eyes, white eyes, milky eyes, plastic eyes, glass eyes, watermark, signature, text, logo, words, letters, typography, caption, subtitle, banner, label, writing, font, alphabet, characters, readable text, illegible text, garbled text, random text, nonsense text",
             denoising_strength: config.denoising ?? 0.65,
             instant_id_strength: config.instantId ?? 0.65,
             control_depth_strength: config.depthStrength ?? 0.65,
@@ -834,7 +834,7 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
               upscale: 2,
               face_upsample: true,
               background_enhance: true,
-              codeformer_fidelity: 0.75,
+              codeformer_fidelity: 0.60,
           },
           jobId,
         );
