@@ -476,6 +476,7 @@ export default function Home() {
   const [showGallery, setShowGallery] = useState(false);
   const [noCreditsError, setNoCreditsError] = useState(false);
   const [styleTab, setStyleTab] = useState<"ai" | "movie">("ai");
+  const resultRef = useRef<HTMLDivElement>(null);
 
   const { user, logout } = useAuth();
   const transformMutation = useTransformMutation();
@@ -495,6 +496,15 @@ export default function Home() {
   const isTransforming = transformMutation.isPending ||
     (!!transformJobId && transformStatus?.status !== "completed" && transformStatus?.status !== "failed");
   const transformDone = transformStatus?.status === "completed";
+
+  // Auto-scroll to result on mobile when transformation completes
+  useEffect(() => {
+    if (transformDone && resultRef.current) {
+      setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+    }
+  }, [transformDone]);
 
   const handleTransform = async () => {
     if (!file) return;
@@ -554,7 +564,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden pb-24 lg:pb-0">
 
       {/* ── Ambient background ── */}
       <div className="fixed inset-0 z-0 overflow-hidden">
@@ -729,8 +739,8 @@ export default function Home() {
           {/* Transformer grid */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-            {/* Left: Controls */}
-            <div className="lg:col-span-5 space-y-4">
+            {/* Left: Controls — pushed below result on mobile when result is ready */}
+            <div className={cn("lg:col-span-5 space-y-4", transformDone ? "order-2 lg:order-1" : "order-1")}>
 
               {!transformDone && (
                 <motion.div
@@ -879,7 +889,7 @@ export default function Home() {
                   onClick={handleTransform}
                   disabled={!file || isTransforming || noCreditsError}
                   className={cn(
-                    "w-full py-4 rounded-2xl font-black text-base tracking-wide transition-all duration-300 flex items-center justify-center gap-2.5",
+                    "hidden lg:flex w-full py-4 rounded-2xl font-black text-base tracking-wide transition-all duration-300 items-center justify-center gap-2.5",
                     file && !isTransforming && !noCreditsError
                       ? `bg-gradient-to-r ${currentStyle.gradient} text-white shadow-2xl hover:-translate-y-1 hover:shadow-3xl active:translate-y-0`
                       : "bg-zinc-800/80 text-zinc-500 cursor-not-allowed border border-zinc-700"
@@ -901,12 +911,13 @@ export default function Home() {
               )}
             </div>
 
-            {/* Right: Result */}
+            {/* Right: Result — shown first on mobile when done */}
             <motion.div
+              ref={resultRef}
               initial={{ opacity: 0, x: 16 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.65 }}
-              className="lg:col-span-7"
+              className={cn("lg:col-span-7", transformDone ? "order-1 lg:order-2" : "order-2")}
             >
               <div className="glass-panel rounded-2xl overflow-hidden h-full min-h-[480px] flex flex-col">
                 <AnimatePresence mode="wait">
@@ -1023,6 +1034,38 @@ export default function Home() {
 
         </div>
       </div>
+
+      {/* ── Mobile sticky bottom bar ─────────────────────────────────────────── */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-5 pt-3 bg-gradient-to-t from-background via-background/95 to-transparent">
+        {!transformDone ? (
+          <button
+            onClick={handleTransform}
+            disabled={!file || isTransforming || noCreditsError}
+            className={cn(
+              "w-full py-4 rounded-2xl font-black text-base tracking-wide transition-all duration-300 flex items-center justify-center gap-2.5",
+              file && !isTransforming && !noCreditsError
+                ? `bg-gradient-to-r ${currentStyle.gradient} text-white shadow-2xl active:scale-95`
+                : "bg-zinc-800/90 text-zinc-500 cursor-not-allowed border border-zinc-700"
+            )}
+            style={file && !isTransforming && !noCreditsError ? { boxShadow: `0 8px 40px -8px ${currentStyle.glow}` } : {}}
+          >
+            {isTransforming
+              ? <><Loader2 className="w-5 h-5 animate-spin" /> Transformando...</>
+              : file
+                ? <><Sparkles className="w-5 h-5" /> Transformar a {currentStyle.label}</>
+                : <><ImageIcon className="w-5 h-5" /> Sube una foto primero</>
+            }
+          </button>
+        ) : (
+          <button
+            onClick={resetTransform}
+            className="w-full py-4 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 bg-white/10 text-zinc-200 border border-white/15 active:bg-white/15"
+          >
+            <RotateCcw className="w-4 h-4" /> Transformar otra foto
+          </button>
+        )}
+      </div>
+
     </div>
   );
 }
