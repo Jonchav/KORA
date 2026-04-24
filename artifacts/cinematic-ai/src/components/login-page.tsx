@@ -152,7 +152,6 @@ export function LoginPage() {
             shape="pill"
             size="large"
             text="continue_with"
-            locale="en"
           />
 
           {error && (

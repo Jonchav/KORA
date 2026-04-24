@@ -66,6 +66,14 @@ const CARD_PATTERNS: Record<StyleType, string> = {
   hollywood:   "repeating-linear-gradient(45deg, rgba(245,158,11,0.06) 0px, rgba(245,158,11,0.06) 1px, transparent 1px, transparent 10px)",
   sims:        "repeating-linear-gradient(0deg, rgba(52,211,153,0.06) 0px, rgba(52,211,153,0.06) 1px, transparent 1px, transparent 8px), repeating-linear-gradient(90deg, rgba(52,211,153,0.04) 0px, rgba(52,211,153,0.04) 1px, transparent 1px, transparent 8px)",
   timetraveler:"radial-gradient(ellipse at 30% 70%, rgba(180,83,9,0.15) 0%, transparent 50%), radial-gradient(ellipse at 70% 30%, rgba(120,113,108,0.1) 0%, transparent 40%)",
+  matrix:      "repeating-linear-gradient(0deg, rgba(0,255,70,0.07) 0px, rgba(0,255,70,0.07) 1px, transparent 1px, transparent 8px)",
+  titanic:     "radial-gradient(ellipse at 50% 80%, rgba(59,130,246,0.15) 0%, transparent 60%), radial-gradient(ellipse at 50% 20%, rgba(251,191,36,0.1) 0%, transparent 50%)",
+  starwars:    "radial-gradient(ellipse at 70% 30%, rgba(251,191,36,0.12) 0%, transparent 50%), radial-gradient(ellipse at 20% 80%, rgba(99,102,241,0.08) 0%, transparent 40%)",
+  godfather:   "linear-gradient(160deg, rgba(180,83,9,0.12) 0%, rgba(0,0,0,0) 60%)",
+  madmax:      "repeating-linear-gradient(45deg, rgba(234,88,12,0.06) 0px, rgba(234,88,12,0.06) 1px, transparent 1px, transparent 12px)",
+  interstellar:"radial-gradient(ellipse at 60% 40%, rgba(251,191,36,0.12) 0%, transparent 50%), radial-gradient(ellipse at 30% 70%, rgba(14,165,233,0.08) 0%, transparent 40%)",
+  gatsby:      "radial-gradient(ellipse at 50% 30%, rgba(202,138,4,0.15) 0%, transparent 60%)",
+  wonderwoman: "repeating-linear-gradient(135deg, rgba(220,38,38,0.05) 0px, rgba(220,38,38,0.05) 1px, transparent 1px, transparent 10px)",
 };
 
 const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
@@ -201,6 +209,63 @@ const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
       <div className="absolute bottom-2 right-2 text-base text-amber-700/30">⏱️</div>
       <div className="absolute top-3 right-3 text-[8px] font-mono text-amber-700/40">⚙</div>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-amber-700/20" />
+    </>
+  ),
+  matrix: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-green-400/60 tracking-widest">THE MATRIX</div>
+      <div className="absolute bottom-2 right-2 text-base text-green-400/30">💊</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-green-400/20 shadow-[0_0_20px_rgba(74,222,128,0.1)]" />
+    </>
+  ),
+  titanic: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-blue-300/60 tracking-widest">TITANIC</div>
+      <div className="absolute bottom-2 right-2 text-base text-blue-300/30">🚢</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-blue-400/20" />
+    </>
+  ),
+  starwars: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-yellow-300/60 tracking-widest">STAR WARS</div>
+      <div className="absolute bottom-2 right-2 text-base text-yellow-300/30">⚔️</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-yellow-400/20 shadow-[0_0_20px_rgba(250,204,21,0.1)]" />
+    </>
+  ),
+  godfather: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-amber-700/60 tracking-widest">THE GODFATHER</div>
+      <div className="absolute bottom-2 right-2 text-base text-amber-700/30">🌹</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-amber-800/20" />
+    </>
+  ),
+  madmax: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-orange-400/60 tracking-widest">MAD MAX</div>
+      <div className="absolute bottom-2 right-2 text-base text-orange-400/30">💀</div>
+      <div className="absolute top-3 right-3 text-[8px] font-mono text-orange-400/40">FURY ROAD</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-orange-500/20" />
+    </>
+  ),
+  interstellar: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-sky-300/60 tracking-widest">INTERSTELLAR</div>
+      <div className="absolute bottom-2 right-2 text-base text-sky-300/30">🪐</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-sky-400/20 shadow-[0_0_20px_rgba(56,189,248,0.1)]" />
+    </>
+  ),
+  gatsby: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-yellow-500/60 tracking-widest">GREAT GATSBY</div>
+      <div className="absolute bottom-2 right-2 text-base text-yellow-500/30">🥂</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-yellow-500/20 shadow-[0_0_20px_rgba(234,179,8,0.1)]" />
+    </>
+  ),
+  wonderwoman: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-red-400/60 tracking-widest">WONDER WOMAN</div>
+      <div className="absolute bottom-2 right-2 text-base text-red-400/30">🦅</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-red-500/20 shadow-[0_0_20px_rgba(248,113,113,0.1)]" />
     </>
   ),
 };
@@ -410,6 +475,7 @@ export default function Home() {
   const [showPricing, setShowPricing] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [noCreditsError, setNoCreditsError] = useState(false);
+  const [styleTab, setStyleTab] = useState<"ai" | "movie">("ai");
 
   const { user, logout } = useAuth();
   const transformMutation = useTransformMutation();
@@ -708,31 +774,68 @@ export default function Home() {
                 initial={{ opacity: 0, x: -16 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.7 }}
-                className="glass-panel rounded-2xl p-4"
+                className="glass-panel rounded-2xl overflow-hidden"
               >
-                <h3 className="text-xs font-mono text-zinc-600 mb-3 flex items-center gap-3 tracking-widest uppercase">
-                  <span>02</span>
-                  <span className="flex-1 h-px bg-white/[0.05]" />
-                  Choose Your Style
-                </h3>
-                {/* AI Styles */}
-                <div className="grid grid-cols-2 gap-2">
-                  {STYLES.filter(s => !s.isMovie).map((s, i) => (
-                    <StyleCard key={s.id} config={s} selected={style === s.id} onClick={setStyle} disabled={isTransforming} index={i} />
-                  ))}
+                {/* Tab header */}
+                <div className="flex border-b border-white/[0.06]">
+                  <button
+                    onClick={() => setStyleTab("ai")}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 py-3 text-xs font-semibold tracking-widest uppercase transition-all",
+                      styleTab === "ai"
+                        ? "text-white border-b-2 border-primary bg-white/[0.03]"
+                        : "text-zinc-600 hover:text-zinc-400"
+                    )}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Estilos AI
+                  </button>
+                  <div className="w-px bg-white/[0.06]" />
+                  <button
+                    onClick={() => setStyleTab("movie")}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 py-3 text-xs font-semibold tracking-widest uppercase transition-all",
+                      styleTab === "movie"
+                        ? "text-white border-b-2 border-amber-500 bg-white/[0.03]"
+                        : "text-zinc-600 hover:text-zinc-400"
+                    )}
+                  >
+                    <span className="text-sm leading-none">🎬</span>
+                    Escenas de Película
+                  </button>
                 </div>
 
-                {/* Movie Scenes */}
-                <div className="mt-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-[10px] font-mono tracking-widest uppercase text-zinc-600">🎬 Escenas de Película</span>
-                    <span className="flex-1 h-px bg-white/[0.05]" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {STYLES.filter(s => s.isMovie).map((s, i) => (
-                      <StyleCard key={s.id} config={s} selected={style === s.id} onClick={setStyle} disabled={isTransforming} index={i} />
-                    ))}
-                  </div>
+                {/* Tab body */}
+                <div className="p-4">
+                  <AnimatePresence mode="wait">
+                    {styleTab === "ai" ? (
+                      <motion.div
+                        key="ai"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.18 }}
+                        className="grid grid-cols-2 gap-2"
+                      >
+                        {STYLES.filter(s => !s.isMovie).map((s, i) => (
+                          <StyleCard key={s.id} config={s} selected={style === s.id} onClick={setStyle} disabled={isTransforming} index={i} />
+                        ))}
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="movie"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.18 }}
+                        className="grid grid-cols-2 gap-2"
+                      >
+                        {STYLES.filter(s => s.isMovie).map((s, i) => (
+                          <StyleCard key={s.id} config={s} selected={style === s.id} onClick={setStyle} disabled={isTransforming} index={i} />
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </motion.div>
 
