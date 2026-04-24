@@ -1086,6 +1086,32 @@ router.get("/transform/:jobId/download", requireAuth, (req: Request, res: Respon
   res.status(404).json({ error: "not_found" });
 });
 
+// ── DELETE /api/gallery/:id — delete a generation ─────────────────────────────
+router.delete("/gallery/:id", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const [row] = await db
+      .select()
+      .from(generationsTable)
+      .where(eq(generationsTable.id, id))
+      .limit(1);
+
+    if (!row) { res.status(404).json({ message: "Not found" }); return; }
+    if (row.userId !== req.user!.sub) { res.status(403).json({ message: "Forbidden" }); return; }
+
+    // Delete file from disk if it exists
+    if (row.filePath && fs.existsSync(row.filePath)) {
+      fs.unlinkSync(row.filePath);
+    }
+
+    await db.delete(generationsTable).where(eq(generationsTable.id, id));
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("delete generation error:", err);
+    res.status(500).json({ message: "Failed to delete" });
+  }
+});
+
 // ── GET /api/gallery — user's generation history ──────────────────────────────
 router.get("/gallery", requireAuth, async (req: Request, res: Response) => {
   try {

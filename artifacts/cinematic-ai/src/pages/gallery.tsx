@@ -1,7 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Download, ImageIcon, Loader2, RefreshCw, Sparkles, Clock } from "lucide-react";
-import { useGallery, type GalleryItem } from "@/hooks/use-gallery";
+import { ArrowLeft, Download, ImageIcon, Loader2, RefreshCw, Sparkles, Clock, Trash2 } from "lucide-react";
+import { useGallery, useDeleteGeneration, type GalleryItem } from "@/hooks/use-gallery";
 import { API_BASE } from "@/hooks/use-transform";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +24,14 @@ const STYLE_LABELS: Record<string, string> = {
   hollywood: "Hollywood",
   sims: "The Sims",
   timetraveler: "Time Traveler",
+  matrix: "The Matrix",
+  titanic: "Titanic",
+  starwars: "Star Wars",
+  godfather: "El Padrino",
+  madmax: "Mad Max",
+  interstellar: "Interstellar",
+  gatsby: "Gatsby",
+  wonderwoman: "Wonder Woman",
 };
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -38,6 +46,8 @@ function GalleryCard({ item }: { item: GalleryItem }) {
   const date = new Date(item.createdAt).toLocaleDateString("es", {
     day: "numeric", month: "short", year: "numeric",
   });
+  const [confirming, setConfirming] = React.useState(false);
+  const { mutate: deleteGen, isPending: isDeleting } = useDeleteGeneration();
 
   const handleDownload = async () => {
     if (!downloadUrl) return;
@@ -59,10 +69,15 @@ function GalleryCard({ item }: { item: GalleryItem }) {
     }
   };
 
+  const handleDelete = () => {
+    deleteGen(item.id, { onSettled: () => setConfirming(false) });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
       className="group relative rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden hover:border-white/20 transition-all"
     >
       {/* Image preview area */}
@@ -76,18 +91,57 @@ function GalleryCard({ item }: { item: GalleryItem }) {
           </div>
         )}
 
-        {/* Overlay on hover */}
-        {downloadUrl && (
-          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+        {/* Overlay on hover — download + delete */}
+        {downloadUrl && !confirming && (
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
             <button
               onClick={handleDownload}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black text-sm font-bold hover:bg-zinc-100 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-zinc-100 transition-colors"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3.5 h-3.5" />
               Descargar
+            </button>
+            <button
+              onClick={() => setConfirming(true)}
+              className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
             </button>
           </div>
         )}
+
+        {/* Confirmation overlay */}
+        <AnimatePresence>
+          {confirming && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-3 px-3"
+            >
+              <p className="text-xs text-white font-semibold text-center leading-snug">
+                ¿Eliminar esta imagen?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                  Eliminar
+                </button>
+                <button
+                  onClick={() => setConfirming(false)}
+                  disabled={isDeleting}
+                  className="px-3 py-1.5 rounded-lg bg-white/10 text-zinc-300 text-xs font-semibold hover:bg-white/20 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {item.watermark && (
           <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-black/60 text-[9px] text-zinc-400 font-mono">
@@ -118,7 +172,6 @@ function ImagePreview({ url, style }: { url: string; style: string }) {
   React.useEffect(() => {
     let objectUrl: string | null = null;
     const token = localStorage.getItem("kora_auth_token");
-    // url is already the full absolute URL — do NOT prepend API_BASE again
     fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then(r => { if (!r.ok) throw new Error("not ok"); return r.blob(); })
       .then(blob => { objectUrl = URL.createObjectURL(blob); setSrc(objectUrl); })
@@ -184,7 +237,7 @@ export function GalleryPage({ onBack }: GalleryPageProps) {
             Tu galería
           </h1>
           <p className="text-zinc-500 text-sm mt-2">
-            Todas tus generaciones guardadas. Descárgalas cuando quieras.
+            Todas tus generaciones guardadas. Descárgalas o elimínalas cuando quieras.
           </p>
         </motion.div>
 
@@ -242,18 +295,22 @@ export function GalleryPage({ onBack }: GalleryPageProps) {
               animate={{ opacity: 1 }}
             >
               <p className="text-xs text-zinc-700 mb-6">{items.length} generacion{items.length !== 1 ? "es" : ""}</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {items.map((item, i) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                  >
-                    <GalleryCard item={item} />
-                  </motion.div>
-                ))}
-              </div>
+              <AnimatePresence mode="popLayout">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {items.map((item, i) => (
+                    <motion.div
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ delay: i * 0.04 }}
+                    >
+                      <GalleryCard item={item} />
+                    </motion.div>
+                  ))}
+                </div>
+              </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>
