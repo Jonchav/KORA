@@ -20,6 +20,7 @@ export interface StyleConfig {
   glow: string;
   imgSrc: string;
   isMovie?: boolean;
+  isStudio?: boolean;
 }
 
 export const STYLES: StyleConfig[] = [
@@ -275,6 +276,7 @@ export const STYLES: StyleConfig[] = [
     gradient: "from-slate-300 to-white",
     glow: "rgba(226,232,240,0.7)",
     imgSrc: "",
+    isStudio: true,
   },
   {
     id: "studiogray",
@@ -284,6 +286,7 @@ export const STYLES: StyleConfig[] = [
     gradient: "from-zinc-500 to-zinc-700",
     glow: "rgba(113,113,122,0.6)",
     imgSrc: "",
+    isStudio: true,
   },
   {
     id: "studiodark",
@@ -293,6 +296,7 @@ export const STYLES: StyleConfig[] = [
     gradient: "from-zinc-800 to-black",
     glow: "rgba(24,24,27,0.9)",
     imgSrc: "",
+    isStudio: true,
   },
 ];
 

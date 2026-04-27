@@ -502,7 +502,7 @@ export default function Home() {
   const [showPricing, setShowPricing] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [noCreditsError, setNoCreditsError] = useState(false);
-  const [styleTab, setStyleTab] = useState<"ai" | "movie">("ai");
+  const [styleTab, setStyleTab] = useState<"ai" | "movie" | "studio">("ai");
   const resultRef = useRef<HTMLDivElement>(null);
 
   const { user, logout } = useAuth();
@@ -838,7 +838,20 @@ export default function Home() {
                     )}
                   >
                     <span className="text-sm leading-none">🎬</span>
-                    Escenas de Película
+                    Película
+                  </button>
+                  <div className="w-px bg-white/[0.06]" />
+                  <button
+                    onClick={() => setStyleTab("studio")}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 py-3 text-xs font-semibold tracking-widest uppercase transition-all",
+                      styleTab === "studio"
+                        ? "text-white border-b-2 border-sky-400 bg-white/[0.03]"
+                        : "text-zinc-600 hover:text-zinc-400"
+                    )}
+                  >
+                    <span className="text-sm leading-none">📸</span>
+                    Studio
                   </button>
                 </div>
 
@@ -854,11 +867,11 @@ export default function Home() {
                         transition={{ duration: 0.18 }}
                         className="grid grid-cols-2 gap-2"
                       >
-                        {STYLES.filter(s => !s.isMovie).map((s, i) => (
+                        {STYLES.filter(s => !s.isMovie && !s.isStudio).map((s, i) => (
                           <StyleCard key={s.id} config={s} selected={style === s.id} onClick={setStyle} disabled={isTransforming} index={i} />
                         ))}
                       </motion.div>
-                    ) : (
+                    ) : styleTab === "movie" ? (
                       <motion.div
                         key="movie"
                         initial={{ opacity: 0, y: 6 }}
@@ -870,6 +883,24 @@ export default function Home() {
                         {STYLES.filter(s => s.isMovie).map((s, i) => (
                           <StyleCard key={s.id} config={s} selected={style === s.id} onClick={setStyle} disabled={isTransforming} index={i} />
                         ))}
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="studio"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.18 }}
+                        className="flex flex-col gap-3"
+                      >
+                        <p className="text-[10px] text-zinc-500 tracking-wide leading-relaxed">
+                          Foto profesional de estudio. Misma cara, solo cambia el fondo y la iluminación.
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {STYLES.filter(s => s.isStudio).map((s, i) => (
+                            <StyleCard key={s.id} config={s} selected={style === s.id} onClick={setStyle} disabled={isTransforming} index={i} />
+                          ))}
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
