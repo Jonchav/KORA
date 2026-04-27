@@ -2,6 +2,15 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import type { StyleType } from "@/hooks/use-transform";
 
+import matrixImg from "../../public/examples/matrix-placeholder.jpg";
+import titanicImg from "../../public/examples/titanic-placeholder.jpg";
+import starwarsImg from "../../public/examples/starwars-placeholder.jpg";
+import godfatherImg from "../../public/examples/godfather-placeholder.jpg";
+import madmaxImg from "../../public/examples/madmax-placeholder.jpg";
+import interstellarImg from "../../public/examples/interstellar-placeholder.jpg";
+import gatsbyImg from "../../public/examples/gatsby-placeholder.jpg";
+import wonderwomanImg from "../../public/examples/wonderwoman-placeholder.jpg";
+
 export interface StyleConfig {
   id: StyleType;
   label: string;
@@ -184,7 +193,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🟩",
     gradient: "from-green-900 to-black",
     glow: "rgba(0,255,65,0.5)",
-    imgSrc: "/examples/matrix-placeholder.jpg",
+    imgSrc: matrixImg,
     isMovie: true,
   },
   {
@@ -194,7 +203,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🚢",
     gradient: "from-blue-900 to-slate-900",
     glow: "rgba(30,77,123,0.6)",
-    imgSrc: "/examples/titanic-placeholder.jpg",
+    imgSrc: titanicImg,
     isMovie: true,
   },
   {
@@ -204,7 +213,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "⚡",
     gradient: "from-indigo-950 to-purple-950",
     glow: "rgba(99,60,180,0.6)",
-    imgSrc: "/examples/starwars-placeholder.jpg",
+    imgSrc: starwarsImg,
     isMovie: true,
   },
   {
@@ -214,7 +223,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🌹",
     gradient: "from-red-950 to-zinc-900",
     glow: "rgba(92,26,26,0.7)",
-    imgSrc: "/examples/godfather-placeholder.jpg",
+    imgSrc: godfatherImg,
     isMovie: true,
   },
   {
@@ -224,7 +233,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🔥",
     gradient: "from-orange-900 to-stone-900",
     glow: "rgba(139,69,0,0.6)",
-    imgSrc: "/examples/madmax-placeholder.jpg",
+    imgSrc: madmaxImg,
     isMovie: true,
   },
   {
@@ -234,7 +243,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🚀",
     gradient: "from-slate-950 to-blue-950",
     glow: "rgba(26,42,90,0.7)",
-    imgSrc: "/examples/interstellar-placeholder.jpg",
+    imgSrc: interstellarImg,
     isMovie: true,
   },
   {
@@ -244,7 +253,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "🥂",
     gradient: "from-yellow-900 to-amber-950",
     glow: "rgba(202,138,4,0.6)",
-    imgSrc: "/examples/gatsby-placeholder.jpg",
+    imgSrc: gatsbyImg,
     isMovie: true,
   },
   {
@@ -254,7 +263,7 @@ export const STYLES: StyleConfig[] = [
     emoji: "⚔️",
     gradient: "from-red-900 to-yellow-900",
     glow: "rgba(161,61,0,0.65)",
-    imgSrc: "/examples/wonderwoman-placeholder.jpg",
+    imgSrc: wonderwomanImg,
     isMovie: true,
   },
 ];
