@@ -266,6 +266,34 @@ export const STYLES: StyleConfig[] = [
     imgSrc: wonderwomanImg,
     isMovie: true,
   },
+  // ── Studio Session ──────────────────────────────────────────────────────────
+  {
+    id: "studiowhite",
+    label: "Studio White",
+    description: "Fondo blanco profesional, luz suave, LinkedIn/CV",
+    emoji: "🤍",
+    gradient: "from-slate-300 to-white",
+    glow: "rgba(226,232,240,0.7)",
+    imgSrc: "",
+  },
+  {
+    id: "studiogray",
+    label: "Studio Gray",
+    description: "Fondo gris editorial, luz Rembrandt, moda",
+    emoji: "🩶",
+    gradient: "from-zinc-500 to-zinc-700",
+    glow: "rgba(113,113,122,0.6)",
+    imgSrc: "",
+  },
+  {
+    id: "studiodark",
+    label: "Studio Dark",
+    description: "Fondo negro dramático, luz lateral intensa",
+    emoji: "🖤",
+    gradient: "from-zinc-800 to-black",
+    glow: "rgba(24,24,27,0.9)",
+    imgSrc: "",
+  },
 ];
 
 interface StyleCardProps {

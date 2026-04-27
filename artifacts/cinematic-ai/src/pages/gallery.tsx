@@ -32,6 +32,9 @@ const STYLE_LABELS: Record<string, string> = {
   interstellar: "Interstellar",
   gatsby: "Gatsby",
   wonderwoman: "Wonder Woman",
+  studiowhite: "Studio White",
+  studiogray: "Studio Gray",
+  studiodark: "Studio Dark",
 };
 
 const FORMAT_LABELS: Record<string, string> = {

@@ -38,7 +38,7 @@ const upload = multer({
 
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 
-export type Style = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa" | "dccomic" | "fortnite" | "luxury" | "hollywood" | "sims" | "timetraveler" | "matrix" | "titanic" | "starwars" | "godfather" | "madmax" | "interstellar" | "gatsby" | "wonderwoman";
+export type Style = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa" | "dccomic" | "fortnite" | "luxury" | "hollywood" | "sims" | "timetraveler" | "matrix" | "titanic" | "starwars" | "godfather" | "madmax" | "interstellar" | "gatsby" | "wonderwoman" | "studiowhite" | "studiogray" | "studiodark";
 export type Format = "square" | "portrait" | "story" | "landscape";
 
 const FORMAT_RATIOS: Record<Format, string> = {
@@ -223,6 +223,10 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string; denois
     depthStrength: 0.70,
     promptStrength: 7.0,
   },
+  // Studio styles use FLUX img2img — these entries are never called at runtime
+  studiowhite: { style: "Photographic", prompt: "" },
+  studiogray:  { style: "Photographic", prompt: "" },
+  studiodark:  { style: "Photographic", prompt: "" },
 };
 
 const SEEDREAM_PROMPTS: Record<Style, string> = {
@@ -278,6 +282,10 @@ const SEEDREAM_PROMPTS: Record<Style, string> = {
     "The Great Gatsby 1920s opulent mansion ballroom panorama, Art Deco crystal chandeliers and golden confetti raining down, hundreds of glamorous Jazz Age party guests in tuxedos and flapper dresses, Jay Gatsby raising a champagne glass, warm amber and gold cinematography, Baz Luhrmann cinematic excess, ultra detailed luxury scene",
   wonderwoman:
     "Wonder Woman Themyscira Amazon island training grounds, powerful warrior goddess in full Amazonian armor standing on ancient stone ruins, lasso of truth glowing golden, shield and sword at ready, dramatic storm clouds and lightning breaking over the Aegean sea, Patty Jenkins cinematic quality, epic superhero movie still",
+  // Studio styles use FLUX img2img — these entries are never called at runtime
+  studiowhite: "",
+  studiogray:  "",
+  studiodark:  "",
 };
 
 interface JobRecord {
@@ -396,6 +404,10 @@ const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
   interstellar: "apply Interstellar NASA space aesthetic to this image, keep the same subject in a space suit beside the Gargantua black hole with its golden accretion disc",
   gatsby:       "transform this image into a Great Gatsby 1920s movie still, keep the same subject wearing a white tuxedo holding a champagne glass, opulent Art Deco mansion ballroom with crystal chandeliers behind them, Baz Luhrmann warm golden cinematography",
   wonderwoman:  "transform this image into a Wonder Woman movie still, keep the same subject wearing Amazonian warrior armor with golden eagle breastplate and tiara, dramatic battlefield with smoke and debris, Patty Jenkins cinematic heroic lighting",
+  // Studio styles use FLUX img2img — these entries are never called at runtime
+  studiowhite: "",
+  studiogray:  "",
+  studiodark:  "",
 };
 
 /**
@@ -404,8 +416,13 @@ const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
  * must be preserved — face-to-many regenerates the scene from scratch
  * causing tight crops and hallucinated elements.
  */
+const STUDIO_STYLES: Set<Style> = new Set([
+  "studiowhite", "studiogray", "studiodark",
+]);
+
 const FLUX_IMG2IMG_STYLES: Set<Style> = new Set([
   "luxury", "hollywood", "timetraveler",
+  "studiowhite", "studiogray", "studiodark",
 ]);
 
 const FLUX_IMG2IMG_PROMPTS: Partial<Record<Style, string>> = {
@@ -432,6 +449,13 @@ const FLUX_IMG2IMG_PROMPTS: Partial<Record<Style, string>> = {
     "cinematic movie still of the exact same person, same face same identity — as Jay Gatsby. Clothing: pristine white tuxedo jacket, black bow tie, white pocket square, or pearl-beaded 1920s flapper dress if female. Holding a crystal champagne coupe glass, charismatic smile. Setting: opulent Art Deco mansion ballroom, enormous crystal chandeliers, gold and ivory columns, hundreds of glamorous Jazz Age guests blurred in background, golden confetti raining. Color grade: warm champagne and amber glow, rich gold highlights, soft cream and ivory tones, slight overexposed dreamy look. Pro-Mist 1/2 filter, bloom on chandeliers and champagne glass, anamorphic lens soft oval bokeh on crowd, fine grain. Baz Luhrmann cinematography. Do not change the face or identity.",
   wonderwoman:
     "cinematic movie still of the exact same person, same face same identity — as Wonder Woman. Clothing: Amazonian warrior armor with golden eagle-shaped breastplate, articulated red and gold bracers, golden tiara, dark leather pleated battle skirt, armored boots. Setting: WWI Belgian battlefield at dramatic sunrise, ruined stone walls and barbed wire, smoke and golden dust in the air, warm shaft of sunlight breaking through grey storm clouds as a hero light. Color grade: desaturated teal shadows, warm amber hero light on face and armor, golden rim light on the breastplate. Pro-Mist 1/4 filter, anamorphic oval bokeh on background smoke, soft halation on armor gold, 35mm grain. Patty Jenkins cinematography. Do not change the face or identity.",
+  // ── Studio Session ─────────────────────────────────────────────────────────────
+  studiowhite:
+    "professional studio portrait photography of the exact same person: same face, same age, same gender, same skin tone, same hair, same hairstyle. Background: seamless clean white or soft light gray backdrop. Lighting: large octabox key light at 45 degrees, fill reflector opposite, subtle rim light for separation, soft catch lights in eyes. Sharp focus on face, slight background separation. Professional headshot quality — LinkedIn, corporate profile, editorial. Smart casual or business attire matching their gender and age. Shot on Phase One XF IQ4 camera, 80mm lens, f/2.8. Natural skin retouching, clean and polished. Do not change the face, age, hair, or identity.",
+  studiogray:
+    "professional studio portrait photography of the exact same person: same face, same age, same gender, same skin tone, same hair, same hairstyle. Background: seamless medium gray or warm stone gradient backdrop. Lighting: dramatic split Rembrandt lighting, strong key light from 45 degrees above creating a small triangle of light on the cheek, deep shadows on one side, golden rim light from behind for hair separation. Fashion editorial quality, moody and sophisticated. Elegant wardrobe matching their gender and age — dark tones, refined. Shot on Canon EOS R5, 85mm f/1.4 L lens. Beautiful shallow bokeh, natural but enhanced skin. Do not change the face, age, hair, or identity.",
+  studiodark:
+    "professional studio portrait photography of the exact same person: same face, same age, same gender, same skin tone, same hair, same hairstyle. Background: deep charcoal black seamless backdrop, near-black environment. Lighting: single dramatic side light — strong key light creating bold contrast, bright highlights on one side of face, deep shadows the other, crisp golden hair rimlight for separation, small bright catch lights in eyes. High-fashion dark editorial style, powerful and magnetic. All-black wardrobe, sharp and confident. Shot on Sony A7R V, 85mm f/1.2 G Master lens. Dramatic contrast, magazine cover quality. Do not change the face, age, hair, or identity.",
 };
 
 const MOVIE_SCENE_STYLES: Set<Style> = new Set([
@@ -468,9 +492,9 @@ async function runFluxImg2ImgPipeline(jobId: string, buf: Buffer, style: Style):
           input: {
             image: dataUri,
             prompt,
-            prompt_strength: MOVIE_SCENE_STYLES.has(style) ? 0.92 : 0.60,
+            prompt_strength: MOVIE_SCENE_STYLES.has(style) ? 0.92 : STUDIO_STYLES.has(style) ? 0.55 : 0.60,
             num_inference_steps: MOVIE_SCENE_STYLES.has(style) ? 40 : 35,
-            guidance: MOVIE_SCENE_STYLES.has(style) ? 7.5 : 3.5,
+            guidance: MOVIE_SCENE_STYLES.has(style) ? 7.5 : STUDIO_STYLES.has(style) ? 3.0 : 3.5,
             output_format: "jpg",
             output_quality: 92,
           },
@@ -995,7 +1019,7 @@ router.post("/transform", requireAuth, upload.single("image"), async (req: Reque
   }
   const style = req.body.style as Style;
   const format = (req.body.format as Format) ?? "square";
-  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic", "fortnite", "luxury", "hollywood", "sims", "timetraveler", "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar", "gatsby", "wonderwoman"];
+  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic", "fortnite", "luxury", "hollywood", "sims", "timetraveler", "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar", "gatsby", "wonderwoman", "studiowhite", "studiogray", "studiodark"];
   const validFormats: Format[] = ["square", "portrait", "story", "landscape"];
 
   if (!style || !validStyles.includes(style)) {
@@ -1022,7 +1046,7 @@ router.post("/transform", requireAuth, upload.single("image"), async (req: Reque
 router.post("/generate", requireAuth, async (req: Request, res: Response) => {
   const style = req.body.style as Style;
   const format = (req.body.format as Format) ?? "landscape";
-  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic", "fortnite", "luxury", "hollywood", "sims", "timetraveler", "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar", "gatsby", "wonderwoman"];
+  const validStyles: Style[] = ["comic", "anime", "popart", "watercolor", "oilpainting", "cyberpunk", "pixel", "clay", "toy", "vaporwave", "fantasy", "gtasa", "dccomic", "fortnite", "luxury", "hollywood", "sims", "timetraveler", "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar", "gatsby", "wonderwoman", "studiowhite", "studiogray", "studiodark"];
   const validFormats: Format[] = ["square", "portrait", "story", "landscape"];
 
   if (!style || !validStyles.includes(style)) {

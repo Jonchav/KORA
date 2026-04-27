@@ -74,6 +74,9 @@ const CARD_PATTERNS: Record<StyleType, string> = {
   interstellar:"radial-gradient(ellipse at 60% 40%, rgba(251,191,36,0.12) 0%, transparent 50%), radial-gradient(ellipse at 30% 70%, rgba(14,165,233,0.08) 0%, transparent 40%)",
   gatsby:      "radial-gradient(ellipse at 50% 30%, rgba(202,138,4,0.15) 0%, transparent 60%)",
   wonderwoman: "repeating-linear-gradient(135deg, rgba(220,38,38,0.05) 0px, rgba(220,38,38,0.05) 1px, transparent 1px, transparent 10px)",
+  studiowhite: "radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.6) 0%, rgba(200,210,220,0.2) 60%)",
+  studiogray:  "radial-gradient(ellipse at 35% 40%, rgba(200,200,200,0.12) 0%, transparent 55%)",
+  studiodark:  "radial-gradient(ellipse at 30% 50%, rgba(255,255,255,0.06) 0%, transparent 50%)",
 };
 
 const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
@@ -266,6 +269,30 @@ const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
       <div className="absolute top-2 left-2 text-[9px] font-mono text-red-400/60 tracking-widest">WONDER WOMAN</div>
       <div className="absolute bottom-2 right-2 text-base text-red-400/30">🦅</div>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-red-500/20 shadow-[0_0_20px_rgba(248,113,113,0.1)]" />
+    </>
+  ),
+  studiowhite: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-zinc-400/80 tracking-widest">STUDIO WHITE</div>
+      <div className="absolute bottom-2 right-2 text-base text-zinc-400/50">📸</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-zinc-300/40 shadow-[0_0_30px_rgba(255,255,255,0.25)]" />
+      <div className="absolute top-4 right-4 w-4 h-4 rounded-full bg-white/50 blur-sm" />
+    </>
+  ),
+  studiogray: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-zinc-300/70 tracking-widest">STUDIO GRAY</div>
+      <div className="absolute bottom-2 right-2 text-base text-zinc-300/40">🎞️</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-zinc-400/25 shadow-[0_0_20px_rgba(161,161,170,0.15)]" />
+      <div className="absolute top-4 right-4 w-3 h-3 rounded-full bg-white/25 blur-sm" />
+    </>
+  ),
+  studiodark: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-zinc-400/60 tracking-widest">STUDIO DARK</div>
+      <div className="absolute bottom-2 right-2 text-base text-zinc-500/50">🖤</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-zinc-600/30 shadow-[0_0_20px_rgba(255,255,255,0.04)]" />
+      <div className="absolute top-4 right-4 w-3 h-3 rounded-full bg-white/15 blur-sm" />
     </>
   ),
 };
