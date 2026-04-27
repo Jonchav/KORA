@@ -422,7 +422,6 @@ const STUDIO_STYLES: Set<Style> = new Set([
 
 const FLUX_IMG2IMG_STYLES: Set<Style> = new Set([
   "luxury", "hollywood", "timetraveler",
-  "studiowhite", "studiogray", "studiodark",
 ]);
 
 const FLUX_IMG2IMG_PROMPTS: Partial<Record<Style, string>> = {
@@ -515,6 +514,102 @@ async function runFluxImg2ImgPipeline(jobId: string, buf: Buffer, style: Style):
     }
   }
   throw lastErr;
+}
+
+// ── Studio Session: bg removal + programmatic studio backdrop ─────────────────
+async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Promise<Buffer> {
+  console.log(`[${jobId}] Studio pipeline: removing background (style=${style})...`);
+
+  // Step 1 — resize to a sensible working size
+  const meta = await sharp(buf).metadata();
+  const srcW = meta.width ?? 1024;
+  const srcH = meta.height ?? 1024;
+  const maxDim = 1280;
+  const scale = Math.min(1, maxDim / Math.max(srcW, srcH));
+  const w = Math.round(srcW * scale);
+  const h = Math.round(srcH * scale);
+
+  const resized = await sharp(buf).resize(w, h, { fit: "fill" }).png().toBuffer();
+  const dataUri = `data:image/png;base64,${resized.toString("base64")}`;
+
+  // Step 2 — remove background via Replicate rembg
+  let fgBuf: Buffer;
+  try {
+    const output = await replicateRunWithRetry(
+      "851-labs/background-remover:a029dff38972b5fda4ec5d75d7d1cd25aeff621d",
+      { image: dataUri },
+      jobId,
+    );
+    const fgUrl = extractUrl(Array.isArray(output) ? output[0] : output);
+    const fgRes = await fetch(fgUrl);
+    if (!fgRes.ok) throw new Error(`rembg fetch failed: ${fgRes.status}`);
+    fgBuf = Buffer.from(await fgRes.arrayBuffer());
+    console.log(`[${jobId}] Background removed successfully.`);
+  } catch (err) {
+    console.error(`[${jobId}] rembg failed, falling back to original:`, err);
+    fgBuf = resized; // graceful fallback: just use original
+  }
+
+  // Step 3 — create studio backdrop (SVG-based, programmatic)
+  let bgSvg: string;
+
+  if (style === "studiowhite") {
+    bgSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+      <defs>
+        <radialGradient id="bg" cx="50%" cy="45%" r="70%">
+          <stop offset="0%" stop-color="#f8f8f8"/>
+          <stop offset="60%" stop-color="#efefef"/>
+          <stop offset="100%" stop-color="#d8d8d8"/>
+        </radialGradient>
+      </defs>
+      <rect width="${w}" height="${h}" fill="url(#bg)"/>
+    </svg>`;
+  } else if (style === "studiogray") {
+    bgSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#5a5a5a"/>
+          <stop offset="35%" stop-color="#8c8c8c"/>
+          <stop offset="65%" stop-color="#9a9a9a"/>
+          <stop offset="100%" stop-color="#606060"/>
+        </linearGradient>
+        <radialGradient id="vignette" cx="50%" cy="50%" r="65%">
+          <stop offset="0%" stop-color="white" stop-opacity="0.12"/>
+          <stop offset="100%" stop-color="black" stop-opacity="0.25"/>
+        </radialGradient>
+      </defs>
+      <rect width="${w}" height="${h}" fill="url(#bg)"/>
+      <rect width="${w}" height="${h}" fill="url(#vignette)"/>
+    </svg>`;
+  } else {
+    // studiodark — dark backdrop with large circular spotlight (like high-fashion editorial)
+    const spotR = Math.round(Math.min(w, h) * 0.44);
+    const spotX = Math.round(w * 0.50);
+    const spotY = Math.round(h * 0.44);
+    bgSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+      <rect width="${w}" height="${h}" fill="#1a1a1a"/>
+      <defs>
+        <radialGradient id="spot" cx="${spotX}" cy="${spotY}" r="${spotR}" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"  stop-color="#e8e8e8" stop-opacity="1"/>
+          <stop offset="55%" stop-color="#b0b0b0" stop-opacity="0.7"/>
+          <stop offset="85%" stop-color="#707070" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#1a1a1a" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <rect width="${w}" height="${h}" fill="url(#spot)"/>
+    </svg>`;
+  }
+
+  const bgBuf = await sharp(Buffer.from(bgSvg)).png().toBuffer();
+
+  // Step 4 — composite person over backdrop
+  const result = await sharp(bgBuf)
+    .composite([{ input: fgBuf, blend: "over" }])
+    .jpeg({ quality: 94 })
+    .toBuffer();
+
+  console.log(`[${jobId}] Studio composite complete (style=${style}, ${w}x${h}).`);
+  return result;
 }
 
 function isFaceDetectionError(err: unknown): boolean {
@@ -762,6 +857,33 @@ async function runTransformJob(jobId: string, imagePath: string, style: Style, f
         }).onConflictDoUpdate({ target: generationsTable.id, set: { filePath } });
       } catch (saveErr) {
         console.error(`[${jobId}] GALLERY SAVE FAILED (DC comic):`, saveErr);
+      }
+      try { fs.unlinkSync(imagePath); } catch {}
+      return;
+    }
+
+    // ── Studio Session: bg removal + studio backdrop composite ────────────────
+    if (STUDIO_STYLES.has(style)) {
+      console.log(`[${jobId}] Studio pipeline path (style=${style})...`);
+      let processed = await runStudioPipeline(jobId, rawBuf, style);
+      processed = await applyFormat(processed, format);
+      if (job.watermark) {
+        processed = await applyWatermark(processed);
+        console.log(`[${jobId}] Watermark applied.`);
+      }
+      job.imageBuffer = processed;
+      job.status = "completed";
+      console.log(`[${jobId}] Studio pipeline complete.`);
+      try {
+        const filePath = await saveImageToDisk(jobId, job.userId, processed);
+        job.filePath = filePath;
+        await db.insert(generationsTable).values({
+          id: jobId, userId: job.userId, style: job.style, format: job.format,
+          mode: job.mode, filePath, watermark: job.watermark ? 1 : 0,
+        }).onConflictDoUpdate({ target: generationsTable.id, set: { filePath } });
+        console.log(`[${jobId}] Studio result saved: ${filePath}`);
+      } catch (saveErr) {
+        console.error(`[${jobId}] GALLERY SAVE FAILED (Studio):`, saveErr);
       }
       try { fs.unlinkSync(imagePath); } catch {}
       return;
