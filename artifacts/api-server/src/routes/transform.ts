@@ -582,12 +582,23 @@ async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Prom
   };
 
   const editPrompt = EDIT_PROMPTS[style] ?? EDIT_PROMPTS.studiowhite;
+
+  // Choose the GPT size closest to the original aspect ratio
+  const ratio = h / w;
   const gptSize: "1024x1024" | "1024x1536" | "1536x1024" =
-    h > w * 1.1 ? "1024x1536" : w > h * 1.1 ? "1536x1024" : "1024x1024";
+    ratio > 1.15 ? "1024x1536" : ratio < 0.87 ? "1536x1024" : "1024x1024";
+  const [gptW, gptH] = gptSize.split("x").map(Number);
 
   try {
-    const pngWithAlpha = await sharp(maskedBuf).ensureAlpha().png().toBuffer();
-    const imageFile = await toFile(pngWithAlpha, "subject.png", { type: "image/png" });
+    // Resize masked PNG to EXACTLY the GPT input dimensions before sending.
+    // This prevents GPT from receiving an image with mismatched aspect ratio,
+    // which would cause it to stretch/squish the person.
+    const inputForGPT = await sharp(maskedBuf)
+      .ensureAlpha()
+      .resize(gptW, gptH, { fit: "cover", position: "centre" })
+      .png()
+      .toBuffer();
+    const imageFile = await toFile(inputForGPT, "subject.png", { type: "image/png" });
 
     const response = await openaiClient.images.edit({
       model: "gpt-image-1",
@@ -600,8 +611,14 @@ async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Prom
     const b64 = response.data?.[0]?.b64_json;
     if (!b64) throw new Error("GPT-image-1 edit returned no data");
 
-    const resultBuf = Buffer.from(b64, "base64");
-    console.log(`[${jobId}] GPT-image-1 edit complete (${gptSize}, style=${style}).`);
+    // Resize GPT output back to original dimensions so the result
+    // always matches the input image proportions exactly.
+    const resultBuf = await sharp(Buffer.from(b64, "base64"))
+      .resize(w, h, { fit: "cover", position: "centre" })
+      .jpeg({ quality: 95 })
+      .toBuffer();
+
+    console.log(`[${jobId}] GPT-image-1 edit complete (${gptSize} → ${w}x${h}, style=${style}).`);
     return resultBuf;
 
   } catch (gptErr) {
