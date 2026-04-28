@@ -518,9 +518,10 @@ async function runFluxImg2ImgPipeline(jobId: string, buf: Buffer, style: Style):
   throw lastErr;
 }
 
-// ── Studio: rembg cutout + GPT-image-1 backdrop generate + composite ──────────
-// The face is NEVER touched by AI — rembg gives us a pixel-perfect person
-// cutout; GPT-image-1 generates only the empty backdrop; Sharp composites them.
+// ── Studio: rembg mask → GPT-image-1 edit (face-preserving inpainting) ────────
+// rembg removes the background → transparent PNG used as mask for GPT edit.
+// GPT fills ONLY the transparent (background) area with studio lighting while
+// the prompt instructs it to preserve the person's exact face and features.
 async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Promise<Buffer> {
   console.log(`[${jobId}] Studio pipeline start (style=${style})...`);
 
@@ -534,8 +535,8 @@ async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Prom
   const h = Math.round(srcH * scale);
   const resized = await sharp(buf).resize(w, h, { fit: "fill" }).png().toBuffer();
 
-  // Step 2 — remove background with rembg → person with transparent background
-  let fgBuf: Buffer = resized;
+  // Step 2 — remove background with rembg → masked PNG (person opaque, bg transparent)
+  let maskedBuf: Buffer = resized; // fallback: full image (no mask)
   try {
     const dataUri = `data:image/png;base64,${resized.toString("base64")}`;
     const output = await replicateRunWithRetry(
@@ -546,53 +547,66 @@ async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Prom
     const fgUrl = extractUrl(Array.isArray(output) ? output[0] : output);
     const fgRes = await fetch(fgUrl);
     if (!fgRes.ok) throw new Error(`rembg fetch failed: ${fgRes.status}`);
-    fgBuf = Buffer.from(await fgRes.arrayBuffer());
-    console.log(`[${jobId}] Background removed. Generating studio backdrop...`);
+    maskedBuf = Buffer.from(await fgRes.arrayBuffer());
+    console.log(`[${jobId}] Background masked. Sending to GPT-image-1 edit...`);
   } catch (err) {
-    console.error(`[${jobId}] rembg failed, continuing without cutout:`, err);
+    console.error(`[${jobId}] rembg failed, sending full image to GPT:`, err);
   }
 
-  // Step 3 — GPT-image-1 GENERATE backdrop only (no person, no face changes)
-  const BG_PROMPTS: Record<string, string> = {
-    studiowhite: "Empty professional photography studio. Seamless clean white paper backdrop, no wrinkles. Soft octabox key light from upper-left reflecting on the floor. Silver fill reflector light from the right. Gentle light falloff. No people, no subjects, completely empty studio.",
-    studiogray:  "Empty professional photography studio. Seamless medium gray muslin backdrop. Dramatic Rembrandt split lighting — warm amber key light at 45° from upper-left creates a triangle of light on the left side, deep rich shadow on the right, warm rim light from behind. No people, no subjects.",
-    studiodark:  "Empty high-fashion photography studio. Dark charcoal seamless backdrop. A single large Fresnel spotlight projects a sharp-edged white circle of light onto the backdrop wall, centered slightly upper-right, with a beautiful penumbra falloff. Deep black shadows on sides. No people. Editorial Vogue magazine studio background.",
+  // Step 3 — GPT-image-1 EDIT: fill transparent bg with studio lighting.
+  // Critically: prompt leads with face-preservation, then describes ONLY background/lighting.
+  const EDIT_PROMPTS: Record<string, string> = {
+    studiowhite: [
+      "Photo retouching — background replacement only.",
+      "PRESERVE EXACTLY: the subject's face, facial features, skin tone, hair color and texture, expression, clothing, and every detail of their appearance. Do not alter the person in any way.",
+      "CHANGE ONLY: replace the transparent background with a seamless clean white professional photography studio backdrop.",
+      "Lighting: add a soft large octabox key light from upper-left, silver reflector fill from the right creating gentle even illumination, subtle hair rim light separating the subject from the background.",
+      "Result must look like a professional LinkedIn headshot taken in a real studio. The person is identical to the input.",
+    ].join(" "),
+
+    studiogray: [
+      "Photo retouching — background replacement only.",
+      "PRESERVE EXACTLY: the subject's face, facial features, skin tone, hair color and texture, expression, clothing, and every detail of their appearance. Do not change the person at all.",
+      "CHANGE ONLY: replace the transparent background with a seamless medium gray professional photography studio backdrop.",
+      "Lighting: dramatic Rembrandt split lighting — warm amber key light at 45° upper-left creates a small triangle of light on the cheek, deep rich shadow on the opposite side, warm golden rim light from behind.",
+      "Result must look like a high-end fashion editorial studio portrait. The person is identical to the input.",
+    ].join(" "),
+
+    studiodark: [
+      "Photo retouching — background replacement only.",
+      "PRESERVE EXACTLY: the subject's face, facial features, skin tone, hair color and texture, expression, clothing, and every detail of their appearance. Do not modify the person.",
+      "CHANGE ONLY: replace the transparent background with a dark charcoal seamless studio backdrop with a large white circular spotlight (Fresnel) projected on the wall behind the subject, creating a bright glowing circle with soft penumbra falloff.",
+      "Lighting on the subject: strong side key light, deep dramatic shadows, warm rim separation.",
+      "Result must look like a Vogue magazine high-fashion studio portrait. The person is identical to the input.",
+    ].join(" "),
   };
 
-  const bgPrompt = BG_PROMPTS[style] ?? BG_PROMPTS.studiowhite;
+  const editPrompt = EDIT_PROMPTS[style] ?? EDIT_PROMPTS.studiowhite;
   const gptSize: "1024x1024" | "1024x1536" | "1536x1024" =
     h > w * 1.1 ? "1024x1536" : w > h * 1.1 ? "1536x1024" : "1024x1024";
 
   try {
-    const bgResponse = await openaiClient.images.generate({
+    const pngWithAlpha = await sharp(maskedBuf).ensureAlpha().png().toBuffer();
+    const imageFile = await toFile(pngWithAlpha, "subject.png", { type: "image/png" });
+
+    const response = await openaiClient.images.edit({
       model: "gpt-image-1",
-      prompt: bgPrompt,
+      image: imageFile,
+      prompt: editPrompt,
       n: 1,
       size: gptSize,
-      quality: "high",
     });
 
-    const b64 = bgResponse.data?.[0]?.b64_json;
-    if (!b64) throw new Error("GPT-image-1 returned no backdrop data");
+    const b64 = response.data?.[0]?.b64_json;
+    if (!b64) throw new Error("GPT-image-1 edit returned no data");
 
-    // Resize the generated backdrop to exactly match original dimensions
-    const bgBuf = await sharp(Buffer.from(b64, "base64"))
-      .resize(w, h, { fit: "fill" })
-      .png()
-      .toBuffer();
-
-    // Composite original person cutout over the AI backdrop (face untouched)
-    const result = await sharp(bgBuf)
-      .composite([{ input: fgBuf, blend: "over" }])
-      .jpeg({ quality: 95 })
-      .toBuffer();
-
-    console.log(`[${jobId}] Studio composite done — GPT backdrop + original face (${w}x${h}).`);
-    return result;
+    const resultBuf = Buffer.from(b64, "base64");
+    console.log(`[${jobId}] GPT-image-1 edit complete (${gptSize}, style=${style}).`);
+    return resultBuf;
 
   } catch (gptErr) {
-    // Fallback: programmatic SVG studio backdrop
-    console.error(`[${jobId}] GPT-image-1 backdrop failed, falling back to SVG composite:`, gptErr);
+    // Fallback: programmatic SVG backdrop + original person cutout
+    console.error(`[${jobId}] GPT-image-1 edit failed, falling back to SVG composite:`, gptErr);
 
     let bgSvg: string;
     if (style === "studiowhite") {
@@ -604,7 +618,7 @@ async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Prom
       bgSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="#1a1a1a"/><defs><radialGradient id="s" cx="${cx}" cy="${cy}" r="${r}" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#e8e8e8"/><stop offset="70%" stop-color="#505050" stop-opacity="0.4"/><stop offset="100%" stop-color="#1a1a1a" stop-opacity="0"/></radialGradient></defs><rect width="${w}" height="${h}" fill="url(#s)"/></svg>`;
     }
     const bgBuf = await sharp(Buffer.from(bgSvg)).png().toBuffer();
-    return sharp(bgBuf).composite([{ input: fgBuf, blend: "over" }]).jpeg({ quality: 94 }).toBuffer();
+    return sharp(bgBuf).composite([{ input: maskedBuf, blend: "over" }]).jpeg({ quality: 94 }).toBuffer();
   }
 }
 
