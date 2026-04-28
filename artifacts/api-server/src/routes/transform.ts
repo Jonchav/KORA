@@ -557,27 +557,34 @@ async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Prom
   // Critically: prompt leads with face-preservation, then describes ONLY background/lighting.
   const EDIT_PROMPTS: Record<string, string> = {
     studiowhite: [
-      "Photo retouching — background replacement only.",
-      "PRESERVE EXACTLY: the subject's face, facial features, skin tone, hair color and texture, expression, clothing, and every detail of their appearance. Do not alter the person in any way.",
-      "CHANGE ONLY: replace the transparent background with a seamless clean white professional photography studio backdrop.",
-      "Lighting: add a soft large octabox key light from upper-left, silver reflector fill from the right creating gentle even illumination, subtle hair rim light separating the subject from the background.",
-      "Result must look like a professional LinkedIn headshot taken in a real studio. The person is identical to the input.",
+      "Professional photography studio portrait retouching — replace background only.",
+      "PRESERVE EXACTLY: the subject's face shape, skin tone, eye color, hair color and texture, expression, and all clothing details. The person must look identical to the input photo.",
+      "BACKDROP: replace the transparent background with a seamless white paper studio backdrop — bright white in the center softening to a slightly warm off-white toward the edges, with a subtle radial light falloff.",
+      "KEY LIGHT: a very large beauty dish or para-lite softbox directly above and 30° in front of the subject, casting a strong butterfly shadow under the nose and a clean shadow under the chin — creating facial depth and sculpting the cheekbones.",
+      "FILL LIGHT: medium silver reflector from below softening the chin shadow to a mid-tone gray. HAIR LIGHT: a strip-light from above-behind creating a bright specular highlight on the top and sides of the hair separating it from the background.",
+      "CATCH LIGHTS: bright oval catch lights visible in both eyes.",
+      "The result must look like a shot from a professional Manhattan headshot photographer. Rich depth, dimensional lighting, not flat.",
     ].join(" "),
 
     studiogray: [
-      "Photo retouching — background replacement only.",
-      "PRESERVE EXACTLY: the subject's face, facial features, skin tone, hair color and texture, expression, clothing, and every detail of their appearance. Do not change the person at all.",
-      "CHANGE ONLY: replace the transparent background with a seamless medium gray professional photography studio backdrop.",
-      "Lighting: dramatic Rembrandt split lighting — warm amber key light at 45° upper-left creates a small triangle of light on the cheek, deep rich shadow on the opposite side, warm golden rim light from behind.",
-      "Result must look like a high-end fashion editorial studio portrait. The person is identical to the input.",
+      "Professional photography studio portrait retouching — replace background only.",
+      "PRESERVE EXACTLY: the subject's face shape, skin tone, eye color, hair color and texture, expression, and all clothing details. The person must look identical to the input photo.",
+      "BACKDROP: replace the transparent background with a seamless medium-dark charcoal gray muslin backdrop, slightly lighter in the center behind the subject's head and darker at the edges, creating a natural vignette.",
+      "KEY LIGHT: a single large ARRI fresnel tungsten key light at 45° upper-left casting warm amber-golden light across the face. A bright triangle of warm light illuminates the left side of the face, cheekbone, and nose. The right side of the face falls into a rich deep shadow.",
+      "SHADOW: the shadow side of the face should be deep and moody — visible but not completely black, showing skin texture.",
+      "RIM LIGHT: a warm amber-copper strip-light from behind-right creating a luminous rim highlight on the hair, ear, and shoulder separating the subject from the dark backdrop.",
+      "CATCH LIGHTS: warm amber catch lights visible in both eyes.",
+      "The result must look like a dramatic Rembrandt-lit fashion editorial for a high-end magazine. Cinematic, warm, moody.",
     ].join(" "),
 
     studiodark: [
-      "Photo retouching — background replacement only.",
-      "PRESERVE EXACTLY: the subject's face, facial features, skin tone, hair color and texture, expression, clothing, and every detail of their appearance. Do not modify the person.",
-      "CHANGE ONLY: replace the transparent background with a dark charcoal seamless studio backdrop with a large white circular spotlight (Fresnel) projected on the wall behind the subject, creating a bright glowing circle with soft penumbra falloff.",
-      "Lighting on the subject: strong side key light, deep dramatic shadows, warm rim separation.",
-      "Result must look like a Vogue magazine high-fashion studio portrait. The person is identical to the input.",
+      "Professional photography studio portrait retouching — replace background only.",
+      "PRESERVE EXACTLY: the subject's face shape, skin tone, eye color, hair color and texture, expression, and all clothing details. The person must look identical to the input photo.",
+      "BACKDROP: replace the transparent background with a dark near-black charcoal seamless backdrop. Project a single large circular Fresnel spotlight onto the backdrop wall behind the subject — a crisp bright white circle of light centered above and behind the head, with a beautiful soft penumbra falloff fading to black.",
+      "KEY LIGHT: a strong narrow key light from the side (45° left) creating dramatic split lighting across the face. One side bright, one side in deep shadow.",
+      "RIM LIGHT: a warm copper-bronze rim light from behind-right creating a glowing outline on the hair and shoulder.",
+      "CATCH LIGHTS: sharp bright catch lights in both eyes.",
+      "The result must look exactly like an iconic Vogue or GQ high-fashion editorial portrait. Maximum drama, maximum contrast.",
     ].join(" "),
   };
 
@@ -590,16 +597,13 @@ async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Prom
   const [gptW, gptH] = gptSize.split("x").map(Number);
 
   try {
-    // Resize masked PNG to exactly gptW×gptH using "contain" (no crop, no distortion).
-    // Transparent padding is added in any letterbox areas — GPT treats those as part
-    // of the background mask and fills them with the studio backdrop seamlessly.
+    // Resize masked PNG to exactly gptW×gptH using "fill" so the person
+    // fills the entire frame with no letterbox bars.  The slight stretch is
+    // corrected by GPT which regenerates the background while keeping the
+    // person's features intact.
     const inputForGPT = await sharp(maskedBuf)
       .ensureAlpha()
-      .resize(gptW, gptH, {
-        fit: "contain",
-        position: "centre",
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      })
+      .resize(gptW, gptH, { fit: "fill" })
       .png()
       .toBuffer();
     const imageFile = await toFile(inputForGPT, "subject.png", { type: "image/png" });
