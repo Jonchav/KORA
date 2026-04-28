@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import multer from "multer";
 import sharp from "sharp";
 import Replicate from "replicate";
+import OpenAI, { toFile } from "openai";
 import fs from "fs";
 import path from "path";
 import os from "os";
@@ -37,6 +38,7 @@ const upload = multer({
 });
 
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
+const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export type Style = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa" | "dccomic" | "fortnite" | "luxury" | "hollywood" | "sims" | "timetraveler" | "matrix" | "titanic" | "starwars" | "godfather" | "madmax" | "interstellar" | "gatsby" | "wonderwoman" | "studiowhite" | "studiogray" | "studiodark";
 export type Format = "square" | "portrait" | "story" | "landscape";
@@ -516,11 +518,11 @@ async function runFluxImg2ImgPipeline(jobId: string, buf: Buffer, style: Style):
   throw lastErr;
 }
 
-// ── Studio Session: bg removal + programmatic studio backdrop ─────────────────
+// ── Studio Session: rembg → GPT-image-1 inpainting → studio backdrop ──────────
 async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Promise<Buffer> {
-  console.log(`[${jobId}] Studio pipeline: removing background (style=${style})...`);
+  console.log(`[${jobId}] Studio pipeline start (style=${style})...`);
 
-  // Step 1 — resize to a sensible working size
+  // Step 1 — resize to working size (max 1280px)
   const meta = await sharp(buf).metadata();
   const srcW = meta.width ?? 1024;
   const srcH = meta.height ?? 1024;
@@ -528,13 +530,12 @@ async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Prom
   const scale = Math.min(1, maxDim / Math.max(srcW, srcH));
   const w = Math.round(srcW * scale);
   const h = Math.round(srcH * scale);
-
   const resized = await sharp(buf).resize(w, h, { fit: "fill" }).png().toBuffer();
-  const dataUri = `data:image/png;base64,${resized.toString("base64")}`;
 
-  // Step 2 — remove background via Replicate rembg
-  let fgBuf: Buffer;
+  // Step 2 — remove background via Replicate rembg (PNG with alpha transparency)
+  let fgBuf: Buffer = resized;
   try {
+    const dataUri = `data:image/png;base64,${resized.toString("base64")}`;
     const output = await replicateRunWithRetry(
       "851-labs/background-remover:a029dff38972b5fda4ec5d75d7d1cd25aeff621d",
       { image: dataUri },
@@ -544,72 +545,58 @@ async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Prom
     const fgRes = await fetch(fgUrl);
     if (!fgRes.ok) throw new Error(`rembg fetch failed: ${fgRes.status}`);
     fgBuf = Buffer.from(await fgRes.arrayBuffer());
-    console.log(`[${jobId}] Background removed successfully.`);
+    console.log(`[${jobId}] Background removed. Sending to GPT-image-1...`);
   } catch (err) {
-    console.error(`[${jobId}] rembg failed, falling back to original:`, err);
-    fgBuf = resized; // graceful fallback: just use original
+    console.error(`[${jobId}] rembg failed, will use GPT without mask:`, err);
   }
 
-  // Step 3 — create studio backdrop (SVG-based, programmatic)
-  let bgSvg: string;
+  // Step 3 — GPT-image-1 inpainting: transparent areas → studio backdrop
+  const STUDIO_PROMPTS: Record<string, string> = {
+    studiowhite: "Replace the background with a seamless clean white photography studio backdrop. Add a soft octabox key light from the upper left with a silver reflector fill on the right, gentle catch lights in the eyes, subtle hair rim light. Professional LinkedIn headshot quality. Keep the person identical.",
+    studiogray:  "Replace the background with a seamless medium gray photography studio backdrop. Apply dramatic Rembrandt split lighting: strong key light at 45 degrees from upper-left creating a small triangle of light on the cheek, deep shadow on the opposite side, warm golden rim light from behind separating hair from background. Fashion editorial quality. Keep the person identical.",
+    studiodark:  "Replace the background with a dark charcoal studio backdrop with a large white circular spotlight projected on the wall behind the person, creating a bright glowing circle of light and a dramatic shadow cast to the side — exactly like high-fashion magazine studio photography. Strong side key light on the person with deep shadows. Keep the person identical.",
+  };
 
-  if (style === "studiowhite") {
-    bgSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
-      <defs>
-        <radialGradient id="bg" cx="50%" cy="45%" r="70%">
-          <stop offset="0%" stop-color="#f8f8f8"/>
-          <stop offset="60%" stop-color="#efefef"/>
-          <stop offset="100%" stop-color="#d8d8d8"/>
-        </radialGradient>
-      </defs>
-      <rect width="${w}" height="${h}" fill="url(#bg)"/>
-    </svg>`;
-  } else if (style === "studiogray") {
-    bgSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
-      <defs>
-        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#5a5a5a"/>
-          <stop offset="35%" stop-color="#8c8c8c"/>
-          <stop offset="65%" stop-color="#9a9a9a"/>
-          <stop offset="100%" stop-color="#606060"/>
-        </linearGradient>
-        <radialGradient id="vignette" cx="50%" cy="50%" r="65%">
-          <stop offset="0%" stop-color="white" stop-opacity="0.12"/>
-          <stop offset="100%" stop-color="black" stop-opacity="0.25"/>
-        </radialGradient>
-      </defs>
-      <rect width="${w}" height="${h}" fill="url(#bg)"/>
-      <rect width="${w}" height="${h}" fill="url(#vignette)"/>
-    </svg>`;
-  } else {
-    // studiodark — dark backdrop with large circular spotlight (like high-fashion editorial)
-    const spotR = Math.round(Math.min(w, h) * 0.44);
-    const spotX = Math.round(w * 0.50);
-    const spotY = Math.round(h * 0.44);
-    bgSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
-      <rect width="${w}" height="${h}" fill="#1a1a1a"/>
-      <defs>
-        <radialGradient id="spot" cx="${spotX}" cy="${spotY}" r="${spotR}" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"  stop-color="#e8e8e8" stop-opacity="1"/>
-          <stop offset="55%" stop-color="#b0b0b0" stop-opacity="0.7"/>
-          <stop offset="85%" stop-color="#707070" stop-opacity="0.25"/>
-          <stop offset="100%" stop-color="#1a1a1a" stop-opacity="0"/>
-        </radialGradient>
-      </defs>
-      <rect width="${w}" height="${h}" fill="url(#spot)"/>
-    </svg>`;
+  const prompt = STUDIO_PROMPTS[style] ?? STUDIO_PROMPTS.studiowhite;
+
+  // Pick the closest GPT-image-1 size (portrait / landscape / square)
+  const gptSize = (h > w * 1.1) ? "1024x1536" : (w > h * 1.1) ? "1536x1024" : "1024x1024";
+
+  try {
+    // Ensure the PNG has a proper alpha channel (required for inpainting)
+    const pngWithAlpha = await sharp(fgBuf).ensureAlpha().png().toBuffer();
+    const imageFile = await toFile(pngWithAlpha, "subject.png", { type: "image/png" });
+
+    const response = await openaiClient.images.edit({
+      model: "gpt-image-1",
+      image: imageFile,
+      prompt,
+      n: 1,
+      size: gptSize as "1024x1024" | "1024x1536" | "1536x1024",
+    });
+
+    const b64 = response.data?.[0]?.b64_json;
+    if (!b64) throw new Error("GPT-image-1 returned no image data");
+    const resultBuf = Buffer.from(b64, "base64");
+    console.log(`[${jobId}] GPT-image-1 studio result received (${gptSize}).`);
+    return resultBuf;
+
+  } catch (gptErr) {
+    // Fallback: Sharp compositing with programmatic studio backdrop
+    console.error(`[${jobId}] GPT-image-1 failed, falling back to Sharp composite:`, gptErr);
+
+    let bgSvg: string;
+    if (style === "studiowhite") {
+      bgSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><defs><radialGradient id="bg" cx="50%" cy="45%" r="70%"><stop offset="0%" stop-color="#f8f8f8"/><stop offset="60%" stop-color="#efefef"/><stop offset="100%" stop-color="#d8d8d8"/></radialGradient></defs><rect width="${w}" height="${h}" fill="url(#bg)"/></svg>`;
+    } else if (style === "studiogray") {
+      bgSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5a5a5a"/><stop offset="40%" stop-color="#8c8c8c"/><stop offset="100%" stop-color="#606060"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#bg)"/></svg>`;
+    } else {
+      const r = Math.round(Math.min(w, h) * 0.44), cx = Math.round(w * 0.5), cy = Math.round(h * 0.44);
+      bgSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="#1a1a1a"/><defs><radialGradient id="s" cx="${cx}" cy="${cy}" r="${r}" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#e8e8e8"/><stop offset="70%" stop-color="#505050" stop-opacity="0.4"/><stop offset="100%" stop-color="#1a1a1a" stop-opacity="0"/></radialGradient></defs><rect width="${w}" height="${h}" fill="url(#s)"/></svg>`;
+    }
+    const bgBuf = await sharp(Buffer.from(bgSvg)).png().toBuffer();
+    return sharp(bgBuf).composite([{ input: fgBuf, blend: "over" }]).jpeg({ quality: 94 }).toBuffer();
   }
-
-  const bgBuf = await sharp(Buffer.from(bgSvg)).png().toBuffer();
-
-  // Step 4 — composite person over backdrop
-  const result = await sharp(bgBuf)
-    .composite([{ input: fgBuf, blend: "over" }])
-    .jpeg({ quality: 94 })
-    .toBuffer();
-
-  console.log(`[${jobId}] Studio composite complete (style=${style}, ${w}x${h}).`);
-  return result;
 }
 
 function isFaceDetectionError(err: unknown): boolean {
