@@ -74,9 +74,14 @@ const CARD_PATTERNS: Record<StyleType, string> = {
   interstellar:"radial-gradient(ellipse at 60% 40%, rgba(251,191,36,0.12) 0%, transparent 50%), radial-gradient(ellipse at 30% 70%, rgba(14,165,233,0.08) 0%, transparent 40%)",
   gatsby:      "radial-gradient(ellipse at 50% 30%, rgba(202,138,4,0.15) 0%, transparent 60%)",
   wonderwoman: "repeating-linear-gradient(135deg, rgba(220,38,38,0.05) 0px, rgba(220,38,38,0.05) 1px, transparent 1px, transparent 10px)",
-  studiowhite: "radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.6) 0%, rgba(200,210,220,0.2) 60%)",
-  studiogray:  "radial-gradient(ellipse at 35% 40%, rgba(200,200,200,0.12) 0%, transparent 55%)",
-  studiodark:  "radial-gradient(ellipse at 30% 50%, rgba(255,255,255,0.06) 0%, transparent 50%)",
+  studiowhite:    "radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.6) 0%, rgba(200,210,220,0.2) 60%)",
+  studiogray:     "radial-gradient(ellipse at 35% 40%, rgba(200,200,200,0.12) 0%, transparent 55%)",
+  studiodark:     "radial-gradient(ellipse at 30% 50%, rgba(255,255,255,0.06) 0%, transparent 50%)",
+  studiobw:       "radial-gradient(ellipse at 50% 40%, rgba(200,200,200,0.15) 0%, transparent 60%)",
+  studiogold:     "radial-gradient(ellipse at 40% 35%, rgba(251,191,36,0.25) 0%, rgba(180,83,9,0.12) 50%, transparent 70%)",
+  studiocrimson:  "radial-gradient(ellipse at 35% 40%, rgba(220,38,38,0.25) 0%, rgba(127,29,29,0.1) 55%, transparent 70%)",
+  studioduo:      "linear-gradient(135deg, rgba(30,64,175,0.2) 0%, transparent 50%, rgba(194,65,12,0.2) 100%)",
+  studiopurple:   "radial-gradient(ellipse at 45% 35%, rgba(168,85,247,0.25) 0%, rgba(134,25,143,0.1) 50%, transparent 70%)",
 };
 
 const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
@@ -293,6 +298,52 @@ const CARD_DECORATIONS: Record<StyleType, React.ReactNode> = {
       <div className="absolute bottom-2 right-2 text-base text-zinc-500/50">🖤</div>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-zinc-600/30 shadow-[0_0_20px_rgba(255,255,255,0.04)]" />
       <div className="absolute top-4 right-4 w-3 h-3 rounded-full bg-white/15 blur-sm" />
+    </>
+  ),
+  studiobw: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-zinc-300/70 tracking-widest">B&W GLAMOUR</div>
+      <div className="absolute bottom-2 right-2 text-base text-zinc-400/50">🎬</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.12)]" />
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 w-8 h-px bg-white/30" />
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-8 h-px bg-white/20" />
+    </>
+  ),
+  studiogold: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-amber-400/80 tracking-widest">GOLD LUXURY</div>
+      <div className="absolute bottom-2 right-2 text-base text-amber-400/60">✨</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-amber-500/40 shadow-[0_0_35px_rgba(251,191,36,0.25)]" />
+      <div className="absolute top-4 right-4 w-4 h-4 rounded-full bg-amber-400/40 blur-md" />
+      <div className="absolute bottom-5 left-4 w-2 h-2 rounded-full bg-yellow-300/30 blur-sm" />
+    </>
+  ),
+  studiocrimson: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-red-400/80 tracking-widest">CRIMSON</div>
+      <div className="absolute bottom-2 right-2 text-base text-red-500/60">🔴</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-red-700/40 shadow-[0_0_30px_rgba(220,38,38,0.2)]" />
+      <div className="absolute top-3 right-3 w-4 h-4 rounded-full bg-red-600/35 blur-md" />
+      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-red-900/15 to-transparent" />
+    </>
+  ),
+  studioduo: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-blue-400/70 tracking-widest">DUO TONE</div>
+      <div className="absolute bottom-2 right-2 text-base text-orange-400/60">🎭</div>
+      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-900/25 via-transparent to-orange-900/25" />
+      <div className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-blue-400/40 blur-sm" />
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-orange-400/40 blur-sm" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-14 bg-white/10" />
+    </>
+  ),
+  studiopurple: (
+    <>
+      <div className="absolute top-2 left-2 text-[9px] font-mono text-purple-400/80 tracking-widest">ELECTRIC</div>
+      <div className="absolute bottom-2 right-2 text-base text-purple-400/60">💜</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-purple-600/40 shadow-[0_0_35px_rgba(168,85,247,0.25)]" />
+      <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-fuchsia-500/30 blur-md" />
+      <div className="absolute bottom-4 left-4 w-3 h-3 rounded-full bg-violet-400/25 blur-sm" />
     </>
   ),
 };

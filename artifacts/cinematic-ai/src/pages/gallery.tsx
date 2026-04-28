@@ -35,6 +35,11 @@ const STYLE_LABELS: Record<string, string> = {
   studiowhite: "Studio White",
   studiogray: "Studio Gray",
   studiodark: "Studio Dark",
+  studiobw: "Studio B&W",
+  studiogold: "Studio Gold",
+  studiocrimson: "Studio Crimson",
+  studioduo: "Studio Duo",
+  studiopurple: "Studio Purple",
 };
 
 const FORMAT_LABELS: Record<string, string> = {

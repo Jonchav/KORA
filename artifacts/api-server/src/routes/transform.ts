@@ -40,7 +40,7 @@ const upload = multer({
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-export type Style = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa" | "dccomic" | "fortnite" | "luxury" | "hollywood" | "sims" | "timetraveler" | "matrix" | "titanic" | "starwars" | "godfather" | "madmax" | "interstellar" | "gatsby" | "wonderwoman" | "studiowhite" | "studiogray" | "studiodark";
+export type Style = "comic" | "anime" | "popart" | "watercolor" | "oilpainting" | "cyberpunk" | "pixel" | "clay" | "toy" | "vaporwave" | "fantasy" | "gtasa" | "dccomic" | "fortnite" | "luxury" | "hollywood" | "sims" | "timetraveler" | "matrix" | "titanic" | "starwars" | "godfather" | "madmax" | "interstellar" | "gatsby" | "wonderwoman" | "studiowhite" | "studiogray" | "studiodark" | "studiobw" | "studiogold" | "studiocrimson" | "studioduo" | "studiopurple";
 export type Format = "square" | "portrait" | "story" | "landscape";
 
 const FORMAT_RATIOS: Record<Format, string> = {
@@ -229,6 +229,11 @@ const FACE_TO_MANY_CONFIG: Record<Style, { style: string; prompt: string; denois
   studiowhite: { style: "Photographic", prompt: "" },
   studiogray:  { style: "Photographic", prompt: "" },
   studiodark:  { style: "Photographic", prompt: "" },
+  studiobw:    { style: "Photographic", prompt: "" },
+  studiogold:  { style: "Photographic", prompt: "" },
+  studiocrimson:{ style: "Photographic", prompt: "" },
+  studioduo:   { style: "Photographic", prompt: "" },
+  studiopurple:{ style: "Photographic", prompt: "" },
 };
 
 const SEEDREAM_PROMPTS: Record<Style, string> = {
@@ -288,6 +293,11 @@ const SEEDREAM_PROMPTS: Record<Style, string> = {
   studiowhite: "",
   studiogray:  "",
   studiodark:  "",
+  studiobw:    "",
+  studiogold:  "",
+  studiocrimson:"",
+  studioduo:   "",
+  studiopurple:"",
 };
 
 interface JobRecord {
@@ -410,6 +420,11 @@ const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
   studiowhite: "",
   studiogray:  "",
   studiodark:  "",
+  studiobw:    "",
+  studiogold:  "",
+  studiocrimson:"",
+  studioduo:   "",
+  studiopurple:"",
 };
 
 /**
@@ -420,6 +435,7 @@ const IMG2IMG_INSTRUCTIONS: Record<Style, string> = {
  */
 const STUDIO_STYLES: Set<Style> = new Set([
   "studiowhite", "studiogray", "studiodark",
+  "studiobw", "studiogold", "studiocrimson", "studioduo", "studiopurple",
 ]);
 
 const FLUX_IMG2IMG_STYLES: Set<Style> = new Set([
@@ -585,6 +601,61 @@ async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Prom
       "RIM LIGHT: a warm copper-bronze rim light from behind-right creating a glowing outline on the hair and shoulder.",
       "CATCH LIGHTS: sharp bright catch lights in both eyes.",
       "The result must look exactly like an iconic Vogue or GQ high-fashion editorial portrait. Maximum drama, maximum contrast.",
+    ].join(" "),
+
+    studiobw: [
+      "Professional photography studio portrait retouching — replace background only, convert to black and white.",
+      "PRESERVE EXACTLY: the subject's face shape, facial features, expression, and clothing silhouette. The person must look identical to the input photo.",
+      "BACKDROP: seamless deep black background.",
+      "LIGHTING & CONVERSION: convert the entire image to rich, high-contrast black and white. Apply classic Hollywood glamour lighting — a large soft overhead key light creating beautiful sculptural shadows under the cheekbones, nose, and chin. Strong shadow on one side of the face. Luminous highlights on the forehead, cheekbones, and nose bridge.",
+      "HAIR: bright specular rim light creating a brilliant white halo around the hair.",
+      "SKIN: smooth rich gray tones with deep contrast, like a 1940s Hurrell or Karsh portrait.",
+      "CATCH LIGHTS: sharp white catch lights in both eyes.",
+      "The result must look like an iconic Golden Age Hollywood glamour portrait — timeless, dramatic, museum quality.",
+    ].join(" "),
+
+    studiogold: [
+      "Professional photography studio portrait retouching — replace background only.",
+      "PRESERVE EXACTLY: the subject's face shape, skin tone, eye color, hair color and texture, expression, and all clothing details. The person must look identical to the input photo.",
+      "BACKDROP: replace the transparent background with a deep warm black-brown seamless backdrop with a subtle golden-amber radial glow behind the subject's head.",
+      "KEY LIGHT: a large golden-amber tungsten key light from 30° upper-left bathing the face in warm bronze-gold light. Rich warm tones on the skin, glowing highlights on cheekbones and forehead.",
+      "FILL: a subtle warm fill from the right keeping shadows luminous and golden rather than cold.",
+      "RIM LIGHT: an intense bright golden rim light from directly behind creating a luxurious golden halo around the hair and silhouette — like liquid gold.",
+      "CATCH LIGHTS: warm golden catch lights in both eyes.",
+      "The result must look like a luxury perfume or high-end jewelry campaign — opulent, warm, radiant, editorial.",
+    ].join(" "),
+
+    studiocrimson: [
+      "Professional photography studio portrait retouching — replace background only.",
+      "PRESERVE EXACTLY: the subject's face shape, skin tone, eye color, hair color and texture, expression, and all clothing details. The person must look identical to the input photo.",
+      "BACKDROP: replace the transparent background with a very dark charcoal-black seamless backdrop with a deep crimson-red radial bloom of light behind the subject.",
+      "KEY LIGHT: a strong narrow red-tinted key light from 45° upper-left casting dramatic split lighting — illuminating one half of the face in deep crimson tones while the other half falls into near-black shadow.",
+      "RIM LIGHT: a vivid bright red/scarlet strip light from behind-right creating a burning crimson rim outline on the hair, ear, and shoulder.",
+      "FILL: minimal cold dark fill keeping the shadow side almost completely black for maximum drama.",
+      "CATCH LIGHTS: deep red catch lights in both eyes.",
+      "The result must look like a high-fashion horror editorial or avant-garde magazine cover — intense, dangerous, bold.",
+    ].join(" "),
+
+    studioduo: [
+      "Professional photography studio portrait retouching — replace background only.",
+      "PRESERVE EXACTLY: the subject's face shape, skin tone, eye color, hair color and texture, expression, and all clothing details. The person must look identical to the input photo.",
+      "BACKDROP: replace the transparent background with a near-black dark backdrop featuring a subtle split of two colored glows — cool icy cyan-blue on the left side and warm burnt orange on the right side, blending in the center.",
+      "KEY LIGHT: a vivid icy cyan/teal key light from the left side of the face — cold blue-white highlights on the left cheekbone, eyebrow, and nose bridge.",
+      "COUNTER LIGHT: a strong warm burnt orange light from the right side creating a split duotone effect — orange-warm on the right half of the face, cold cyan on the left.",
+      "This creates a dramatic cinematic duotone split — each side of the face lit by a contrasting color temperature.",
+      "CATCH LIGHTS: split catch lights — cyan in one eye, orange in the other.",
+      "The result must look like a cinematic movie poster or cyberpunk editorial — electric, futuristic, striking.",
+    ].join(" "),
+
+    studiopurple: [
+      "Professional photography studio portrait retouching — replace background only.",
+      "PRESERVE EXACTLY: the subject's face shape, skin tone, eye color, hair color and texture, expression, and all clothing details. The person must look identical to the input photo.",
+      "BACKDROP: replace the transparent background with a deep dark purple-black seamless backdrop with a vivid electric violet/magenta radial glow bloom of light behind the subject's head — like a color-gelled studio light hitting the backdrop.",
+      "KEY LIGHT: a soft large key light from slightly above-front giving the face good base exposure, but tinted with a slight magenta/rose hue.",
+      "RIM LIGHT: an intensely vivid electric violet/purple strip light from behind creating a dramatic purple halo around the entire silhouette — hair, shoulders, and ears glowing with rich violet light.",
+      "FILL LIGHT: a faint cool magenta fill from the opposite side.",
+      "CATCH LIGHTS: vivid violet/purple catch lights visible in both eyes.",
+      "The result must look like an electric pop-art editorial or a vibrant luxury beauty campaign — bold, vivid, unforgettable.",
     ].join(" "),
   };
 

@@ -9,6 +9,7 @@ export const styleEnum = pgEnum("style", [
   "matrix", "titanic", "starwars", "godfather", "madmax", "interstellar",
   "gatsby", "wonderwoman",
   "studiowhite", "studiogray", "studiodark",
+  "studiobw", "studiogold", "studiocrimson", "studioduo", "studiopurple",
 ]);
 
 export const formatEnum = pgEnum("format", ["square", "portrait", "story", "landscape"]);
