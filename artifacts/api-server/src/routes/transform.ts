@@ -590,12 +590,16 @@ async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Prom
   const [gptW, gptH] = gptSize.split("x").map(Number);
 
   try {
-    // Resize masked PNG to EXACTLY the GPT input dimensions before sending.
-    // This prevents GPT from receiving an image with mismatched aspect ratio,
-    // which would cause it to stretch/squish the person.
+    // Resize masked PNG to exactly gptW×gptH using "contain" (no crop, no distortion).
+    // Transparent padding is added in any letterbox areas — GPT treats those as part
+    // of the background mask and fills them with the studio backdrop seamlessly.
     const inputForGPT = await sharp(maskedBuf)
       .ensureAlpha()
-      .resize(gptW, gptH, { fit: "cover", position: "centre" })
+      .resize(gptW, gptH, {
+        fit: "contain",
+        position: "centre",
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
       .png()
       .toBuffer();
     const imageFile = await toFile(inputForGPT, "subject.png", { type: "image/png" });
@@ -611,15 +615,10 @@ async function runStudioPipeline(jobId: string, buf: Buffer, style: Style): Prom
     const b64 = response.data?.[0]?.b64_json;
     if (!b64) throw new Error("GPT-image-1 edit returned no data");
 
-    // Resize GPT output back to original dimensions so the result
-    // always matches the input image proportions exactly.
-    const resultBuf = await sharp(Buffer.from(b64, "base64"))
-      .resize(w, h, { fit: "cover", position: "centre" })
-      .jpeg({ quality: 95 })
-      .toBuffer();
-
-    console.log(`[${jobId}] GPT-image-1 edit complete (${gptSize} → ${w}x${h}, style=${style}).`);
-    return resultBuf;
+    // Return GPT's output at its native dimensions — no second resize.
+    // Re-encoding degrades the lighting/quality that GPT produced.
+    console.log(`[${jobId}] GPT-image-1 edit complete (${gptSize}, style=${style}).`);
+    return Buffer.from(b64, "base64");
 
   } catch (gptErr) {
     // Fallback: programmatic SVG backdrop + original person cutout
